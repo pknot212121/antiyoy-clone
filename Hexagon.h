@@ -21,14 +21,17 @@ public:
         numberOfTriangles=4;
         centerX = x;
         centerY = y;
+        radius = a;
         numberOfIndices =12;
     }
     
     std::vector<float> vertices;
     int numberOfTriangles;
     int numberOfIndices;
-    int centerX;
-    int centerY;
+    float centerX;
+    float centerY;
+    float radius;
+
 
     unsigned int indices[12] = {
     0, 1, 2,   

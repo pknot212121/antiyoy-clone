@@ -57,12 +57,21 @@ int main()
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
-    std::cout << "AAA";
-    Hexagon hexagon = Hexagon(-0.8f,0.0f,0.3f);
-    Hexagon hexagon2 = Hexagon(0.8f,0.0f,0.3f);
+    float a = 0.3f;
+    float x = 0.0f;
+    float y = 0.0f;
+    float dx = a* 3/2;
+    float dy = a*sqrt(3)/2;
+    Hexagon hexagon = Hexagon(x,y,a);
 
-    std::vector<Hexagon> hexagons = {hexagon,hexagon2};
-    Grid grid = Grid(hexagons);
+    Grid grid = Grid(hexagon);
+    grid.AddHexagon(1,1);
+    grid.AddHexagon(0,1);
+    grid.AddHexagon(0,-1);
+    grid.AddHexagon(1,0);;
+    grid.AddHexagon(-1,0);
+    grid.AddHexagon(-1,-1);
+    grid.SaveSetup();
 
     // hexagon.vertices.insert( hexagon.vertices.end(), hexagon2.vertices.begin(), hexagon2.vertices.end() );
     
