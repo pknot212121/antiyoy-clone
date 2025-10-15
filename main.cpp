@@ -53,7 +53,7 @@ int main()
 
     // build and compile our shader zprogram
     // ------------------------------------
-    Shader ourShader("4.2.texture.vs", "4.2.texture.fs");
+    
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -72,6 +72,8 @@ int main()
     grid.AddHexagon(-1,0);
     grid.AddHexagon(-1,-1);
     grid.SaveSetup();
+
+
 
     // hexagon.vertices.insert( hexagon.vertices.end(), hexagon2.vertices.begin(), hexagon2.vertices.end() );
     
@@ -120,7 +122,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw our first triangle
-        ourShader.use();
+        // ourShader.use();
         // glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         // //glDrawArrays(GL_TRIANGLES, 0, 6);
         // glDrawElements(GL_TRIANGLES, 3*hexagon.numberOfTriangles, GL_UNSIGNED_INT, 0);
