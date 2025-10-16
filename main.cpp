@@ -12,6 +12,7 @@
 #include <vector>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow *window);
 
 // settings
@@ -42,6 +43,7 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -65,13 +67,13 @@ int main()
     Hexagon hexagon = Hexagon(x,y,a);
 
     Grid grid = Grid(hexagon);
-    grid.AddHexagon(1,1);
+    grid.AddHexagon(1,0);
     grid.AddHexagon(0,1);
-    grid.AddHexagon(0,-1);
-    grid.AddHexagon(1,0);;
-    grid.AddHexagon(-1,0);
-    grid.AddHexagon(-1,-1);
     grid.SaveSetup();
+    grid.CheckWhichHexagon(700,700,800,800);
+    // grid.CheckWhichHexagon(700,700,800,800);
+    Man man = Man(hexagon);
+    man.SaveMan();
 
 
 
@@ -128,7 +130,7 @@ int main()
         // glDrawElements(GL_TRIANGLES, 3*hexagon.numberOfTriangles, GL_UNSIGNED_INT, 0);
         grid.Draw();
         // glBindVertexArray(0); // no need to unbind it every time 
- 
+        man.DrawMan();
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -162,4 +164,37 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+void CheckWhichHexagon(int x, int y, int SCR_WIDTH, int SCR_HEIGHT)
+    {
+        float normalisedX = ((float)x - ((float)SCR_WIDTH)/2)/(float)SCR_WIDTH * 2;
+        float normalisedY = ((float)y - ((float)SCR_HEIGHT)/2) * (-1) / (float)SCR_HEIGHT * 2;
+        float a = 0.3f;
+        std::cout << "NORMALIZEDX: " << normalisedX << " NORMALIZEDY: " << normalisedY << std::endl;
+
+        float r = (sqrt(3)*normalisedY-normalisedX) / a / 3;
+        float q = (sqrt(3)*normalisedY+normalisedX) / a / 3;
+
+        int r_rounded = (int)r, q_rounded = (int)q;
+
+        if(abs(r-r_rounded)>=0.5){ r_rounded+= (r/abs(r));}
+        if(abs(q-q_rounded)>=0.5){ q_rounded+= (q/abs(q));}
+
+        
+        std::cout << "R: " << r_rounded << " Q: " << q_rounded << std::endl;
+    }
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        std::cout << "MYSZKA!!!" << std::endl;
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        std::cout << "X: " << xpos << " Y: " << ypos << std::endl;
+        CheckWhichHexagon(xpos,ypos,800,800);
+        
+    }
+        
 }

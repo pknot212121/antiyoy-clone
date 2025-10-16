@@ -11,6 +11,8 @@ And also indices of potential triangles
 class Hexagon{
 
 public:
+    Hexagon(){}
+
     Hexagon(float x, float y, float a){
         vertices.push_back(x+a); vertices.push_back(y); vertices.push_back(0.0f);
         vertices.push_back(x+a/2); vertices.push_back(y+sqrt(3)*a/2); vertices.push_back(0.0f);

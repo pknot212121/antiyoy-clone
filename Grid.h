@@ -2,7 +2,7 @@
 #include "Hexagon.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader_s.h"
+#include "Man.h"
 
 /*
 A class containg a vector of Hexagons to concatentate all vertices and indices into one
@@ -25,50 +25,15 @@ public:
         allVertices.insert(allVertices.end(), hex.vertices.begin(), hex.vertices.end());
         allIndices.insert(allIndices.end(),copiedIndices.begin(),copiedIndices.end());
 
-        Hexagon hexInside = Hexagon(hex.centerX,hex.centerY,hex.radius*0.9);
+        Hexagon hexInside = Hexagon(hex.centerX,hex.centerY,hex.radius*0.95);
         allVerticesInside.insert(allVerticesInside.end(), hexInside.vertices.begin(), hexInside.vertices.end());
 
         insideShader = Shader("4.2.texture.vs", "4.2.texture.fs");
-        ourShader = Shader("inside.vs","inside.fs");
+        ourShader = Shader("inside.vs","flashing.fs");
     }
 
-    void Draw()
+    void SaveSetup()
     {
-        glBindVertexArray(VAOs[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
-        ourShader.use();
-        glDrawElements(GL_TRIANGLES, 3*4 * hexagons.size(), GL_UNSIGNED_INT, 0);
-
-        glBindVertexArray(VAOs[1]);
-        insideShader.use();
-        glDrawElements(GL_TRIANGLES, 3*4*hexagons.size(), GL_UNSIGNED_INT,0);
-        // for(int i=0;i<hexagons.size();i++)
-        // {
-        //     glBindVertexArray(VAOs[i]);
-        //     glMultiDrawArrays(GL_LINES,0,)
-        // }
-    }
-
-    void AddHexagon(int q,int r)
-    {
-        // std::cout << "CENTERX: " << centerX << " , CENTERY: " << centerY << " , RADIUS: " << radius << std::endl; 
-        Hexagon hex = Hexagon(centerX+radius*3/2*q-radius*3/2*r,centerY+radius*sqrt(3)/2*q+radius*sqrt(3)/2*r,radius);
-        int indiceOffset = hexagons.size()*6;
-        std::vector<unsigned int> copiedIndices;
-
-        for(int i=0;i<hex.numberOfIndices;i++){
-            copiedIndices.push_back(hex.indices[i]+indiceOffset);
-        }
-
-        allVertices.insert(allVertices.end(), hex.vertices.begin(), hex.vertices.end());
-        allIndices.insert(allIndices.end(),copiedIndices.begin(),copiedIndices.end());
-        hexagons.push_back(hex);
-
-        Hexagon hexInside = Hexagon(hex.centerX,hex.centerY,hex.radius*0.9);
-        allVerticesInside.insert(allVerticesInside.end(), hexInside.vertices.begin(), hexInside.vertices.end());
-    }
-
-    void SaveSetup(){
         glGenVertexArrays(2, VAOs);
         glGenBuffers(2, VBOs);
         glGenBuffers(2, EBOs);
@@ -101,41 +66,61 @@ public:
         glEnableVertexAttribArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0); 
         glBindVertexArray(0); 
+    }
 
-        // VAOs.reserve(hexagons.size());
-        // VBOs.reserve(hexagons.size());
-        // EBOs.reserve(hexagons.size());
-        // glGenVertexArrays(hexagons.size(), std::data(VAOs));
-        // glGenBuffers(hexagons.size(),std::data(VBOs));
-        // glGenBuffers(hexagons.size(),std::data(EBOs));
+    void Draw()
+    {
+        glBindVertexArray(VAOs[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        ourShader.use();
+        glDrawElements(GL_TRIANGLES, 3*4 * hexagons.size(), GL_UNSIGNED_INT, 0);
 
+        glBindVertexArray(VAOs[1]);
+        insideShader.setFloat("uFlashSpeed",10.0f);
+        insideShader.setVec4("uFlashColour",0.5f);
+        insideShader.use();
+        glDrawElements(GL_TRIANGLES, 3*4*hexagons.size(), GL_UNSIGNED_INT,0);
         // for(int i=0;i<hexagons.size();i++)
         // {
-        //     std::vector<float> vertices = hexagons[i].vertices;
         //     glBindVertexArray(VAOs[i]);
-
-        //     glBindBuffer(GL_ARRAY_BUFFER, VBOs[i]);
-        //     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertices.size(), std::data(vertices), GL_STATIC_DRAW);
-
-        //     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[i]);
-        //     // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof())
-        //     glVertexAttribPointer(i+1,2,GL_FLOAT,GL_FALSE,2*sizeof(float),(void*)0);
-        //     glEnableVertexAttribArray(0);
-        //     glBindBuffer(GL_ARRAY_BUFFER, 0); 
-        //     glBindVertexArray(0);
+        //     glMultiDrawArrays(GL_LINES,0,)
         // }
-
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        
-
-        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        
     }
+
+    void AddHexagon(int q,int r)
+    {
+        // std::cout << "CENTERX: " << centerX << " , CENTERY: " << centerY << " , RADIUS: " << radius << std::endl; 
+        Hexagon hex = Hexagon(centerX+radius*3/2*q-radius*3/2*r,centerY+radius*sqrt(3)/2*q+radius*sqrt(3)/2*r,radius);
+        int indiceOffset = hexagons.size()*6;
+        std::vector<unsigned int> copiedIndices;
+
+        for(int i=0;i<hex.numberOfIndices;i++){
+            copiedIndices.push_back(hex.indices[i]+indiceOffset);
+        }
+
+        allVertices.insert(allVertices.end(), hex.vertices.begin(), hex.vertices.end());
+        allIndices.insert(allIndices.end(),copiedIndices.begin(),copiedIndices.end());
+        hexagons.push_back(hex);
+
+        Hexagon hexInside = Hexagon(hex.centerX,hex.centerY,hex.radius*0.9);
+        allVerticesInside.insert(allVerticesInside.end(), hexInside.vertices.begin(), hexInside.vertices.end());
+    }
+
+    void CheckWhichHexagon(int x, int y, int SCR_WIDTH, int SCR_HEIGHT)
+    {
+        float normalisedX = ((float)x - ((float)SCR_WIDTH)/2)/(float)SCR_WIDTH * 2;
+        float normalisedY = ((float)y - ((float)SCR_HEIGHT)/2) * (-1) / (float)SCR_HEIGHT * 2;
+        float a = hexagons[0].radius;
+        std::cout << "NORMALIZEDX: " << normalisedX << " NORMALIZEDY: " << normalisedY << std::endl;
+
+        float r = (normalisedY / (3/2) - normalisedX / (sqrt(3)/2)) / a;
+        float q = (normalisedY / (3/2) + normalisedX / (sqrt(3)/2)) / a;
+        std::cout << "R: " << r << " Q: " << q << std::endl;
+        float stampx = centerX+radius*3/2*q-radius*3/2*r;
+    }
+
+
+
 
     std::vector<Hexagon> hexagons;
     std::vector<float> allVertices;
@@ -147,4 +132,7 @@ public:
     float centerX;
     float centerY;
     float radius;
+
+
+    
 };
