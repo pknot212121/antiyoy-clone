@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -89,9 +90,9 @@ public:
     { 
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
     }
-    void setVec4f(const std::string &name, float value) const
+    void setVec4f(const std::string &name, float val1, float val2, float val3, float val4) const
     { 
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
+        glUniform4f(glGetUniformLocation(ID, name.c_str()),val1,val2,val3,val4); 
     }
 
 private:
