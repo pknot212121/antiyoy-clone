@@ -48,12 +48,29 @@ void SpriteRenderer::DrawHexagon(Hexagon hex)
     this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.x-hex.a, hex.y-hex.a * sqrt(3)/2), glm::vec2(hex.a * 2, hex.a * sqrt(3)), 0.0f, hex.color);
 }
 
+void SpriteRenderer::DrawWarrior(Warrior war)
+{
+    Hexagon hex = war.hex;
+    this -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(hex.x-hex.a/2, hex.y-hex.a * sqrt(3)/2 + hex.a/2), glm::vec2(hex.a,hex.a), 0.0f, glm::vec3(1.0f,1.0f,1.0f));
+}
+
 void SpriteRenderer::DrawGrid(Grid grid)
 {
     for(Hexagon hex : grid.hexagons){
         this-> DrawHexagon(hex);
     }
+    // for(Warrior war : grid.warriors){
+    //     this -> DrawWarrior(war);
+    // }
+    for (auto i = grid.axialToWar.begin(); i != grid.axialToWar.end(); i++)
+    {
+        // std::cout << i->first << " \t\t\t" << i->second << std::endl;
+        this -> DrawWarrior(i->second);
+    }
+        
 }
+
+
 
 
 

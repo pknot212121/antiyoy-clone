@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "Hexagon.h"
+#include "Grid.h"
+#include<iostream>
 
 // Represents the current state of the game
 enum GameState {
@@ -21,7 +23,11 @@ public:
     // game state
     GameState               State;	
     bool                    Keys[1024];
+    bool                    mousePressed;
+    float                   cursorPosX;
+    float                   cursorPosY;
     unsigned int            Width, Height;
+    Grid grid;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
     ~Game();

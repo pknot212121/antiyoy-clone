@@ -34,6 +34,16 @@ void Game::Init()
     // load textures
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
+
+
+    this -> grid = Grid(300.0f,300.0f,100.0f);
+    grid.AddHexagon(1,0);
+    grid.AddHexagon(-1,0);
+    grid.AddHexagon(0,1);
+    grid.AddHexagon(0,2);
+    grid.AddHexagon(0,-1);
+    grid.AddHexagon(-1,-1);
+    grid.AddWarrior(0,1);
 }
 
 void Game::Update(float dt)
@@ -44,6 +54,16 @@ void Game::Update(float dt)
 void Game::ProcessInput(float dt)
 {
    
+    if (this->State == GAME_ACTIVE)
+    {
+        // move playerboard
+        if (this->mousePressed)
+        {
+            std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
+            grid.CheckWhichHexagon((float)cursorPosX,(float)cursorPosY);
+            this -> mousePressed = false;
+        }
+    }
 }
 
 void Game::Render()
@@ -52,11 +72,8 @@ void Game::Render()
     // Renderer->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(300.0f, 200.0f), glm::vec2(300.0f, 300.0f * sqrt(3)/2), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     // Renderer -> DrawHexagon(100.0f,100.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f));
     // Renderer -> DrawHexagon(Hexagon(200.0f,200.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f)));
-    Grid grid = Grid(300.0f,300.0f,100.0f);
-    grid.AddHexagon(1,0);
-    grid.AddHexagon(1,1);
     Renderer -> DrawGrid(grid);
 
-    Renderer -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(500.0f, 0.0f), glm::vec2(100.0f, 100.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    // Renderer -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(500.0f, 0.0f), glm::vec2(100.0f, 100.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
 }

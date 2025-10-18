@@ -9,6 +9,7 @@
 // GLFW function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
 // The Width of the screen
 const unsigned int SCREEN_WIDTH = 800;
@@ -40,7 +41,9 @@ int main(int argc, char *argv[])
     }
 
     glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
 
     // OpenGL configuration
     // --------------------
@@ -103,6 +106,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         else if (action == GLFW_RELEASE)
             Anti->Keys[key] = false;
     }
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS){
+        Anti -> mousePressed = true;
+        double xpos, ypos;
+        glfwGetCursorPos(window, &xpos, &ypos);
+        Anti -> cursorPosX = xpos;
+        Anti -> cursorPosY = ypos;
+    }
+    // else if(action == GLFW_RELEASE){
+    //     Anti -> mousePressed = false;
+    // }
+        
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)

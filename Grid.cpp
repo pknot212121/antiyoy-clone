@@ -11,6 +11,8 @@ Grid::Grid(float _startX, float _startY, float hexRadius)
     startX = _startX;
     startY = _startY;
     radius = hexRadius;
+
+    axialToHex[Axial(0,0)] = hex;
 }
 
 void Grid::AddHexagon(int q,int r)
@@ -19,17 +21,19 @@ void Grid::AddHexagon(int q,int r)
     hex.q = q;
     hex.r = r;
     hexagons.push_back(hex);
+    axialToHex[Axial(q,r)] = hex;
 }
 
-void Grid::CheckWhichHexagon(int x, int y, int SCR_WIDTH, int SCR_HEIGHT)
+void Grid::CheckWhichHexagon(float x, float y)
 {
-    float normalisedX = ((float)x - ((float)SCR_WIDTH)/2)/(float)SCR_WIDTH * 2;
-    float normalisedY = ((float)y - ((float)SCR_HEIGHT)/2) * (-1) / (float)SCR_HEIGHT * 2;
-    float a = 0.3f;
+    float dx = x - startX;
+    float dy = y - startY;
+    // float a = 0.3f;
     // std::cout << "NORMALIZEDX: " << normalisedX << " NORMALIZEDY: " << normalisedY << std::endl;
 
-    float r = (sqrt(3)*normalisedY-normalisedX) / a / 3;
-    float q = (sqrt(3)*normalisedY+normalisedX) / a / 3;
+
+    float q = (sqrt(3)*dy-dx) / radius / 3 * (-1);
+    float r = (sqrt(3)*dy+dx) / radius / 3 * (-1);
 
     // std::cout << "R: " << r << " Q: " << q << std::endl;
     int r_rounded = (int)r, q_rounded = (int)q;
@@ -39,23 +43,78 @@ void Grid::CheckWhichHexagon(int x, int y, int SCR_WIDTH, int SCR_HEIGHT)
     if(std::abs(q-q_rounded)>=0.5){ q_rounded+= (q/std::abs(q));}
 
     
-    std::cout << "roundedR: " << r_rounded << " roundedQ: " << q_rounded << std::endl;
+    std::cout << "roundedQ: " << q_rounded << " roundedR: " << r_rounded << std::endl;
     if(!clicked)
     {
-        // if(CheckIfHexIsInGrid(q_rounded,r_rounded)){SaveHexagonFromCoords(q_rounded,r_rounded); }
+        if(CheckIfHexIsInGrid(q_rounded,r_rounded) && CheckIfAnyWarIsInHex(q_rounded,r_rounded)){
+            clicked = true;
+            moving = axialToWar[Axial(q_rounded,r_rounded)];
+            
+        }
+        std::cout << "--------------------------------------------" << std::endl;
+            for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
+                std::cout << i->first.q << i->first.r << " -- " << i->second.hex.q << i->second.hex.r << std::endl;
+        std::cout << "--------------------------------------------" << std::endl;
     }
-    else {clicked=false;}
+    else {
+        
+        if(CheckIfHexIsInGrid(q_rounded,r_rounded))
+        {
+            Hexagon &hex = axialToHex[Axial(q_rounded,r_rounded)];
+            axialToWar.erase(Axial(moving.hex.q,moving.hex.r));
+            moving.hex = hex;
+            axialToWar[Axial(q_rounded,r_rounded)] = moving;
+            std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
+            std::cout << "--------------------------------------------" << std::endl;
+            for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
+                std::cout << i->first.q << i->first.r << "   " << i->second.hex.q << i->second.hex.r << std::endl;
+            std::cout << "--------------------------------------------" << std::endl;
+            
+        }   
+        clicked=false;
+    
+    }
     
 }
 
 bool Grid::CheckIfHexIsInGrid(int q, int r)
 {
-    for(Hexagon hex : hexagons){
-        if(hex.q == q && hex.r == r){
-            std::cout << "HEX on Q=" << q << " and R=" << r << " FOUND" << std::endl;
-            return true;
-        }
+    auto it = axialToHex.find(Axial(q,r));
+    if(it!=axialToHex.end()){
+        std::cout << "HEX IN GRID" << std::endl;
+        return true;
     }
-    std::cout << "NOT FOUND" << std::endl;
+    std::cout << "HEX NOT IN GRID" << std::endl;
     return false;
+}
+
+bool Grid::CheckIfAnyWarIsInHex(int q, int r)
+{
+    if(warriors.size()<1){
+        std::cout << "NO WARRIORS ON LIST!!!" << std::endl;
+        return false;
+    }
+    if(axialToWar.size()<1){
+        std::cout << "NO WARRIORS ON DICT!!!" << std::endl;
+        return false;
+    }
+    auto it = axialToWar.find(Axial(q,r));
+    if(it!=axialToWar.end()){
+        std::cout << "WARRIOR FOUND" << std::endl;
+        return true;
+    }
+    else{
+        std::cout << "WARRIOR NOT FOUND" << std::endl;
+        return false;
+    }
+}
+
+void Grid::AddWarrior(int q, int r)
+{
+    if(CheckIfHexIsInGrid(q,r) && !CheckIfAnyWarIsInHex(q,r)){
+        Warrior war = Warrior(axialToHex[Axial(q,r)]);
+        warriors.push_back(war);
+        axialToWar[Axial(q,r)] = war;
+        std::cout << q << r << war.hex.q << war.hex.r << std::endl;
+    }
 }
