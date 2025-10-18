@@ -6,7 +6,8 @@
 #include "Color.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "shader_s.h"
+#include "shader.h"
+#include "resource_manager.h"
 
 
 /*
@@ -33,7 +34,7 @@ public:
     int q=0;
     int r=0;
     unsigned int VAO,VBO,EBO;
-    Shader outlineShader;
+    Shader outlineShader = Shader();
 
     unsigned int indices[12] = {
     0, 1, 2,   

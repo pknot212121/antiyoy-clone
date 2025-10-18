@@ -26,8 +26,8 @@ public:
     std::vector<float> allVerticesInside;
     std::vector<unsigned int> allIndices;
     unsigned int VBOs[2], VAOs[2], EBOs[2];
-    Shader outlineShader;
-    Shader insideShader;
+    Shader outlineShader = Shader();
+    Shader insideShader = Shader();
     float centerX;
     float centerY;
     float radius;

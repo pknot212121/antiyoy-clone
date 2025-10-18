@@ -1,5 +1,6 @@
 #include "Grid.h"
 #include<cmath>
+#include<iostream>
 
 
 Grid::Grid(Hexagon hex)
@@ -17,9 +18,9 @@ Grid::Grid(Hexagon hex)
 
     Hexagon hexInside = Hexagon(hex.centerX,hex.centerY,hex.radius*0.95,"Pink");
     allVerticesInside.insert(allVerticesInside.end(), hexInside.vertices.begin(), hexInside.vertices.end());
-
-    insideShader = Shader("shaders/4.2.texture.vs", "shaders/4.2.texture.fs");
-    outlineShader = Shader("shaders/inside.vs","shaders/inside.fs");
+    outlineShader = ResourceManager::LoadShader("shaders/inside.vs","shaders/inside.fs",nullptr, "outline");
+    insideShader = ResourceManager::LoadShader("shaders/4.2.texture.vs", "shaders/4.2.texture.fs",nullptr, "inside");
+    
 }
 
 void Grid::SaveSetup()
@@ -64,12 +65,12 @@ void Grid::Draw()
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
     glBindVertexArray(VAOs[0]);
 
-    outlineShader.use();
-    outlineShader.setVec4f("ourColor",greenValue,0.0f,0.0f,1.0f);
+    outlineShader.Use();
+    outlineShader.SetVector4f("ourColor",greenValue,0.0f,0.0f,1.0f);
     glDrawElements(GL_TRIANGLES, 3*4 * hexagons.size(), GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(VAOs[1]);
-    insideShader.use();
+    insideShader.Use();
     glDrawElements(GL_TRIANGLES, 3*4*hexagons.size(), GL_UNSIGNED_INT,0);
     
     if(clicked)

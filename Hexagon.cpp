@@ -15,7 +15,8 @@ Hexagon::Hexagon(float x, float y, float a, std::string col)
     radius = a;
     numberOfIndices =12;
     color = Color(col);
-    outlineShader = Shader("shaders/inside.vs","shaders/flashing.fs");
+    outlineShader = ResourceManager::LoadShader("shaders/inside.vs","shaders/flashing.fs",nullptr, "clicked");
+    
 }
 
 void Hexagon::SaveHexagon()
@@ -43,8 +44,8 @@ void Hexagon::DrawHexagon()
     float timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
     glBindVertexArray(VAO);
-    outlineShader.use();
-    outlineShader.setVec4f("ourColor",greenValue,greenValue,greenValue,1.0f);
+    outlineShader.Use();
+    outlineShader.SetVector4f("ourColor",greenValue,greenValue,greenValue,1.0f);
     glDrawElements(GL_TRIANGLES, 3*4, GL_UNSIGNED_INT, 0);
 }
 
