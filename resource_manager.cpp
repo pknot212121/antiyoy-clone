@@ -3,7 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <map>
-
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 // Instantiate static variables
@@ -11,24 +11,24 @@ std::map<std::string, Texture2D>    ResourceManager::Textures;
 std::map<std::string, Shader>       ResourceManager::Shaders;
 
 
-Shader ResourceManager::LoadShader(const char *vShaderFile, const char *fShaderFile, const char *gShaderFile, std::string name)
+Shader& ResourceManager::LoadShader(const char *vShaderFile, const char *fShaderFile, const char *gShaderFile, std::string name)
 {
     Shaders[name] = loadShaderFromFile(vShaderFile, fShaderFile, gShaderFile);
     return Shaders[name];
 }
 
-Shader ResourceManager::GetShader(std::string name)
+Shader& ResourceManager::GetShader(std::string name)
 {
     return Shaders[name];
 }
 
-Texture2D ResourceManager::LoadTexture(const char *file, bool alpha, std::string name)
+Texture2D& ResourceManager::LoadTexture(const char *file, bool alpha, std::string name)
 {
     Textures[name] = loadTextureFromFile(file, alpha);
     return Textures[name];
 }
 
-Texture2D ResourceManager::GetTexture(std::string name)
+Texture2D& ResourceManager::GetTexture(std::string name)
 {
     return Textures[name];
 }

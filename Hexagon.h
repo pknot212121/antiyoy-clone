@@ -3,7 +3,6 @@
 #include <list>
 #include <vector>
 // #include <string>
-#include "Color.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "shader.h"
@@ -19,22 +18,19 @@ class Hexagon{
 public:
 
     Hexagon(){}
-    Hexagon(float x, float y, float a, std::string col);
-    void SaveHexagon();
-    void DrawHexagon();
+    Hexagon(float x, float y, float a, glm::vec3 col);
 
     
     std::vector<float> vertices;
     int numberOfTriangles;
     int numberOfIndices;
-    float centerX;
-    float centerY;
-    float radius;
-    Color color;
+    float x;
+    float y;
+    float a;
+    glm::vec3 color;
     int q=0;
     int r=0;
     unsigned int VAO,VBO,EBO;
-    Shader outlineShader = Shader();
 
     unsigned int indices[12] = {
     0, 1, 2,   
