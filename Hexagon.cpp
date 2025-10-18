@@ -1,15 +1,50 @@
 #include "Hexagon.h"
 #include <iostream>
 
-Hexagon::Hexagon(float x, float y, float R){
-    float y2 = y-R;
-    float sixty = 3.14/2;
-    startX = 10.0f;
-    startY = y;
-    for(int i=0;i<6;i++){
-        points.push_back(Point(x,y));
-        points.push_back(Point(x*cos(sixty*i)-y2*sin(sixty*i),x*sin(sixty*i)+y2*cos(sixty*i)));
-        points.push_back(Point(x*cos(sixty*(i+1))-y2*sin(sixty*(i+1)),x*sin(sixty*(i+1))+y2*cos(sixty*(i+1))));
-        std::cout << points.size();
-    }
+Hexagon::Hexagon(float x, float y, float a, std::string col)
+{
+    vertices.push_back(x+a); vertices.push_back(y); vertices.push_back(0.0f);
+    vertices.push_back(x+a/2); vertices.push_back(y+sqrt(3)*a/2); vertices.push_back(0.0f);
+    vertices.push_back(x-a/2); vertices.push_back(y+sqrt(3)*a/2); vertices.push_back(0.0f);
+    vertices.push_back(x-a); vertices.push_back(y); vertices.push_back(0.0f);
+    vertices.push_back(x-a/2); vertices.push_back(y-sqrt(3)*a/2); vertices.push_back(0.0f);
+    vertices.push_back(x+a/2); vertices.push_back(y-sqrt(3)*a/2); vertices.push_back(0.0f);
+    numberOfTriangles=4;
+    centerX = x;
+    centerY = y;
+    radius = a;
+    numberOfIndices =12;
+    color = Color(col);
+    outlineShader = Shader("shaders/inside.vs","shaders/flashing.fs");
 }
+
+void Hexagon::SaveHexagon()
+{
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * 6, std::data(vertices), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*12, std::data(indices), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    glBindVertexArray(0); 
+}
+
+void Hexagon::DrawHexagon()
+{
+    float timeValue = glfwGetTime();
+    float greenValue = sin(timeValue) / 2.0f + 0.5f;
+    glBindVertexArray(VAO);
+    outlineShader.use();
+    outlineShader.setVec4f("ourColor",greenValue,greenValue,greenValue,1.0f);
+    glDrawElements(GL_TRIANGLES, 3*4, GL_UNSIGNED_INT, 0);
+}
+

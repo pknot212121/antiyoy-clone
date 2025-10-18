@@ -1,10 +1,5 @@
-// #include <glad/glad.h>
-// #include <GLFW/glfw3.h>
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
-// #include "shader_s.h"
 #include "Hexagon.h"
 #include "Grid.h"
 #include <iostream>
@@ -55,8 +50,6 @@ int main()
     grid.AddHexagon(1,0);
     grid.AddHexagon(0,1);
     grid.SaveSetup();
-    Man man = Man(grid.hexagons[0]);
-    man.SaveMan();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -64,7 +57,6 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         grid.Draw();
-        man.DrawMan();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
