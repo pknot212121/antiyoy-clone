@@ -21,21 +21,10 @@ public:
     Hexagon(float x, float y, float a, glm::vec3 col);
 
     
-    std::vector<float> vertices;
-    int numberOfTriangles;
-    int numberOfIndices;
     float x;
     float y;
     float a;
     glm::vec3 color;
     int q=0;
     int r=0;
-    unsigned int VAO,VBO,EBO;
-
-    unsigned int indices[12] = {
-    0, 1, 2,   
-    2, 3, 4,
-    2, 4, 5,
-    5, 0, 2,    
-        }; 
 };

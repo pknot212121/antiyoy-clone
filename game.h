@@ -26,6 +26,7 @@ public:
     bool                    mousePressed;
     float                   cursorPosX;
     float                   cursorPosY;
+    int                     scroll = 0;
     unsigned int            Width, Height;
     Grid grid;
     // constructor/destructor
