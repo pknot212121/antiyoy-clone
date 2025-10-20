@@ -73,6 +73,22 @@ void Game::ProcessInput(float dt)
             grid.Resize(1.1);
             scroll = 0;
         }
+        if (this->Keys[GLFW_KEY_W])
+        {
+            grid.Move(0,10);
+        }
+        if (this->Keys[GLFW_KEY_A])
+        {
+            grid.Move(10,0);
+        }
+        if (this->Keys[GLFW_KEY_S])
+        {
+            grid.Move(0,-10);
+        }
+        if (this->Keys[GLFW_KEY_D])
+        {
+            grid.Move(-10,0);
+        }
 
     }
 }

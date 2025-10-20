@@ -129,3 +129,14 @@ void Grid::Resize(float scale)
         i->second.a*=scale;
     }
 }
+
+void Grid::Move(float dx, float dy)
+{
+    startX+=dx;
+    startY+=dy;
+    for(auto i = axialToHex.begin(); i!=axialToHex.end(); i++)
+    {
+        i->second.x+=dx;
+        i->second.y+=dy;
+    }
+}

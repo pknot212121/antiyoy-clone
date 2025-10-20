@@ -26,6 +26,7 @@ public:
     bool CheckIfHexIsInGrid(int q, int r);
     bool CheckIfAnyWarIsInHex(int q, int r);
     void Resize(float scale);
+    void Move(float dx, float dy);
 
     float startX;
     float startY;
