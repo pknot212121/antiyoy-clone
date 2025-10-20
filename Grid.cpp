@@ -7,7 +7,6 @@
 Grid::Grid(float _startX, float _startY, float hexRadius)
 {
     Hexagon hex = Hexagon(_startX,_startY,hexRadius,glm::vec3(0.5f,0.5f,0.5f));
-    hexagons.push_back(hex);
     startX = _startX;
     startY = _startY;
     radius = hexRadius;
@@ -20,7 +19,6 @@ void Grid::AddHexagon(int q,int r)
     Hexagon hex = Hexagon(startX+radius*3/2*q-radius*3/2*r,startY-(radius*sqrt(3)/2*q+radius*sqrt(3)/2*r),radius,glm::vec3(0.5f,0.5f,0.5f));
     hex.q = q;
     hex.r = r;
-    hexagons.push_back(hex);
     axialToHex[Axial(q,r)] = hex;
 }
 
@@ -90,10 +88,6 @@ bool Grid::CheckIfHexIsInGrid(int q, int r)
 
 bool Grid::CheckIfAnyWarIsInHex(int q, int r)
 {
-    if(warriors.size()<1){
-        std::cout << "NO WARRIORS ON LIST!!!" << std::endl;
-        return false;
-    }
     if(axialToWar.size()<1){
         std::cout << "NO WARRIORS ON DICT!!!" << std::endl;
         return false;
@@ -113,7 +107,6 @@ void Grid::AddWarrior(int q, int r)
 {
     if(CheckIfHexIsInGrid(q,r) && !CheckIfAnyWarIsInHex(q,r)){
         Warrior war = Warrior(axialToHex[Axial(q,r)]);
-        warriors.push_back(war);
         axialToWar[Axial(q,r)] = war;
         std::cout << q << r << war.hex.q << war.hex.r << std::endl;
     }
@@ -140,3 +133,36 @@ void Grid::Move(float dx, float dy)
         i->second.y+=dy;
     }
 }
+
+template<typename S>
+auto select_random(const S &s, size_t n) {
+  auto it = std::begin(s);
+  // 'advance' the iterator n times
+  std::advance(it,n);
+  return it;
+}
+
+void Grid::GenerateMap(int count)
+{
+    srand((unsigned) time(NULL));
+    std::set<Axial> coords = {Axial(0,0),Axial(1,0),Axial(-1,0),Axial(0,1),Axial(0,-1),Axial(1,1),Axial(-1,-1)};
+    std::vector<Axial> chosen = {Axial(0,0)};
+    for(int i=0;i<count;i++)
+    {
+        for(auto ch : chosen){
+            coords.erase(ch);
+        }
+        auto r = rand() % coords.size(); // not _really_ random
+        Axial n = *select_random(coords, r);
+        chosen.push_back(n);
+        AddHexagon(n.q,n.r);
+        coords.insert(Axial(n.q+1,n.r));
+        coords.insert(Axial(n.q-1,n.r));
+        coords.insert(Axial(n.q,n.r+1));
+        coords.insert(Axial(n.q,n.r-1));
+        coords.insert(Axial(n.q+1,n.r+1));
+        coords.insert(Axial(n.q-1,n.r-1));
+        std::cout << "CHOSEN: (" << n.q << " , " << n.r << ")\n";  
+    }
+}
+

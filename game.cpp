@@ -37,13 +37,15 @@ void Game::Init()
 
 
     this -> grid = Grid(300.0f,300.0f,100.0f);
-    grid.AddHexagon(1,0);
-    grid.AddHexagon(-1,0);
-    grid.AddHexagon(0,1);
-    grid.AddHexagon(0,2);
-    grid.AddHexagon(0,-1);
-    grid.AddHexagon(-1,-1);
-    grid.AddWarrior(0,1);
+    // grid.AddHexagon(1,0);
+    // grid.AddHexagon(-1,0);
+    // grid.AddHexagon(0,1);
+    // grid.AddHexagon(0,2);
+    // grid.AddHexagon(0,-1);
+    // grid.AddHexagon(-1,-1);
+    // grid.AddWarrior(0,1);
+    grid.GenerateMap(100);
+    grid.AddWarrior(0,0);
 }
 
 void Game::Update(float dt)

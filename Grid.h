@@ -7,6 +7,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <map>
+#include <cstdlib>
+#include <set>
+#include <algorithm>
 /*
 A class containg a vector of Hexagons to concatentate all vertices and indices into one
 I am not sure if it is an optiml way
@@ -27,15 +30,14 @@ public:
     bool CheckIfAnyWarIsInHex(int q, int r);
     void Resize(float scale);
     void Move(float dx, float dy);
+    void GenerateMap(int count);
 
     float startX;
     float startY;
     float radius;
     Hexagon clickedHex;
-    std::vector<Hexagon> hexagons;
     bool clicked;
     std::map<Axial,Hexagon> axialToHex;
-    std::vector<Warrior> warriors;
     std::map<Axial,Warrior> axialToWar;
     Warrior moving;
     
