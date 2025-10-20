@@ -137,10 +137,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     std::cout << "SCROLL: " << xoffset << " " << yoffset << std::endl;
     if(yoffset==-1)
     {
-        
+        Anti->scroll = -1;
     }
     else if(yoffset==1)
     {
-
+        Anti->scroll = 1;
     }
 }

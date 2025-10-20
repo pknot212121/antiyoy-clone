@@ -25,6 +25,7 @@ public:
     void CheckWhichHexagon(float x, float y);
     bool CheckIfHexIsInGrid(int q, int r);
     bool CheckIfAnyWarIsInHex(int q, int r);
+    void Resize(float scale);
 
     float startX;
     float startY;

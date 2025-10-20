@@ -118,3 +118,14 @@ void Grid::AddWarrior(int q, int r)
         std::cout << q << r << war.hex.q << war.hex.r << std::endl;
     }
 }
+
+void Grid::Resize(float scale)
+{
+    radius = radius*scale;
+    for(auto i = axialToHex.begin(); i!=axialToHex.end(); i++)
+    {
+        i->second.x = startX+radius*3/2*i->second.q-radius*3/2*i->second.r;
+        i->second.y = startY-(radius*sqrt(3)/2*i->second.q+radius*sqrt(3)/2*i->second.r);
+        i->second.a*=scale;
+    }
+}
