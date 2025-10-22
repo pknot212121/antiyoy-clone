@@ -22,7 +22,7 @@ void Grid::AddHexagon(int q,int r)
     axialToHex[Axial(q,r)] = hex;
 }
 
-void Grid::CheckWhichHexagon(float x, float y)
+void Grid::TryToClickOnHexagon(float x, float y)
 {
     float dx = x - startX;
     float dy = y - startY;
@@ -56,10 +56,11 @@ void Grid::CheckWhichHexagon(float x, float y)
     }
     else {
         
-        if(CheckIfHexIsInGrid(q_rounded,r_rounded))
+        if(CheckIfHexIsInGrid(q_rounded,r_rounded) && !CheckIfAnyWarIsInHex(q_rounded,r_rounded))
         {
             Hexagon &hex = axialToHex[Axial(q_rounded,r_rounded)];
             axialToWar.erase(Axial(moving.hex.q,moving.hex.r));
+            axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex.color;
             moving.hex = hex;
             axialToWar[Axial(q_rounded,r_rounded)] = moving;
             std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
@@ -103,12 +104,46 @@ bool Grid::CheckIfAnyWarIsInHex(int q, int r)
     }
 }
 
+void Grid::AddPlayer(glm::vec3 color, std::string _name)
+{
+    namesToPlayers[_name] = Player(color,_name);
+}
+
+void Grid::AddHexToPlayer(int q, int r, std::string name)
+{   
+    if(CheckIfHexIsInGrid(q,r))
+    {
+        namesToPlayers[name].hexagons.insert(Axial(q,r));
+        axialToHex[Axial(q,r)].color = namesToPlayers[name].color;
+    }
+}
+
+void Grid::AddWarToPlayer(int q, int r, std::string name)
+{   
+    namesToPlayers[name].warriors.insert(Axial(q,r));
+    axialToWar[Axial(q,r)].hex.color = namesToPlayers[name].color;
+}
+
+
 void Grid::AddWarrior(int q, int r)
 {
     if(CheckIfHexIsInGrid(q,r) && !CheckIfAnyWarIsInHex(q,r)){
         Warrior war = Warrior(axialToHex[Axial(q,r)]);
         axialToWar[Axial(q,r)] = war;
         std::cout << q << r << war.hex.q << war.hex.r << std::endl;
+    }
+}
+
+void Grid::AddWarriorFirst()
+{
+    for(auto i = axialToHex.begin(); i!=axialToHex.end(); i++)
+    {
+        Axial ax = i->first;
+        if(!CheckIfAnyWarIsInHex(ax.q,ax.r))
+        {
+            axialToWar[ax] = Warrior(i->second);
+            break;
+        }
     }
 }
 
@@ -162,7 +197,7 @@ void Grid::GenerateMap(int count)
         coords.insert(Axial(n.q,n.r-1));
         coords.insert(Axial(n.q+1,n.r+1));
         coords.insert(Axial(n.q-1,n.r-1));
-        std::cout << "CHOSEN: (" << n.q << " , " << n.r << ")\n";  
+        // std::cout << "CHOSEN: (" << n.q << " , " << n.r << ")\n";  
     }
 }
 

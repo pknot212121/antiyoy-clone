@@ -1,9 +1,9 @@
 #ifndef GRID_H
 #define GRID_H
-#include <vector>
 #include "Hexagon.h"
 #include "warrior.h"
 #include "axial.h"
+#include "player.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <map>
@@ -24,8 +24,13 @@ public:
 
     void AddHexagon(int q,int r);
     void AddWarrior(int q, int r);
-    
-    void CheckWhichHexagon(float x, float y);
+    void AddWarriorFirst();
+
+    void AddPlayer(glm::vec3 _color, std::string name);
+    void AddHexToPlayer(int q, int r, std::string name);
+    void AddWarToPlayer(int q, int r, std::string name);
+
+    void TryToClickOnHexagon(float x, float y);
     bool CheckIfHexIsInGrid(int q, int r);
     bool CheckIfAnyWarIsInHex(int q, int r);
     void Resize(float scale);
@@ -39,6 +44,7 @@ public:
     bool clicked;
     std::map<Axial,Hexagon> axialToHex;
     std::map<Axial,Warrior> axialToWar;
+    std::map<std::string,Player> namesToPlayers;
     Warrior moving;
     
 };
