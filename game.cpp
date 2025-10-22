@@ -36,21 +36,19 @@ void Game::Init()
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
 
     this -> grid = Grid(300.0f,300.0f,100.0f);
-    grid.AddHexagon(1,0);
-    grid.AddHexagon(-1,0);
-    grid.AddHexagon(0,1);
-    grid.AddHexagon(0,2);
-    grid.AddHexagon(0,-1);
-    grid.AddHexagon(-1,-1);
-    grid.AddWarrior(0,1);
+    // grid.AddHexagon(1,0);
+    // grid.AddHexagon(-1,0);
+    // grid.AddHexagon(0,1);
+    // grid.AddHexagon(0,2);
+    // grid.AddHexagon(0,-1);
+    // grid.AddHexagon(-1,-1);
+    grid.GenerateMap(100);
+
     grid.AddPlayer(glm::vec3(0.0f,1.0f,0.0f),"tk2");
-    grid.AddHexToPlayer(0,0,"tk2");
-    grid.AddHexToPlayer(0,1,"tk2");
-    grid.AddWarToPlayer(0,1,"tk2");
-    // grid.GenerateMap(100);
-    // grid.AddWarriorFirst();
-    // grid.AddWarriorFirst();
-    // grid.AddWarriorFirst();
+    grid.AddPlayer(glm::vec3(1.0f,0.0f,0.0f),"tk3");
+
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
 }
 
 void Game::Update(float dt)

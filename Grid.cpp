@@ -63,11 +63,11 @@ void Grid::TryToClickOnHexagon(float x, float y)
             axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex.color;
             moving.hex = hex;
             axialToWar[Axial(q_rounded,r_rounded)] = moving;
-            std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
-            std::cout << "--------------------------------------------" << std::endl;
-            for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
-                std::cout << i->first.q << i->first.r << "   " << i->second.hex.q << i->second.hex.r << std::endl;
-            std::cout << "--------------------------------------------" << std::endl;
+            // std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
+            // std::cout << "--------------------------------------------" << std::endl;
+            // for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
+            //     std::cout << i->first.q << i->first.r << "   " << i->second.hex.q << i->second.hex.r << std::endl;
+            // std::cout << "--------------------------------------------" << std::endl;
             
         }   
         clicked=false;
@@ -90,16 +90,16 @@ bool Grid::CheckIfHexIsInGrid(int q, int r)
 bool Grid::CheckIfAnyWarIsInHex(int q, int r)
 {
     if(axialToWar.size()<1){
-        std::cout << "NO WARRIORS ON DICT!!!" << std::endl;
+        // std::cout << "NO WARRIORS ON DICT!!!" << std::endl;
         return false;
     }
     auto it = axialToWar.find(Axial(q,r));
     if(it!=axialToWar.end()){
-        std::cout << "WARRIOR FOUND" << std::endl;
+        // std::cout << "WARRIOR FOUND" << std::endl;
         return true;
     }
     else{
-        std::cout << "WARRIOR NOT FOUND" << std::endl;
+        // std::cout << "WARRIOR NOT FOUND" << std::endl;
         return false;
     }
 }
@@ -110,7 +110,7 @@ void Grid::AddPlayer(glm::vec3 color, std::string _name)
 }
 
 void Grid::AddHexToPlayer(int q, int r, std::string name)
-{   
+{  
     if(CheckIfHexIsInGrid(q,r))
     {
         namesToPlayers[name].hexagons.insert(Axial(q,r));
@@ -120,8 +120,17 @@ void Grid::AddHexToPlayer(int q, int r, std::string name)
 
 void Grid::AddWarToPlayer(int q, int r, std::string name)
 {   
+    AddWarrior(Axial(q,r));
     namesToPlayers[name].warriors.insert(Axial(q,r));
     axialToWar[Axial(q,r)].hex.color = namesToPlayers[name].color;
+    AddHexToPlayer(q,r,name);
+}
+
+void Grid::AddWarToPlayer(Axial ax, std::string name)
+{   AddWarrior(ax);
+    namesToPlayers[name].warriors.insert(ax);
+    axialToWar[ax].hex.color = namesToPlayers[name].color;
+    AddHexToPlayer(ax.q,ax.r,name);
 }
 
 
@@ -132,6 +141,29 @@ void Grid::AddWarrior(int q, int r)
         axialToWar[Axial(q,r)] = war;
         std::cout << q << r << war.hex.q << war.hex.r << std::endl;
     }
+}
+void Grid::AddWarrior(Axial ax)
+{
+    if(CheckIfHexIsInGrid(ax.q,ax.r) && !CheckIfAnyWarIsInHex(ax.q,ax.r)){
+        Warrior war = Warrior(axialToHex[Axial(ax.q,ax.r)]);
+        axialToWar[Axial(ax.q,ax.r)] = war;
+        std::cout << ax.q << ax.r << war.hex.q << war.hex.r << std::endl;
+    }
+}
+
+auto selectRandomMap(const std::map<Axial,Hexagon> &s, size_t n) {
+  auto it = std::begin(s);
+  // 'advance' the iterator n times
+  std::advance(it,n);
+  return it->first;
+}
+
+Axial Grid::GetRandomHex()
+{
+    // srand((unsigned) time(NULL));
+    auto r = rand() % axialToHex.size();
+    Axial n = selectRandomMap(axialToHex, r);
+    return n;
 }
 
 void Grid::AddWarriorFirst()

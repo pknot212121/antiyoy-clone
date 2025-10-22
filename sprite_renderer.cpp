@@ -57,6 +57,9 @@ void SpriteRenderer::DrawGrid(Grid grid)
 {
     for (auto i = grid.axialToHex.begin(); i != grid.axialToHex.end(); i++){
         this-> DrawHexagon(i->second);
+        // std::cout << "#####################" << std::endl;
+        // std::cout << i->second.color.r << std::endl;
+        // std::cout << "#####################" << std::endl;
     }
     // for(Warrior war : grid.warriors){
     //     this -> DrawWarrior(war);

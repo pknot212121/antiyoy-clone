@@ -24,12 +24,15 @@ public:
 
     void AddHexagon(int q,int r);
     void AddWarrior(int q, int r);
+    void AddWarrior(Axial ax);
     void AddWarriorFirst();
 
     void AddPlayer(glm::vec3 _color, std::string name);
     void AddHexToPlayer(int q, int r, std::string name);
     void AddWarToPlayer(int q, int r, std::string name);
+    void AddWarToPlayer(Axial ax, std::string name);
 
+    Axial GetRandomHex();
     void TryToClickOnHexagon(float x, float y);
     bool CheckIfHexIsInGrid(int q, int r);
     bool CheckIfAnyWarIsInHex(int q, int r);
