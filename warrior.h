@@ -5,6 +5,6 @@ class Warrior
 {
     public:
     Warrior(){}
-    Warrior(Hexagon _hex): hex(_hex) {}
-    Hexagon hex;
+    Warrior(Hexagon *_hex): hex(_hex) {}
+    Hexagon *hex;
 };
