@@ -51,6 +51,10 @@ void Game::Init()
     grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
     grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
     grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
 }
 
 void Game::Update(float dt)

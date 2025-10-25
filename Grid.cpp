@@ -58,6 +58,33 @@ void Grid::TryToClickOnHexagon(float x, float y)
         
         if(CheckIfHexIsInGrid(q_rounded,r_rounded) && !CheckIfAnyWarIsInHex(q_rounded,r_rounded))
         {
+            Axial ax = Axial(q_rounded,r_rounded);
+            for (auto i = namesToPlayers.begin(); i != namesToPlayers.end(); i++)
+            {
+                std::set<Axial>::iterator hexIt = i->second.hexagons.find(ax);
+                if(hexIt != i->second.hexagons.end()){
+                    i->second.hexagons.erase(ax);
+                }
+            }
+            
+            for (auto i = namesToPlayers.begin(); i != namesToPlayers.end(); i++)
+            {
+                // if(i->second.hexagons.find(ax) != i->second.hexagons.end()){i->second.hexagons.erase(ax);}
+                std::set<Axial>::iterator warIt = i->second.warriors.find(Axial(moving.hex.q,moving.hex.r));
+                if(warIt != i->second.warriors.end()){
+                    i->second.hexagons.insert(ax);
+                    i->second.warriors.erase(warIt); 
+                    i->second.warriors.insert(ax); 
+                }
+                
+
+
+                std::cout<<"PLAYER: " << i->first << std::endl;
+                std::cout << "HEXES: " << std::endl;
+                for(auto const& j : i->second.hexagons){std::cout << j;}
+                std::cout << "WARRIORS: " << std::endl;
+                for(auto const& j : i->second.warriors){std::cout << j;}
+            }
             Hexagon &hex = axialToHex[Axial(q_rounded,r_rounded)];
             axialToWar.erase(Axial(moving.hex.q,moving.hex.r));
             axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex.color;
@@ -160,6 +187,7 @@ Axial Grid::GetRandomHex()
     int i=0;
     while(CheckIfAnyWarIsInHex(n.q,n.r) && i<axialToHex.size())
     {
+        r = rand() % axialToHex.size();
         n = selectRandomMap(axialToHex, r);
         i++;
     }

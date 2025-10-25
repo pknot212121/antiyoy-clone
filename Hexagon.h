@@ -25,6 +25,7 @@ public:
     float y;
     float a;
     glm::vec3 color;
+    
     int q=0;
     int r=0;
 };
