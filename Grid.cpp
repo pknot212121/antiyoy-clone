@@ -51,7 +51,7 @@ void Grid::TryToClickOnHexagon(float x, float y)
         }
         std::cout << "--------------------------------------------" << std::endl;
             for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
-                std::cout << i->first.q << i->first.r << " -- " << i->second.hex->q << i->second.hex->r << std::endl;
+                std::cout << i->first.q << i->first.r << " -- " << i->second.hex.q << i->second.hex.r << std::endl;
         std::cout << "--------------------------------------------" << std::endl;
     }
     else {
@@ -59,9 +59,9 @@ void Grid::TryToClickOnHexagon(float x, float y)
         if(CheckIfHexIsInGrid(q_rounded,r_rounded) && !CheckIfAnyWarIsInHex(q_rounded,r_rounded))
         {
             Hexagon &hex = axialToHex[Axial(q_rounded,r_rounded)];
-            axialToWar.erase(Axial(moving.hex->q,moving.hex->r));
-            axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex->color;
-            moving.hex = &hex;
+            axialToWar.erase(Axial(moving.hex.q,moving.hex.r));
+            axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex.color;
+            moving.hex = hex;
             axialToWar[Axial(q_rounded,r_rounded)] = moving;
             // std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
             // std::cout << "--------------------------------------------" << std::endl;
@@ -122,14 +122,14 @@ void Grid::AddWarToPlayer(int q, int r, std::string name)
 {   
     AddWarrior(Axial(q,r));
     namesToPlayers[name].warriors.insert(Axial(q,r));
-    axialToWar[Axial(q,r)].hex->color = namesToPlayers[name].color;
+    axialToWar[Axial(q,r)].hex.color = namesToPlayers[name].color;
     AddHexToPlayer(q,r,name);
 }
 
 void Grid::AddWarToPlayer(Axial ax, std::string name)
 {   AddWarrior(ax);
     namesToPlayers[name].warriors.insert(ax);
-    axialToWar[ax].hex->color = namesToPlayers[name].color;
+    axialToWar[ax].hex.color = namesToPlayers[name].color;
     AddHexToPlayer(ax.q,ax.r,name);
 }
 
@@ -137,17 +137,17 @@ void Grid::AddWarToPlayer(Axial ax, std::string name)
 void Grid::AddWarrior(int q, int r)
 {
     if(CheckIfHexIsInGrid(q,r) && !CheckIfAnyWarIsInHex(q,r)){
-        Warrior war = Warrior(&axialToHex[Axial(q,r)]);
+        Warrior war = Warrior(axialToHex[Axial(q,r)]);
         axialToWar[Axial(q,r)] = war;
-        std::cout << q << r << war.hex->q << war.hex->r << std::endl;
+        std::cout << q << r << war.hex.q << war.hex.r << std::endl;
     }
 }
 void Grid::AddWarrior(Axial ax)
 {
     if(CheckIfHexIsInGrid(ax.q,ax.r) && !CheckIfAnyWarIsInHex(ax.q,ax.r)){
-        Warrior war = Warrior(&axialToHex[Axial(ax.q,ax.r)]);
+        Warrior war = Warrior(axialToHex[Axial(ax.q,ax.r)]);
         axialToWar[Axial(ax.q,ax.r)] = war;
-        std::cout << ax.q << ax.r << war.hex->q << war.hex->r << std::endl;
+        std::cout << ax.q << ax.r << war.hex.q << war.hex.r << std::endl;
     }
 }
 
@@ -173,7 +173,7 @@ void Grid::AddWarriorFirst()
         Axial ax = i->first;
         if(!CheckIfAnyWarIsInHex(ax.q,ax.r))
         {
-            axialToWar[ax] = Warrior(&(i->second));
+            axialToWar[ax] = Warrior(i->second);
             break;
         }
     }

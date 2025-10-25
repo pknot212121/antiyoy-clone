@@ -49,6 +49,7 @@ public:
     std::map<Axial,Warrior> axialToWar;
     std::map<std::string,Player> namesToPlayers;
     Warrior moving;
+    std::string activePlayerName;
     
 };
 #endif
