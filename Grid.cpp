@@ -63,12 +63,6 @@ void Grid::TryToClickOnHexagon(float x, float y)
             axialToHex[Axial(q_rounded,r_rounded)].color = moving.hex.color;
             moving.hex = hex;
             axialToWar[Axial(q_rounded,r_rounded)] = moving;
-            // std::cout << "MOVING WARRIOR TO: " << hex.q << " " << hex.r;
-            // std::cout << "--------------------------------------------" << std::endl;
-            // for (auto i = axialToWar.begin(); i != axialToWar.end(); i++)
-            //     std::cout << i->first.q << i->first.r << "   " << i->second.hex.q << i->second.hex.r << std::endl;
-            // std::cout << "--------------------------------------------" << std::endl;
-            
         }   
         clicked=false;
     
@@ -163,6 +157,12 @@ Axial Grid::GetRandomHex()
     // srand((unsigned) time(NULL));
     auto r = rand() % axialToHex.size();
     Axial n = selectRandomMap(axialToHex, r);
+    int i=0;
+    while(CheckIfAnyWarIsInHex(n.q,n.r) && i<axialToHex.size())
+    {
+        n = selectRandomMap(axialToHex, r);
+        i++;
+    }
     return n;
 }
 
