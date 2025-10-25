@@ -36,6 +36,7 @@ public:
     void TryToClickOnHexagon(float x, float y);
     bool CheckIfHexIsInGrid(int q, int r);
     bool CheckIfAnyWarIsInHex(int q, int r);
+    bool CheckIfPlayerOwnsAWarrior(std::string name, int q, int r);
     void Resize(float scale);
     void Move(float dx, float dy);
     void GenerateMap(int count);
@@ -49,7 +50,8 @@ public:
     std::map<Axial,Warrior> axialToWar;
     std::map<std::string,Player> namesToPlayers;
     Warrior moving;
-    std::string activePlayerName;
+    std::vector<std::string> names;
+    std::string currentPlayer;
     
 };
 #endif

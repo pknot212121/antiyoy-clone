@@ -21,6 +21,14 @@ void Grid::AddHexagon(int q,int r)
     hex.r = r;
     axialToHex[Axial(q,r)] = hex;
 }
+bool Grid::CheckIfPlayerOwnsAWarrior(std::string name, int q, int r)
+{
+    std::set<Axial>::iterator warIt = namesToPlayers[name].warriors.find(Axial(q,r));
+    if(warIt != namesToPlayers[name].warriors.end()){
+        return true;
+    }
+    return false;
+}
 
 void Grid::TryToClickOnHexagon(float x, float y)
 {
@@ -44,7 +52,7 @@ void Grid::TryToClickOnHexagon(float x, float y)
     std::cout << "roundedQ: " << q_rounded << " roundedR: " << r_rounded << std::endl;
     if(!clicked)
     {
-        if(CheckIfHexIsInGrid(q_rounded,r_rounded) && CheckIfAnyWarIsInHex(q_rounded,r_rounded)){
+        if(CheckIfHexIsInGrid(q_rounded,r_rounded) && CheckIfAnyWarIsInHex(q_rounded,r_rounded) && CheckIfPlayerOwnsAWarrior(currentPlayer,q_rounded,r_rounded)){
             clicked = true;
             moving = axialToWar[Axial(q_rounded,r_rounded)];
             
@@ -128,6 +136,7 @@ bool Grid::CheckIfAnyWarIsInHex(int q, int r)
 void Grid::AddPlayer(glm::vec3 color, std::string _name)
 {
     namesToPlayers[_name] = Player(color,_name);
+    names.push_back(_name);
 }
 
 void Grid::AddHexToPlayer(int q, int r, std::string name)
