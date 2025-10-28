@@ -8,7 +8,8 @@
 #include <iostream>
 
 // Represents the current state of the game
-enum class GameState {
+enum class GameState
+{
     GAME_ACTIVE,
     GAME_MENU,
     GAME_WIN
