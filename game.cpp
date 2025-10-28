@@ -10,7 +10,7 @@ SpriteRenderer  *Renderer;
 
 
 Game::Game(unsigned int width, unsigned int height) 
-    : State(GAME_ACTIVE), Keys(), Width(width), Height(height)
+    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height)
 { 
 
 }
@@ -59,7 +59,7 @@ void Game::Update(float dt)
 void Game::ProcessInput(float dt)
 {
    
-    if (this->State == GAME_ACTIVE)
+    if (this->State == GameState::GAME_ACTIVE)
     {
         // move playerboard
         if (this->mousePressed)
