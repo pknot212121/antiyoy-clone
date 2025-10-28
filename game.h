@@ -28,6 +28,8 @@ public:
     float                   cursorPosY;
     int                     scroll = 0;
     unsigned int            Width, Height;
+    int                     playerIndex;
+    bool                    enterPressed = false;
     Grid grid;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);

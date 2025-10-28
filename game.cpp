@@ -49,6 +49,13 @@ void Game::Init()
 
     grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
     grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    grid.currentPlayer = grid.names[0];
 }
 
 void Game::Update(float dt)
@@ -93,6 +100,18 @@ void Game::ProcessInput(float dt)
         if (this->Keys[GLFW_KEY_D])
         {
             grid.Move(-10,0);
+        }
+        if(this->Keys[GLFW_KEY_ENTER])
+        {
+            enterPressed = true;
+            
+        }
+        if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
+        {
+            playerIndex++;
+            grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
+            std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
+            enterPressed = false;
         }
 
     }
