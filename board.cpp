@@ -1,32 +1,61 @@
 #include "board.h"
+#include <unordered_set>
 
 Hexagon::Hexagon(coord x, coord y, uint8_t ownerId = 0, Resident resident = Resident::Empty) : x(x), y(y), ownerId(ownerId), resident(resident)
 {
 
 }
 
-std::vector<Hexagon*> Hexagon::neighbours(Board* board) // działa dla planszy takiej jak na obrazku board.jpg
+std::vector<std::pair<coord, coord>> evenDirections =
 {
-    std::vector<Hexagon*> res;
-    coord maxX = board->getWidth() - 1;
-    coord maxY = board->getHeight() - 1;
-    if(x % 2 == 0) // parzysty x
+    {-1, -1}, // lewy górny
+    {-1,  0}, // lewy dolny
+    { 0, -1}, // górny
+    { 0,  1}, // dolny
+    { 1, -1}, // prawy górny
+    { 1,  0}  // prawy dolny
+};
+
+std::vector<std::pair<coord, coord>> oddDirections =
+{
+    {-1,  0}, // lewy górny
+    {-1,  1}, // lewy dolny
+    { 0, -1}, // górny
+    { 0,  1}, // dolny
+    { 1,  0}, // prawy górny
+    { 1,  1}  // prawy dolny
+};
+
+void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion = 0, bool includeWater = false)
+{
+    std::vector<Hexagon*> newHexagons;
+    newHexagons.reserve(hexagons.size() * 6);
+
+    for(auto hexagon : hexagons)
     {
-        if(x != 0 && y != 0) res.push_back(board->getHexagon(x - 1, y - 1)); // lewy górny
-        if(x != 0) res.push_back(board->getHexagon(x - 1, y)); // lewy dolny
-        if(y != 0) res.push_back(board->getHexagon(x, y - 1)); // górny
-        if(y != maxY) res.push_back(board->getHexagon(x, y + 1)); // dolny
-        if(x != maxX && y != 0) res.push_back(board->getHexagon(x + 1, y - 1)); // prawy górny
-        if(x != maxX) res.push_back(board->getHexagon(x + 1, y)); // prawy dolny
+        coord x = hexagon->getX();
+        coord y = hexagon->getY();
+        auto& directions = (x % 2 == 0) ? evenDirections : oddDirections;
+
+        for (auto [dx, dy] : directions)
+        {
+            Hexagon* hex = board->getHexagon(x + dx, y + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex != nullptr && (includeWater || hex->getResident() != Resident::Water) && !visited.count(hex))
+            {
+                visited.insert(hex);
+                newHexagons.push_back(hex);
+            }
+        }
     }
-    else
-    {
-        if(x != 0) res.push_back(board->getHexagon(x - 1, y)); // lewy górny
-        if(x != 0 && y != maxY) res.push_back(board->getHexagon(x - 1, y + 1)); // lewy dolny
-        if(y != 0) res.push_back(board->getHexagon(x, y - 1)); // górny
-        if(y != maxY) res.push_back(board->getHexagon(x, y + 1)); // dolny
-        if(x != maxX) res.push_back(board->getHexagon(x + 1, y)); // prawy górny
-        if(x != maxX && y != maxY) res.push_back(board->getHexagon(x + 1, y + 1)); // prawy dolny
-    }
+    if(recursion > 0) addNeighboursLayer(board, visited, newHexagons, recursion - 1, includeWater);
+}
+
+std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion = 0, bool includeSelf = false, bool includeWater = false) // działa dla planszy takiej jak na obrazku board.jpg
+{
+    std::unordered_set<Hexagon*> visited = { this };
+    std::vector<Hexagon*> newHexagons = { this };
+    addNeighboursLayer(board, visited, newHexagons, recursion, includeWater);
+    if(!includeSelf) visited.erase(this);
+    std::vector<Hexagon*> res(visited.begin(), visited.end());
     return res;
 }

@@ -2,10 +2,11 @@
 #include <cstdint>
 #include <vector>
 
-typedef uint8_t coord;
+typedef short coord;
 
 enum class Resident : uint8_t
 {
+    Water, // woda ma mieć indeks 0
     Empty,
 
     Warrior1,
@@ -25,9 +26,14 @@ enum class Resident : uint8_t
 
 struct Point
 {
-    coord x; // zakładamy że x ani y nie będą większe niż 256, można zmienić na short ale chyba nie jest to konieczne
+    coord x;
     coord y;
 };
+
+
+class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
+class Country;
+class Board;
 
 
 class Hexagon
@@ -39,7 +45,12 @@ private:
     Resident resident; // enum o wymuszonym rozmiarze bajta
 public:
     Hexagon(coord x, coord y, uint8_t ownerId, Resident resident);
-    std::vector<Hexagon*> neighbours(Board* board);
+
+    inline coord getX() const noexcept { return x; }
+    inline coord getY() const noexcept { return y; }
+    inline Resident getResident() const noexcept { return resident; }
+
+    std::vector<Hexagon*> neighbours(Board* board, int recursion, bool includeSelf, bool includeWater);
 };
 
 class Country
@@ -60,6 +71,6 @@ private:
 public:
     inline coord getWidth() const { return width; }
     inline coord getHeight() const { return height; }
-    inline Hexagon* getHexagon(coord x, coord y) { return &(board[y * width + x]); }
+    inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
 
 };
