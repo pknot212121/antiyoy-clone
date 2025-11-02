@@ -9,7 +9,17 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 
 
-add_executable(anti main.cpp game.cpp Grid.cpp player.cpp shader.cpp sprite_renderer.cpp warrior.cpp texture.cpp Hexagon.cpp resource_manager.cpp glad.c)
+add_executable(anti
+        main.cpp
+        game.cpp
+        Grid.cpp
+        player.cpp
+        shader.cpp
+        sprite_renderer.cpp
+        warrior.cpp
+        texture.cpp Hexagon.cpp
+        resource_manager.cpp
+        glad.c)
 include_directories(anti PRIVATE include)
 
 target_link_libraries(anti ${GLFW3_LIBRARY} OpenGL::GL)
