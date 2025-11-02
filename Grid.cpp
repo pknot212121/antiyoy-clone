@@ -1,5 +1,6 @@
 #include "Grid.h"
 #include<cmath>
+#include <ctime>
 #include<iostream>
 
 
@@ -248,7 +249,7 @@ auto select_random(const S &s, size_t n) {
 
 void Grid::GenerateMap(int count)
 {
-    srand((unsigned) time(NULL));
+    srand((unsigned) std::time(NULL));
     std::set<Axial> coords = {Axial(0,0),Axial(1,0),Axial(-1,0),Axial(0,1),Axial(0,-1),Axial(1,1),Axial(-1,-1)};
     std::vector<Axial> chosen = {Axial(0,0)};
     for(int i=0;i<count;i++)
