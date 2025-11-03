@@ -1,10 +1,10 @@
 #include <iostream>
-#include <cstdint>
 #include <vector>
 
 typedef short coord;
+typedef unsigned char uint8;
 
-enum class Resident : uint8_t
+enum class Resident : uint8
 {
     Water, // woda ma mieć indeks 0
     Empty,
@@ -34,6 +34,7 @@ struct Point
 class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
 class Country;
 class Board;
+class Player;
 
 
 class Hexagon
@@ -41,14 +42,16 @@ class Hexagon
 private:
     const coord x;
     const coord y;
-    uint8_t ownerId; // zakładamy że nie będzie więcej niż 255 graczy
+    uint8 ownerId; // zakładamy że nie będzie więcej niż 255 graczy
     Resident resident; // enum o wymuszonym rozmiarze bajta
 public:
-    Hexagon(coord x, coord y, uint8_t ownerId, Resident resident);
+    Hexagon(coord x, coord y, uint8 ownerId, Resident resident);
 
     inline coord getX() const noexcept { return x; }
     inline coord getY() const noexcept { return y; }
+    inline uint8 getOwnerId() const noexcept { return ownerId; }
     inline Resident getResident() const noexcept { return resident; }
+    inline Resident setResident(Resident resident) noexcept { this->resident = resident; }
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion, bool includeSelf, bool includeWater);
 };
@@ -64,13 +67,39 @@ public:
 class Board
 {
 private:
-    coord width;
-    coord height;
+    const coord width;
+    const coord height;
     std::vector<Hexagon> board;
 
 public:
+    Board(coord width, coord height);
+    void InitialiseRandomA(int seed, int min, int max);
+    void InitialiseRandomB(int seed, int min, int max);
+    void InitialiseFromFile();
+
     inline coord getWidth() const { return width; }
     inline coord getHeight() const { return height; }
     inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
 
 };
+
+// nie mam chwilowo pomysłu co dalej z nimi
+/*class Player
+{
+    virtual void move() = 0; // udawaj że to funkcja abstrakcyjna
+};
+
+class LocalPlayer : Player
+{
+
+};
+
+class BotPlayer : Player
+{
+
+};
+
+class NetworkPlayer : Player // Easter egg
+{
+
+};*/
