@@ -31,8 +31,12 @@ void Game::Init()
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
 
-    this -> board = new Board(10, 10);
-    board -> InitialiseRandomA(2137,80,80);
+    coord x = 10;
+    coord y = 10;
+    this -> board = new Board(x, y);
+    int total = x * y;
+    //board -> InitialiseRandomA(2137, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
+    board -> InitialiseNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
 
     // this -> grid = Grid(300.0f,300.0f,100.0f);
     // // grid.AddHexagon(1,0);

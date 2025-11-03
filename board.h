@@ -77,6 +77,7 @@ private:
 public:
     Board(coord width, coord height);
     void InitialiseRandomA(int seed, int min, int max);
+    void InitialiseNeighbour(int recursion, bool includeMiddle);
     void InitialiseRandomB(int seed, int min, int max);
     void InitialiseFromFile();
 

@@ -14,9 +14,24 @@ Hexagon::Hexagon(coord x, coord y, uint8 ownerId, Resident resident) : x(x), y(y
 Board::Board(coord width, coord height) : width(width), height(height)
 {
     board.reserve(width * height);
-    for (coord x = 0; x < width; ++x)
-        for (coord y = 0; y < height; ++y)
+    for (coord y = 0; y < height; y++)
+    {
+        for (coord x = 0; x < width; x++)
+        {
             board.emplace_back(x, y);
+        }
+    }
+}
+
+void Board::InitialiseNeighbour(int recursion, bool includeMiddle)
+{
+    Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
+    if(!middle) return;
+    auto neighbours = middle->neighbours(this, recursion, includeMiddle, true);
+    for(Hexagon* hex : neighbours)
+    {
+        hex->setResident(Resident::Empty);
+    }
 }
 
 void Board::InitialiseRandomA(int seed, int min, int max)
