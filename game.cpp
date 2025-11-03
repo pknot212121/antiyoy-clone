@@ -35,8 +35,10 @@ void Game::Init()
     coord y = 10;
     this -> board = new Board(x, y);
     int total = x * y;
-    board -> InitialiseRandomA(2137, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
-    //board -> InitialiseNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
+    board->InitializeRandomA(0, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
+    //board->InitializeNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
+
+    board->InitializeCountriesA(0, 3, 5, 10);
 
     // this -> grid = Grid(300.0f,300.0f,100.0f);
     // // grid.AddHexagon(1,0);

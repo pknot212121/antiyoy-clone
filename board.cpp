@@ -23,7 +23,7 @@ Board::Board(coord width, coord height) : width(width), height(height)
     }
 }
 
-void Board::InitialiseNeighbour(int recursion, bool includeMiddle)
+void Board::InitializeNeighbour(int recursion, bool includeMiddle)
 {
     Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
     if(!middle) return;
@@ -34,9 +34,9 @@ void Board::InitialiseNeighbour(int recursion, bool includeMiddle)
     }
 }
 
-void Board::InitialiseRandomA(int seed, int min, int max)
+void Board::InitializeRandomA(int seed, int min, int max)
 {
-    std::mt19937 gen(seed);
+    std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
     std::uniform_int_distribution<int> randN(min, max);
     int n = randN(gen);
 
@@ -46,11 +46,10 @@ void Board::InitialiseRandomA(int seed, int min, int max)
     std::unordered_set<Hexagon*> addableS = { middle };
     std::vector<Hexagon*> addableV = { middle };
 
-    while(n > 0)
+    while(n > 0 && !addableV.empty())
     {
-        if(addableV.empty()) break;
-        std::uniform_int_distribution<int> randomElement(0, addableV.size() - 1);
-        int index = randomElement(gen);
+        std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
+        int index = randomAddable(gen);
         Hexagon* hex = addableV[index];
         addableS.erase(hex);
         addableV[index] = addableV.back();
@@ -66,6 +65,61 @@ void Board::InitialiseRandomA(int seed, int min, int max)
             }
         }
         n--;
+    }
+}
+
+void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
+{
+    if(minCountrySize > maxCountrySize)
+    {
+        int t = maxCountrySize;
+        maxCountrySize = minCountrySize;
+        minCountrySize = t;
+    }
+    if(minCountrySize < 1) return;
+    std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
+
+    std::vector<Hexagon*> available;
+    
+    for(uint8 i = 1; i <= countriesCount; i++)
+    {
+        available.clear();
+        for(int j = 0; j < width * height; j++)
+        {
+            Hexagon* hex = &board[j];
+            if(hex->getResident() != Resident::Water && hex->getOwnerId() == 0) available.push_back(hex);
+        }
+        if (available.empty()) return;
+
+        std::uniform_int_distribution<int> randFirst(0, available.size() - 1);
+        Hexagon* first = available[randFirst(gen)];
+        std::unordered_set<Hexagon*> addableS = { first };
+        std::vector<Hexagon*> addableV = { first };
+
+        std::uniform_int_distribution<int> randN(minCountrySize, maxCountrySize);
+        int n = randN(gen);
+
+        while(n > 0)
+        {
+            if(addableV.empty()) break;
+            std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
+            int index = randomAddable(gen);
+            Hexagon* hex = addableV[index];
+            addableS.erase(hex);
+            addableV[index] = addableV.back();
+            addableV.pop_back();
+            hex->setOwnerId(i);
+            auto neighbours = hex->neighbours(this);
+            for(Hexagon* neighbour : neighbours)
+            {
+                if(neighbour->getOwnerId() == 0 && !addableS.count(neighbour))
+                {
+                    addableS.insert(neighbour);
+                    addableV.push_back(neighbour);
+                }
+            }
+            n--;
+        }
     }
 }
 
@@ -114,7 +168,7 @@ void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std
     if(recursion > 0) addNeighboursLayer(board, visited, newHexagons, recursion - 1, includeWater);
 }
 
-std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion = 0, bool includeSelf = false, bool includeWater = false) // działa dla planszy takiej jak na obrazku board.jpg
+std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion, bool includeSelf, bool includeWater)
 {
     std::unordered_set<Hexagon*> visited = { this };
     std::vector<Hexagon*> newHexagons = { this };

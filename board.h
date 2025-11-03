@@ -53,10 +53,11 @@ public:
     inline coord getX() const noexcept { return x; }
     inline coord getY() const noexcept { return y; }
     inline uint8 getOwnerId() const noexcept { return ownerId; }
+    inline void setOwnerId(uint8 ownerId) noexcept { this->ownerId = ownerId; }
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
 
-    std::vector<Hexagon*> neighbours(Board* board, int recursion, bool includeSelf, bool includeWater);
+    std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, bool includeWater = false);
 };
 
 class Country
@@ -76,14 +77,15 @@ private:
 
 public:
     Board(coord width, coord height);
-    void InitialiseRandomA(int seed, int min, int max);
-    void InitialiseNeighbour(int recursion, bool includeMiddle);
-    void InitialiseRandomB(int seed, int min, int max);
-    void InitialiseFromFile();
+    void InitializeRandomA(int seed, int min, int max);
+    void InitializeNeighbour(int recursion, bool includeMiddle);
+    void InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
+    void InitializeFromFile();
 
     inline coord getWidth() const { return width; }
     inline coord getHeight() const { return height; }
     inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
+    inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
 
 };
 
