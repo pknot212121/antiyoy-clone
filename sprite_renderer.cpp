@@ -40,11 +40,18 @@ void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec
 
 void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 {
+    glm::vec3 color = glm::vec3(1.0f,0.5f,0.0f);
+    if (hex.getResident()==Resident::Water) {
+        color = glm::vec3(0.0f,0.0f,1.0f);
+    }
+    else if (hex.getResident()==Resident::Empty) {
+        color = glm::vec3(1.0f,1.0f,1.0f);
+    }
     if (hex.getX()%2==0) {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
+        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
     }
     else {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
+        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
     }
 
 }
