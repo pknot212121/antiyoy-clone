@@ -12,12 +12,10 @@ find_package(glfw3 REQUIRED)
 add_executable(anti
         main.cpp
         game.cpp
-        Grid.cpp
-        player.cpp
+        board.cpp
         shader.cpp
         sprite_renderer.cpp
-        warrior.cpp
-        texture.cpp Hexagon.cpp
+        texture.cpp
         resource_manager.cpp
         glad.c)
 include_directories(anti PRIVATE include)

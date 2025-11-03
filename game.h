@@ -3,8 +3,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Hexagon.h"
-#include "Grid.h"
+#include "sprite_renderer.h"
 #include <iostream>
 
 // Represents the current state of the game
@@ -31,7 +30,7 @@ public:
     unsigned int            Width, Height;
     int                     playerIndex;
     bool                    enterPressed = false;
-    Grid grid;
+    Board *board;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
     ~Game();

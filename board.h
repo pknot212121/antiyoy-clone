@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <vector>
 
@@ -45,13 +46,15 @@ private:
     uint8 ownerId; // zakładamy że nie będzie więcej niż 255 graczy
     Resident resident; // enum o wymuszonym rozmiarze bajta
 public:
+    Hexagon();
+    Hexagon(coord x, coord y);
     Hexagon(coord x, coord y, uint8 ownerId, Resident resident);
 
     inline coord getX() const noexcept { return x; }
     inline coord getY() const noexcept { return y; }
     inline uint8 getOwnerId() const noexcept { return ownerId; }
     inline Resident getResident() const noexcept { return resident; }
-    inline Resident setResident(Resident resident) noexcept { this->resident = resident; }
+    inline void setResident(Resident resident) noexcept { this->resident = resident; }
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion, bool includeSelf, bool includeWater);
 };

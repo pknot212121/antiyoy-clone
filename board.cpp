@@ -2,7 +2,11 @@
 #include <unordered_set>
 #include <random>
 
-Hexagon::Hexagon(coord x = 0, coord y = 0, uint8 ownerId = 0, Resident resident = Resident::Water) : x(x), y(y), ownerId(ownerId), resident(resident)
+Hexagon::Hexagon() : x(0), y(0), ownerId(0), resident(Resident::Water){}
+
+Hexagon::Hexagon(coord x, coord y) : x(x), y(y), ownerId(0), resident(Resident::Water){}
+
+Hexagon::Hexagon(coord x, coord y, uint8 ownerId, Resident resident) : x(x), y(y), ownerId(ownerId), resident(resident)
 {
 
 }

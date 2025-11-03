@@ -38,39 +38,28 @@ void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec
     glBindVertexArray(0);
 }
 
-void SpriteRenderer::DrawHexagon(float x, float y, float a, glm::vec3 col)
+void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 {
-    this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(x-a, y-a * sqrt(3)/2), glm::vec2(a * 2, a * sqrt(3)), 0.0f, col);
-}
-
-void SpriteRenderer::DrawHexagon(Hexagon hex)
-{
-    this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.x-hex.a, hex.y-hex.a * sqrt(3)/2), glm::vec2(hex.a * 2, hex.a * sqrt(3)), 0.0f, hex.color);
-}
-
-void SpriteRenderer::DrawWarrior(Hexagon hex,Warrior war)
-{
-    this -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(hex.x-hex.a/2, hex.y-hex.a * sqrt(3)/2 + hex.a/2), glm::vec2(hex.a,hex.a), 0.0f, glm::vec3(1.0f,1.0f,1.0f));
-}
-
-void SpriteRenderer::DrawGrid(Grid grid)
-{
-    for (auto i = grid.axialToHex.begin(); i != grid.axialToHex.end(); i++){
-        this-> DrawHexagon(i->second);
-        // std::cout << "#####################" << std::endl;
-        // std::cout << i->second.color.r << std::endl;
-        // std::cout << "#####################" << std::endl;
+    if (hex.getX()%2==0) {
+        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
     }
-    // for(Warrior war : grid.warriors){
-    //     this -> DrawWarrior(war);
-    // }
-    for (auto i = grid.axialToWar.begin(); i != grid.axialToWar.end(); i++)
-    {
-        // std::cout << i->first << " \t\t\t" << i->second << std::endl;
-        Hexagon hex = grid.axialToHex[i->first];
-        this -> DrawWarrior(hex,i->second);
+    else {
+        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 - size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
     }
-        
+
+}
+
+
+
+void SpriteRenderer::DrawBoard(Board *board, int width, int height)
+{
+    for (int i = 0; i < board->getWidth(); i++) {
+        for (int j = 0; j < board->getHeight(); j++) {
+            this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth());
+        }
+    }
+
+    // this -> DrawHexagon(Hexagon(100,100), width / board->getWidth());
 }
 
 

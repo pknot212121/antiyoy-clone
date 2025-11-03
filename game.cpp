@@ -1,18 +1,14 @@
 #include "game.h"
 #include "resource_manager.h"
-#include "sprite_renderer.h"
-#include "Hexagon.h"
-#include "Grid.h"
+
 
 
 // Game-related State data
 SpriteRenderer  *Renderer;
 
 
-Game::Game(unsigned int width, unsigned int height) 
-    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height)
-{ 
-
+Game::Game(unsigned int width, unsigned int height)
+    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board() {
 }
 
 Game::~Game()
@@ -35,27 +31,30 @@ void Game::Init()
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
 
-    this -> grid = Grid(300.0f,300.0f,100.0f);
-    // grid.AddHexagon(1,0);
-    // grid.AddHexagon(-1,0);
-    // grid.AddHexagon(0,1);
-    // grid.AddHexagon(0,2);
-    // grid.AddHexagon(0,-1);
-    // grid.AddHexagon(-1,-1);
-    grid.GenerateMap(100);
+    this -> board = new Board(10, 10);
+    board -> InitialiseRandomA(2137,80,80);
 
-    grid.AddPlayer(glm::vec3(0.0f,1.0f,0.0f),"tk2");
-    grid.AddPlayer(glm::vec3(1.0f,0.0f,0.0f),"tk3");
-
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    grid.currentPlayer = grid.names[0];
+    // this -> grid = Grid(300.0f,300.0f,100.0f);
+    // // grid.AddHexagon(1,0);
+    // // grid.AddHexagon(-1,0);
+    // // grid.AddHexagon(0,1);
+    // // grid.AddHexagon(0,2);
+    // // grid.AddHexagon(0,-1);
+    // // grid.AddHexagon(-1,-1);
+    // grid.GenerateMap(100);
+    //
+    // grid.AddPlayer(glm::vec3(0.0f,1.0f,0.0f),"tk2");
+    // grid.AddPlayer(glm::vec3(1.0f,0.0f,0.0f),"tk3");
+    //
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
+    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
+    // grid.currentPlayer = grid.names[0];
 }
 
 void Game::Update(float dt)
@@ -66,55 +65,54 @@ void Game::Update(float dt)
 void Game::ProcessInput(float dt)
 {
    
-    if (this->State == GameState::GAME_ACTIVE)
-    {
-        // move playerboard
-        if (this->mousePressed)
-        {
-            std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
-            grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
-            this -> mousePressed = false;
-        }
-        if(this->scroll == -1)
-        {
-            grid.Resize(0.9);
-            scroll = 0;
-        }
-        if(this->scroll == 1)
-        {
-            grid.Resize(1.1);
-            scroll = 0;
-        }
-        if (this->Keys[GLFW_KEY_W])
-        {
-            grid.Move(0,10);
-        }
-        if (this->Keys[GLFW_KEY_A])
-        {
-            grid.Move(10,0);
-        }
-        if (this->Keys[GLFW_KEY_S])
-        {
-            grid.Move(0,-10);
-        }
-        if (this->Keys[GLFW_KEY_D])
-        {
-            grid.Move(-10,0);
-        }
-        if(this->Keys[GLFW_KEY_ENTER])
-        {
-            enterPressed = true;
-            
-        }
-        if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
-        {
-            playerIndex++;
-            grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
-            std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
-            enterPressed = false;
-        }
+    // if (this->State == GameState::GAME_ACTIVE)
+    // {
+    //     // move playerboard
+    //     if (this->mousePressed)
+    //     {
+    //         std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
+    //         grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
+    //         this -> mousePressed = false;
+    //     }
+    //     if(this->scroll == -1)
+    //     {
+    //         grid.Resize(0.9);
+    //         scroll = 0;
+    //     }
+    //     if(this->scroll == 1)
+    //     {
+    //         grid.Resize(1.1);
+    //         scroll = 0;
+    //     }
+    //     if (this->Keys[GLFW_KEY_W])
+    //     {
+    //         grid.Move(0,10);
+    //     }
+    //     if (this->Keys[GLFW_KEY_A])
+    //     {
+    //         grid.Move(10,0);
+    //     }
+    //     if (this->Keys[GLFW_KEY_S])
+    //     {
+    //         grid.Move(0,-10);
+    //     }
+    //     if (this->Keys[GLFW_KEY_D])
+    //     {
+    //         grid.Move(-10,0);
+    //     }
+    //     if(this->Keys[GLFW_KEY_ENTER])
+    //     {
+    //         enterPressed = true;
+    //
+    //     }
+    //     if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
+    //     {
+    //         playerIndex++;
+    //         grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
+    //         std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
+    //         enterPressed = false;
+    //     }
 
-    }
 }
 
 void Game::Render()
@@ -123,7 +121,7 @@ void Game::Render()
     // Renderer->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(300.0f, 200.0f), glm::vec2(300.0f, 300.0f * sqrt(3)/2), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     // Renderer -> DrawHexagon(100.0f,100.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f));
     // Renderer -> DrawHexagon(Hexagon(200.0f,200.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f)));
-    Renderer -> DrawGrid(grid);
+    Renderer -> DrawBoard(board, this->Width, this->Height);
 
     // Renderer -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(500.0f, 0.0f), glm::vec2(100.0f, 100.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
