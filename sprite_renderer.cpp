@@ -44,7 +44,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
         this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
     }
     else {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 - size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
+        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, glm::vec3(1.0,0.5,0.0));
     }
 
 }
@@ -55,7 +55,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth());
+            this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
         }
     }
 
