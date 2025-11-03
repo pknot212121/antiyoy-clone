@@ -38,21 +38,31 @@ void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec
     glBindVertexArray(0);
 }
 
+void SpriteRenderer::InitPalette() {
+    srand(time(NULL));
+    for (int i = 0;i<10;i++) {
+        palette.push_back(glm::vec3(rand()%255/255.0f,rand()%255/255.0f,rand()%255/255.0f));
+    }
+}
+
+
 void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 {
     glm::vec3 color = glm::vec3(1.0f,0.5f,0.0f);
-    if (hex.getResident()==Resident::Water) {
-        color = glm::vec3(0.0f,0.0f,1.0f);
+
+    color = glm::vec3(1.0f,1.0f,1.0f);
+    if (hex.getOwnerId()!=0) {
+        color = palette[hex.getOwnerId()%10];
     }
-    else if (hex.getResident()==Resident::Empty) {
-        color = glm::vec3(1.0f,1.0f,1.0f);
+    if (hex.getResident()!=Resident::Water) {
+        if (hex.getX()%2==0) {
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+        }
+        else {
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+        }
     }
-    if (hex.getX()%2==0) {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
-    }
-    else {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
-    }
+
 
 }
 
@@ -60,6 +70,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
+    this -> InitPalette();
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
             this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());

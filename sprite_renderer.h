@@ -11,7 +11,7 @@
 
 #include "resource_manager.h"
 #include "board.h"
-
+#include <cstdlib>
 
 class SpriteRenderer
 {
@@ -26,11 +26,13 @@ public:
     void DrawHexagon(const Hexagon &hex, float size);
     // void DrawWarrior(Hexagon hex,Warrior war);
     void DrawBoard(Board *board, int width, int height);
+    void InitPalette();
 
 private:
     // Render state
     Shader       shader; 
     unsigned int quadVAO;
+    std::vector<glm::vec3> palette;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
 };
