@@ -79,7 +79,14 @@ void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountryS
     if(minCountrySize < 1) return;
     std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
 
+    int tries = 0;
+
+restart:
+    tries++;
     std::vector<Hexagon*> available;
+    std::vector<Hexagon*> origins;
+    origins.clear();
+    origins.reserve(countriesCount); // do dodania zamków na końcu (by nie musieć ich usuwać w przypadku restartu)
     
     for(uint8 i = 1; i <= countriesCount; i++)
     {
@@ -91,17 +98,33 @@ void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountryS
         }
         if (available.empty()) return;
 
-        std::uniform_int_distribution<int> randFirst(0, available.size() - 1);
-        Hexagon* first = available[randFirst(gen)];
-        std::unordered_set<Hexagon*> addableS = { first };
-        std::vector<Hexagon*> addableV = { first };
+        std::uniform_int_distribution<int> randOrigin(0, available.size() - 1);
+        Hexagon* origin = available[randOrigin(gen)];
+        std::unordered_set<Hexagon*> addableS = { origin };
+        std::vector<Hexagon*> addableV = { origin };
+        origins.push_back(origin);
 
         std::uniform_int_distribution<int> randN(minCountrySize, maxCountrySize);
         int n = randN(gen);
 
         while(n > 0)
         {
-            if(addableV.empty()) break;
+            if(addableV.empty())
+            {
+                // To może się zdarzyć jeśli państwo zostanie zamknięte w ciasnym kącie przez inne państwa
+                std::cout << "Couldnt initialize a country, restarting the process" << std::endl;
+                for(int j = 0; j < width * height; j++)
+                {
+                    Hexagon* hex = &board[j];
+                    if(hex->getResident() != Resident::Water && hex->getOwnerId() != 0) hex->setOwnerId(0);
+                }
+                if(tries > 100)
+                {
+                    std::cout << "Too many failed country initializations, aborted" << std::endl;
+                    return;
+                }
+                else goto restart;
+            }
             std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
             int index = randomAddable(gen);
             Hexagon* hex = addableV[index];
@@ -120,6 +143,11 @@ void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountryS
             }
             n--;
         }
+    }
+
+    for(Hexagon* o : origins)
+    {
+        o->setResident(Resident::Castle);
     }
 }
 
