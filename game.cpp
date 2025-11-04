@@ -71,53 +71,54 @@ void Game::Update(float dt)
 void Game::ProcessInput(float dt)
 {
    
-    // if (this->State == GameState::GAME_ACTIVE)
-    // {
-    //     // move playerboard
-    //     if (this->mousePressed)
-    //     {
-    //         std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
-    //         grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
-    //         this -> mousePressed = false;
-    //     }
-    //     if(this->scroll == -1)
-    //     {
-    //         grid.Resize(0.9);
-    //         scroll = 0;
-    //     }
-    //     if(this->scroll == 1)
-    //     {
-    //         grid.Resize(1.1);
-    //         scroll = 0;
-    //     }
-    //     if (this->Keys[GLFW_KEY_W])
-    //     {
-    //         grid.Move(0,10);
-    //     }
-    //     if (this->Keys[GLFW_KEY_A])
-    //     {
-    //         grid.Move(10,0);
-    //     }
-    //     if (this->Keys[GLFW_KEY_S])
-    //     {
-    //         grid.Move(0,-10);
-    //     }
-    //     if (this->Keys[GLFW_KEY_D])
-    //     {
-    //         grid.Move(-10,0);
-    //     }
-    //     if(this->Keys[GLFW_KEY_ENTER])
-    //     {
-    //         enterPressed = true;
-    //
-    //     }
-    //     if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
-    //     {
-    //         playerIndex++;
-    //         grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
-    //         std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
-    //         enterPressed = false;
-    //     }
+    if (this->State == GameState::GAME_ACTIVE)
+    {
+        // move playerboard
+        // if (this->mousePressed)
+        // {
+        //     std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
+        //     grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
+        //     this -> mousePressed = false;
+        // }
+        // if(this->scroll == -1)
+        // {
+        //     grid.Resize(0.9);
+        //     scroll = 0;
+        // }
+        // if(this->scroll == 1)
+        // {
+        //     grid.Resize(1.1);
+        //     scroll = 0;
+        // }
+        if (this->Keys[GLFW_KEY_W])
+        {
+            Renderer -> addToDisplacementY(10);
+        }
+        if (this->Keys[GLFW_KEY_A])
+        {
+            Renderer ->addToDisplacementX(10);
+        }
+        if (this->Keys[GLFW_KEY_S])
+        {
+            Renderer -> addToDisplacementY(-10);
+        }
+        if (this->Keys[GLFW_KEY_D])
+        {
+            Renderer -> addToDisplacementX(-10);
+        }
+    }
+        // if(this->Keys[GLFW_KEY_ENTER])
+        // {
+        //     enterPressed = true;
+        //
+        // }
+        // if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
+        // {
+        //     playerIndex++;
+        //     grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
+        //     std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
+        //     enterPressed = false;
+        // }
 
 }
 

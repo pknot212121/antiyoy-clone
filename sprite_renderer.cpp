@@ -38,6 +38,14 @@ void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec
     glBindVertexArray(0);
 }
 
+void SpriteRenderer::addToDisplacementX(int dx)
+{
+    displacementX += dx;
+}
+void SpriteRenderer::addToDisplacementY(int dy)
+{
+    displacementY += dy;
+}
 
 std::vector<int> rand_vect(std::vector<int> base_vector)
 {
@@ -133,7 +141,7 @@ void SpriteRenderer::InitPalette() {
         green = (hex & 0x00ff00) >> 8;
 
         blue = (hex & 0x0000ff);
-        std::cout << red << " " << green << " " << blue << std::endl;
+        // std::cout << red << " " << green << " " << blue << std::endl;
         palette.push_back(glm::vec3(red/255.0f,green/255.0f,blue/255.0f));
     }
 }
@@ -149,10 +157,10 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
     }
     if (hex.getResident()!=Resident::Water) {
         if (hex.getX()%2==0) {
-            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2+ displacementY) , glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
         }
         else {
-            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
         }
     }
 
