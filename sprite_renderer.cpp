@@ -168,6 +168,14 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
         else {
             this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
         }
+        if (hex.getResident()==Resident::Warrior1)
+        {
+            this->DrawSprite(ResourceManager::GetTexture("soilder1"),glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f,color);
+        }
+        else if (hex.getResident()==Resident::Castle)
+        {
+            this->DrawSprite(ResourceManager::GetTexture("level1warrior"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/4, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size*0.6,size*0.6), 0.0f,color);
+        }
     }
 
 

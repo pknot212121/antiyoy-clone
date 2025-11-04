@@ -30,6 +30,7 @@ void Game::Init()
     // load textures
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
+    ResourceManager::LoadTexture("textures/soilder1.png",true,"soilder1");
 
     coord x = 10;
     coord y = 10;
