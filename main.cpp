@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Anti", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     
-    glfwSwapInterval(1); // FPS zsynchronizowany z odświeżaniem monitora (zazwyczaj 60 fps)
+    glfwSwapInterval(1); // FPS zsynchronizowany z odświeżaniem monitora (zazwyczaj 60 FPS)
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
