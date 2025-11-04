@@ -80,16 +80,16 @@ void Game::ProcessInput(float dt)
         //     grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
         //     this -> mousePressed = false;
         // }
-        // if(this->scroll == -1)
-        // {
-        //     grid.Resize(0.9);
-        //     scroll = 0;
-        // }
-        // if(this->scroll == 1)
-        // {
-        //     grid.Resize(1.1);
-        //     scroll = 0;
-        // }
+        if(this->scroll == -1)
+        {
+            Renderer -> addToResizeMultiplier(0.9);
+            scroll = 0;
+        }
+        if(this->scroll == 1)
+        {
+            Renderer -> addToResizeMultiplier(1.1);
+            scroll = 0;
+        }
         if (this->Keys[GLFW_KEY_W])
         {
             Renderer -> addToDisplacementY(10);

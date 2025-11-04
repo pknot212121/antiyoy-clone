@@ -47,6 +47,12 @@ void SpriteRenderer::addToDisplacementY(int dy)
     displacementY += dy;
 }
 
+void SpriteRenderer::addToResizeMultiplier(double ds)
+{
+    resizeMultiplier *= ds;
+}
+
+
 std::vector<int> rand_vect(std::vector<int> base_vector)
 {
     srand(time(NULL));
@@ -150,7 +156,7 @@ void SpriteRenderer::InitPalette() {
 void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 {
     glm::vec3 color = glm::vec3(1.0f,0.5f,0.0f);
-
+    size *= resizeMultiplier;
     color = glm::vec3(1.0f,1.0f,1.0f);
     if (hex.getOwnerId()!=0) {
         color = palette[hex.getOwnerId()%10];

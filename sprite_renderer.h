@@ -29,6 +29,7 @@ public:
     void InitPalette();
     void addToDisplacementX(int dx);
     void addToDisplacementY(int dy);
+    void addToResizeMultiplier(double ds);
 
 private:
     // Render state
@@ -37,6 +38,7 @@ private:
     std::vector<glm::vec3> palette;
     int   displacementX = 0;
     int   displacementY = 0;
+    double resizeMultiplier = 1.0f;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
 };
