@@ -30,6 +30,7 @@ public:
     unsigned int            Width, Height;
     int                     playerIndex;
     bool                    enterPressed = false;
+
     Board *board;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
