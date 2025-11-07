@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <unordered_map>
+#include <functional>
 
 typedef short coord;
 typedef unsigned char uint8;
@@ -33,7 +35,6 @@ struct Point
 
 
 class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
-class Country;
 class Board;
 class Player;
 
@@ -57,15 +58,7 @@ public:
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
 
-    std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, bool includeWater = false);
-};
-
-class Country
-{
-private:
-    std::vector<Point> castlePositions; // zamki są znacznikami prowincji (każda prowincja ma dokładnie jeden zamek)
-public:
-
+    std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(const Hexagon*)> filter = nullptr);
 };
 
 class Board
@@ -82,16 +75,17 @@ public:
     void InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
     void InitializeFromFile();
 
-    inline coord getWidth() const { return width; }
-    inline coord getHeight() const { return height; }
+    inline coord getWidth() const noexcept { return width; }
+    inline coord getHeight() const noexcept { return height; }
     inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
     inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
 
 };
 
 // nie mam chwilowo pomysłu co dalej z nimi
-/*class Player
+class Player
 {
+    std::unordered_map<Hexagon*, int> castles; // zamki są znacznikami prowincji (każda prowincja ma dokładnie jeden zamek)
     virtual void move() = 0; // udawaj że to funkcja abstrakcyjna
 };
 
@@ -108,4 +102,4 @@ class BotPlayer : Player
 class NetworkPlayer : Player // Easter egg
 {
 
-};*/
+};

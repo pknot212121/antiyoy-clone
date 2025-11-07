@@ -34,7 +34,7 @@ void Game::Init()
 
     coord x = 10;
     coord y = 10;
-    this -> board = new Board(x, y);
+    board = new Board(x, y);
     int total = x * y;
     board->InitializeRandomA(0, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
     //board->InitializeNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)

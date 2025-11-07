@@ -27,7 +27,7 @@ void Board::InitializeNeighbour(int recursion, bool includeMiddle)
 {
     Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
     if(!middle) return;
-    auto neighbours = middle->neighbours(this, recursion, includeMiddle, true);
+    auto neighbours = middle->neighbours(this, recursion, includeMiddle);
     for(Hexagon* hex : neighbours)
     {
         hex->setResident(Resident::Empty);
@@ -55,10 +55,10 @@ void Board::InitializeRandomA(int seed, int min, int max)
         addableV[index] = addableV.back();
         addableV.pop_back();
         hex->setResident(Resident::Empty);
-        auto neighbours = hex->neighbours(this, 0, false, true);
+        auto neighbours = hex->neighbours(this, 0, false, [](const Hexagon* h) { return h->getResident() == Resident::Water; });
         for(Hexagon* neighbour : neighbours)
         {
-            if(neighbour->getResident() == Resident::Water && !addableS.count(neighbour))
+            if(!addableS.count(neighbour))
             {
                 addableS.insert(neighbour);
                 addableV.push_back(neighbour);
@@ -132,10 +132,10 @@ restart:
             addableV[index] = addableV.back();
             addableV.pop_back();
             hex->setOwnerId(i);
-            auto neighbours = hex->neighbours(this);
+            auto neighbours = hex->neighbours(this, 0, false, [](const Hexagon* h) { return h->getResident() != Resident::Water && h->getOwnerId() == 0; });
             for(Hexagon* neighbour : neighbours)
             {
-                if(neighbour->getOwnerId() == 0 && !addableS.count(neighbour))
+                if(!addableS.count(neighbour))
                 {
                     addableS.insert(neighbour);
                     addableV.push_back(neighbour);
@@ -172,8 +172,9 @@ std::vector<std::pair<coord, coord>> oddDirections =
     { 1,  1}  // prawy dolny
 };
 
-void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion = 0, bool includeWater = false)
+void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(const Hexagon*)> filter)
 {
+    if(hexagons.size() == 0) return;
     std::vector<Hexagon*> newHexagons;
     newHexagons.reserve(hexagons.size() * 6);
 
@@ -186,22 +187,22 @@ void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std
         for (auto [dx, dy] : directions)
         {
             Hexagon* hex = board->getHexagon(x + dx, y + dy); // getHexagon() robi sprawdzanie zakresów
-            if(hex != nullptr && (includeWater || hex->getResident() != Resident::Water) && !visited.count(hex))
+            if(hex != nullptr && filter(hex) && !visited.count(hex))
             {
                 visited.insert(hex);
                 newHexagons.push_back(hex);
             }
         }
     }
-    if(recursion > 0) addNeighboursLayer(board, visited, newHexagons, recursion - 1, includeWater);
+    if(recursion > 0) addNeighboursLayer(board, visited, newHexagons, recursion - 1, filter);
 }
 
-std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion, bool includeSelf, bool includeWater)
+std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion, bool includeSelf, std::function<bool(const Hexagon*)> filter)
 {
+    if (!filter) filter = [](const Hexagon*) { return true; };
     std::unordered_set<Hexagon*> visited = { this };
     std::vector<Hexagon*> newHexagons = { this };
-    addNeighboursLayer(board, visited, newHexagons, recursion, includeWater);
+    addNeighboursLayer(board, visited, newHexagons, recursion, filter);
     if(!includeSelf) visited.erase(this);
-    std::vector<Hexagon*> res(visited.begin(), visited.end());
-    return res;
+    return std::vector<Hexagon*>(visited.begin(), visited.end());
 }
