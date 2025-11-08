@@ -58,7 +58,11 @@ public:
     inline void setOwnerId(uint8 ownerId) noexcept { this->ownerId = ownerId; }
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
+
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(const Hexagon*)> filter = nullptr);
+    std::vector<Hexagon*> province(Board* board);
+    bool allows(Board* board, Resident resident, uint8 ownerId);
+    bool move(Board* board, Hexagon* destination);
 };
 
 class Board
@@ -69,21 +73,23 @@ private:
     std::vector<Hexagon> board;
 
 public:
+    // inicjalizatory
     Board(coord width, coord height);
     void InitializeRandomA(int seed, int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
-    void InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
-    std::unordered_set<Hexagon*> getHexesOfCountry(int countryID);
-    void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons,
-                            int recursion, std::function<bool(const Hexagon*)> filter);
-    void addNeighboursLayer(std::unordered_set<Hexagon*>& visited, int recursion,
-                            std::function<bool(const Hexagon*)> filter);
+    std::vector<Hexagon*> InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
     void InitializeFromFile();
 
+    // gettery/settery
     inline coord getWidth() const noexcept { return width; }
     inline coord getHeight() const noexcept { return height; }
     inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
     inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
+    std::unordered_set<Hexagon*> getHexesOfCountry(int countryID); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
+
+    void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(const Hexagon*)> filter);
+    void addNeighboursLayer(std::unordered_set<Hexagon*>& visited, int recursion,
+                            std::function<bool(const Hexagon*)> filter);
 
 };
 

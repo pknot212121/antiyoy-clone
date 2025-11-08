@@ -69,15 +69,16 @@ void Board::InitializeRandomA(int seed, int min, int max)
     }
 }
 
-void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
+std::vector<Hexagon*> Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
 {
+    std::vector<Hexagon*> origins;
     if(minCountrySize > maxCountrySize)
     {
         int t = maxCountrySize;
         maxCountrySize = minCountrySize;
         minCountrySize = t;
     }
-    if(minCountrySize < 1) return;
+    if(minCountrySize < 1) return origins;
     std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
 
     int tries = 0;
@@ -85,7 +86,6 @@ void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountryS
 restart:
     tries++;
     std::vector<Hexagon*> available;
-    std::vector<Hexagon*> origins;
     origins.clear();
     origins.reserve(countriesCount); // do dodania zamków na końcu (by nie musieć ich usuwać w przypadku restartu)
     
@@ -97,7 +97,11 @@ restart:
             Hexagon* hex = &board[j];
             if(hex->getResident() != Resident::Water && hex->getOwnerId() == 0) available.push_back(hex);
         }
-        if (available.empty()) return;
+        if (available.empty()) 
+        {
+            std::cout << "Not enough space to initialize countries" << std::endl;
+            return origins;
+        }
 
         std::uniform_int_distribution<int> randOrigin(0, available.size() - 1);
         Hexagon* origin = available[randOrigin(gen)];
@@ -122,7 +126,7 @@ restart:
                 if(tries > 100)
                 {
                     std::cout << "Too many failed country initializations, aborted" << std::endl;
-                    return;
+                    return origins;
                 }
                 else goto restart;
             }
@@ -150,6 +154,7 @@ restart:
     {
         o->setResident(Resident::Castle);
     }
+    return origins;
 }
 
 
@@ -241,4 +246,64 @@ std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion, bool incl
     board->addNeighboursLayer(board, visited, newHexagons, recursion, filter);
     if(!includeSelf) visited.erase(this);
     return std::vector<Hexagon*>(visited.begin(), visited.end());
+}
+
+std::vector<Hexagon*> Hexagon::province(Board* board)
+{
+    if(this->getOwnerId() == 0) return std::vector<Hexagon*>{ this };
+    std::vector<Hexagon*> neighbours = this->neighbours(board, 10000000, true, [this](const Hexagon* h) { return h->getOwnerId() == this->ownerId; });
+    for(int i = 0; i < neighbours.size(); i++)
+    {
+        if(neighbours[i]->getResident() == Resident::Castle)
+        {
+            Hexagon* t = neighbours[0];
+            neighbours[0] = neighbours[i];
+            neighbours[i] = t;
+            return neighbours;
+        }
+    }
+    std::cout << "Castle not found" << std::endl;
+    return neighbours;
+}
+
+// -1 - ląd, drzewa, groby
+// 0 - farmy
+// 1-4 - żołnierze i budowle
+int power(Resident resident)
+{
+    if(resident == Resident::Farm) return 0;
+    else if(resident == Resident::Warrior1 || resident == Resident::Castle) return 1;
+    else if(resident == Resident::Warrior2 || resident == Resident::Tower) return 2;
+    else if(resident == Resident::Warrior3 || resident == Resident::StrongTower) return 3;
+    else if(resident == Resident::Warrior4) return 4;
+    return -1;
+}
+
+bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
+{
+    if(resident == Resident::Water) return false; // nie po wodzie
+    if(this->ownerId == ownerId) return power(resident) < 0; // żołnierz może deptać po swoim lądzie, drzewach i grobach
+    int attackerPower = power(warrior);
+    if(attackerPower == 4) return true; // czwarty żołnierz rozjeżdża wszystko (włącznie z innymi czwartymi żołnierzami)
+    std::vector<Hexagon*> neighbours = this->neighbours(board, 0, true, [this](const Hexagon* h) { return h->getOwnerId() == this->ownerId; });
+    for(Hexagon* n : neighbours)
+    {
+        if(power(n->getResident()) >= attackerPower) return false; // jeśli ta płytka lub jej sąsiad ma kogoś o większej mocy to nie można wejść
+    }
+    return true;
+}
+
+bool Hexagon::move(Board* board, Hexagon* destination)
+{
+    if(resident >= Resident::Warrior1 && resident <= Resident::Warrior4)
+    {
+        if(destination->allows(board, resident, ownerId))
+        {
+            destination->setResident(resident);
+            setResident(Resident::Empty);
+            return true;
+        }
+        return false;
+    }
+    return false;
 }
