@@ -57,7 +57,6 @@ public:
     inline void setOwnerId(uint8 ownerId) noexcept { this->ownerId = ownerId; }
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
-
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(const Hexagon*)> filter = nullptr);
 };
 
