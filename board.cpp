@@ -34,6 +34,7 @@ void Board::InitializeNeighbour(int recursion, bool includeMiddle)
     }
 }
 
+
 void Board::InitializeRandomA(int seed, int min, int max)
 {
     std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
@@ -172,7 +173,21 @@ std::vector<std::pair<coord, coord>> oddDirections =
     { 1,  1}  // prawy dolny
 };
 
-void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(const Hexagon*)> filter)
+
+std::unordered_set<Hexagon*> Board::getHexesOfCountry(int countryID)
+{
+    std::unordered_set<Hexagon*> hexes;
+    for (Hexagon &hex : board)
+    {
+        if (static_cast<int>(hex.getOwnerId())==countryID)
+        {
+            hexes.insert(&hex);
+        }
+    }
+    return hexes;
+}
+
+void Board::addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(const Hexagon*)> filter)
 {
     if(hexagons.size() == 0) return;
     std::vector<Hexagon*> newHexagons;
@@ -197,12 +212,33 @@ void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std
     if(recursion > 0) addNeighboursLayer(board, visited, newHexagons, recursion - 1, filter);
 }
 
+void Board::addNeighboursLayer(std::unordered_set<Hexagon*>& visited, int recursion, std::function<bool(const Hexagon*)> filter)
+{
+    for(auto hexagon : visited)
+    {
+        coord x = hexagon->getX();
+        coord y = hexagon->getY();
+        auto& directions = (x % 2 == 0) ? evenDirections : oddDirections;
+
+        for (auto [dx, dy] : directions)
+        {
+            Hexagon* hex = getHexagon(x + dx, y + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex != nullptr && filter(hex) && !visited.count(hex))
+            {
+                visited.insert(hex);
+            }
+        }
+    }
+    if(recursion > 0) addNeighboursLayer(visited,recursion - 1, filter);
+}
+
+
 std::vector<Hexagon*> Hexagon::neighbours(Board* board, int recursion, bool includeSelf, std::function<bool(const Hexagon*)> filter)
 {
     if (!filter) filter = [](const Hexagon*) { return true; };
     std::unordered_set<Hexagon*> visited = { this };
     std::vector<Hexagon*> newHexagons = { this };
-    addNeighboursLayer(board, visited, newHexagons, recursion, filter);
+    board->addNeighboursLayer(board, visited, newHexagons, recursion, filter);
     if(!includeSelf) visited.erase(this);
     return std::vector<Hexagon*>(visited.begin(), visited.end());
 }

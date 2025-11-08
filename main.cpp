@@ -13,9 +13,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // The Width of the screen
-const unsigned int SCREEN_WIDTH = 800;
+unsigned int SCREEN_WIDTH = 800;
 // The height of the screen
-const unsigned int SCREEN_HEIGHT = 600;
+unsigned int SCREEN_HEIGHT = 600;
 bool fullScreen = false;
 bool fPressed = false;
 
@@ -107,14 +107,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, true);
     if (key == GLFW_KEY_F && action == GLFW_PRESS && !fullScreen && !fPressed)
     {
+        Anti -> Width = glfwGetVideoMode(glfwGetPrimaryMonitor())->width / 2;
+        Anti -> Height = glfwGetVideoMode(glfwGetPrimaryMonitor())->height / 2;
         glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,glfwGetVideoMode(glfwGetPrimaryMonitor())->width,glfwGetVideoMode(glfwGetPrimaryMonitor())->height,1);
         fPressed = true;
     }
     else if (key == GLFW_KEY_F && action == GLFW_RELEASE && !fullScreen && fPressed){fPressed=false;fullScreen=true;}
     else if (key == GLFW_KEY_F && action == GLFW_PRESS && fullScreen && !fPressed)
     {
+        Anti -> Width = 800;
+        Anti -> Height = 600;
         glfwSetWindowMonitor(window,NULL,0,0,SCREEN_WIDTH,SCREEN_HEIGHT,1);
         fPressed = true;
+
     }
     else if (key == GLFW_KEY_F && action == GLFW_RELEASE && fullScreen && fPressed){fullScreen=false;fPressed=false;}
     // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;

@@ -28,8 +28,10 @@ public:
     float                   cursorPosY;
     int                     scroll = 0;
     unsigned int            Width, Height;
+    int                     playerCount;
     int                     playerIndex;
     bool                    enterPressed = false;
+    bool                    onePressed = false;
 
     Board *board;
     // constructor/destructor

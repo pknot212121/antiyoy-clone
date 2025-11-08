@@ -47,7 +47,7 @@ void SpriteRenderer::addToDisplacementY(int dy)
     displacementY += dy;
 }
 
-void SpriteRenderer::addToResizeMultiplier(double ds)
+void SpriteRenderer::addToResizeMultiplier(double ds,Board *board,float width)
 {
     resizeMultiplier *= ds;
 }
@@ -156,7 +156,9 @@ void SpriteRenderer::InitPalette() {
 void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 {
     glm::vec3 color = glm::vec3(1.0f,0.5f,0.0f);
+
     size *= resizeMultiplier;
+
     float smallSize = size * 0.6;
     color = glm::vec3(1.0f,1.0f,1.0f);
     if (hex.getOwnerId()!=0) {
@@ -195,6 +197,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
+    // std::cout << "Width: " << width << " " << "Height: " << height << std::endl;
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
             this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());

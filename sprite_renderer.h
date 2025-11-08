@@ -29,7 +29,7 @@ public:
     void InitPalette();
     void addToDisplacementX(int dx);
     void addToDisplacementY(int dy);
-    void addToResizeMultiplier(double ds);
+    void addToResizeMultiplier(double ds, Board* board, float width);
 
 private:
     // Render state

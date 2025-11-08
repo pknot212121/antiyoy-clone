@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <unordered_set>
 
 typedef short coord;
 typedef unsigned char uint8;
@@ -72,6 +73,11 @@ public:
     void InitializeRandomA(int seed, int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
     void InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
+    std::unordered_set<Hexagon*> getHexesOfCountry(int countryID);
+    void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons,
+                            int recursion, std::function<bool(const Hexagon*)> filter);
+    void addNeighboursLayer(std::unordered_set<Hexagon*>& visited, int recursion,
+                            std::function<bool(const Hexagon*)> filter);
     void InitializeFromFile();
 
     inline coord getWidth() const noexcept { return width; }

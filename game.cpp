@@ -18,6 +18,8 @@ Game::~Game()
 
 void Game::Init()
 {
+    playerCount = 3;
+    playerIndex = 0;
     // load shaders
     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
     // configure shaders
@@ -38,8 +40,7 @@ void Game::Init()
     int total = x * y;
     board->InitializeRandomA(0, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
     //board->InitializeNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
-
-    board->InitializeCountriesA(0, 3, 6, 8);
+    board->InitializeCountriesA(0, playerCount, 6, 8);
 
     // this -> grid = Grid(300.0f,300.0f,100.0f);
     // // grid.AddHexagon(1,0);
@@ -83,12 +84,12 @@ void Game::ProcessInput(float dt)
         // }
         if(this->scroll == -1)
         {
-            Renderer -> addToResizeMultiplier(0.9);
+            Renderer -> addToResizeMultiplier(0.9,board, this->Width);
             scroll = 0;
         }
         if(this->scroll == 1)
         {
-            Renderer -> addToResizeMultiplier(1.1);
+            Renderer -> addToResizeMultiplier(1.1,board,this->Width);
             scroll = 0;
         }
         if (this->Keys[GLFW_KEY_W])
@@ -107,19 +108,52 @@ void Game::ProcessInput(float dt)
         {
             Renderer -> addToDisplacementX(-10);
         }
+        if (this->Keys[GLFW_KEY_1])
+        {
+
+            onePressed=true;
+        }
+        if(!this->Keys[GLFW_KEY_1] && onePressed)
+        {
+            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex+1);
+            std::cout << "FIRSTLY -----------------" << std::endl;
+            for (const auto hex : hexes)
+            {
+                std::cout << hex->getX() << " " << hex->getY() << std::endl;
+            }
+            board -> addNeighboursLayer(hexes,0,[this](const Hexagon* h) { return h->getResident() != Resident::Water;});
+            std::cout << "SECONDLY -----------------" << std::endl;
+            for (const auto hex : hexes)
+            {
+                std::cout << hex->getX() << " " << hex->getY() << std::endl;
+            }
+            onePressed = false;
+        }
+        if (this->Keys[GLFW_KEY_2])
+        {
+
+        }
+        if (this->Keys[GLFW_KEY_3])
+        {
+
+        }
+        if (this->Keys[GLFW_KEY_4])
+        {
+
+        }
+        if(this->Keys[GLFW_KEY_ENTER])
+        {
+            enterPressed = true;
+
+        }
+        if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
+        {
+            playerIndex = (playerIndex+1)%playerCount;
+            std::cout << "GRACZ NR: " << playerIndex+1 << std::endl;
+            enterPressed = false;
+        }
     }
-        // if(this->Keys[GLFW_KEY_ENTER])
-        // {
-        //     enterPressed = true;
-        //
-        // }
-        // if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
-        // {
-        //     playerIndex++;
-        //     grid.currentPlayer = grid.names[playerIndex%(grid.names.size())];
-        //     std::cout << "CURRENT PLAYER: " << grid.currentPlayer << std::endl;
-        //     enterPressed = false;
-        // }
+
 
 }
 
