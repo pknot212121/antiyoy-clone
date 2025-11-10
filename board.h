@@ -18,8 +18,8 @@ enum class Resident : uint8
     Warrior3,
     Warrior4,
 
-    Castle, // dziwne nazewnictwo z wiki
     Farm,
+    Castle, // dziwne nazewnictwo z wiki
     Tower,
     StrongTower,
 
@@ -28,11 +28,11 @@ enum class Resident : uint8
     Gravestone
 };
 
-struct Point
+/*struct Point
 {
     coord x;
     coord y;
-};
+};*/
 
 
 class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
@@ -59,9 +59,13 @@ public:
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
 
-    std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(const Hexagon*)> filter = nullptr);
+    void rot(Board* board);
+
+    std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(Hexagon*)> filter = nullptr);
     std::vector<Hexagon*> province(Board* board);
+    std::vector<Hexagon*> calculateProvince(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
+    std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
     bool move(Board* board, Hexagon* destination);
 };
 
@@ -86,11 +90,6 @@ public:
     inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
     inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
     std::unordered_set<Hexagon*> getHexesOfCountry(int countryID); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
-
-    void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(const Hexagon*)> filter);
-    void addNeighboursLayer(std::unordered_set<Hexagon*>& visited, int recursion,
-                            std::function<bool(const Hexagon*)> filter);
-
 };
 
 // nie mam chwilowo pomysłu co dalej z nimi
@@ -100,7 +99,7 @@ class Player
     virtual void move() = 0; // udawaj że to funkcja abstrakcyjna
 };
 
-class LocalPlayer : Player
+/*class LocalPlayer : Player
 {
 
 };
@@ -113,4 +112,4 @@ class BotPlayer : Player
 class NetworkPlayer : Player // Easter egg
 {
 
-};
+};*/
