@@ -6,6 +6,8 @@
 #include "sprite_renderer.h"
 #include <iostream>
 
+#include "board.h"
+
 // Represents the current state of the game
 enum class GameState
 {
@@ -28,10 +30,12 @@ public:
     float                   cursorPosY;
     int                     scroll = 0;
     unsigned int            Width, Height;
-    int                     playerCount;
-    int                     playerIndex;
+    coord                   playerCount;
+    coord                   playerIndex;
     bool                    enterPressed = false;
     bool                    onePressed = false;
+
+    std::vector<Player>     players;
 
     Board *board;
     // constructor/destructor

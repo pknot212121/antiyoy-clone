@@ -2,6 +2,16 @@
 #include <unordered_set>
 #include <random>
 
+void markAll(std::vector<Hexagon*> hexagons)
+{
+    for(Hexagon* h : hexagons) h->mark();
+}
+
+void unmarkAll(std::vector<Hexagon*> hexagons)
+{
+    for(Hexagon* h : hexagons) h->unmark();
+}
+
 Hexagon::Hexagon() : x(0), y(0), ownerId(0), resident(Resident::Water){}
 
 Hexagon::Hexagon(coord x, coord y) : x(x), y(y), ownerId(0), resident(Resident::Water){}
@@ -11,7 +21,7 @@ Hexagon::Hexagon(coord x, coord y, uint8 ownerId, Resident resident) : x(x), y(y
 
 }
 
-Board::Board(coord width, coord height) : width(width), height(height)
+Board::Board(coord width, coord height, Game* game) : width(width), height(height), game(game)
 {
     board.reserve(width * height);
     for (coord y = 0; y < height; y++)
@@ -56,7 +66,7 @@ void Board::InitializeRandomA(int seed, int min, int max)
         addableV[index] = addableV.back();
         addableV.pop_back();
         hex->setResident(Resident::Empty);
-        auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return h->getResident() == Resident::Water; });
+        auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return water(h->getResident()); });
         for(Hexagon* neighbour : neighbours)
         {
             if(!addableS.count(neighbour))
@@ -69,16 +79,15 @@ void Board::InitializeRandomA(int seed, int min, int max)
     }
 }
 
-std::vector<Hexagon*> Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
+void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
 {
-    std::vector<Hexagon*> origins;
     if(minCountrySize > maxCountrySize)
     {
         int t = maxCountrySize;
         maxCountrySize = minCountrySize;
         minCountrySize = t;
     }
-    if(minCountrySize < 1) return origins;
+    if(minCountrySize < 1) return;
     std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
 
     int tries = 0;
@@ -86,8 +95,9 @@ std::vector<Hexagon*> Board::InitializeCountriesA(int seed, uint8 countriesCount
 restart:
     tries++;
     std::vector<Hexagon*> available;
+    std::vector<Hexagon*> origins;
     origins.clear();
-    origins.reserve(countriesCount); // do dodania zamków na końcu (by nie musieć ich usuwać w przypadku restartu)
+    origins.reserve(countriesCount);
     
     for(uint8 i = 1; i <= countriesCount; i++)
     {
@@ -95,12 +105,12 @@ restart:
         for(int j = 0; j < width * height; j++)
         {
             Hexagon* hex = &board[j];
-            if(hex->getResident() != Resident::Water && hex->getOwnerId() == 0) available.push_back(hex);
+            if(!water(hex->getResident()) && hex->getOwnerId() == 0) available.push_back(hex);
         }
         if (available.empty()) 
         {
             std::cout << "Not enough space to initialize countries" << std::endl;
-            return origins;
+            return;
         }
 
         std::uniform_int_distribution<int> randOrigin(0, available.size() - 1);
@@ -121,12 +131,12 @@ restart:
                 for(int j = 0; j < width * height; j++)
                 {
                     Hexagon* hex = &board[j];
-                    if(hex->getResident() != Resident::Water && hex->getOwnerId() != 0) hex->setOwnerId(0);
+                    if(!water(hex->getResident()) && hex->getOwnerId() != 0) hex->setOwnerId(0);
                 }
                 if(tries > 100)
                 {
                     std::cout << "Too many failed country initializations, aborted" << std::endl;
-                    return origins;
+                    return;
                 }
                 else goto restart;
             }
@@ -137,7 +147,7 @@ restart:
             addableV[index] = addableV.back();
             addableV.pop_back();
             hex->setOwnerId(i);
-            auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return h->getResident() != Resident::Water && h->getOwnerId() == 0; });
+            auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return !water(h->getResident()) && h->getOwnerId() == 0; });
             for(Hexagon* neighbour : neighbours)
             {
                 if(!addableS.count(neighbour))
@@ -150,24 +160,60 @@ restart:
         }
     }
 
+    countries.reserve(countriesCount);
+
     for(Hexagon* o : origins)
     {
-        o->setResident(Resident::Castle);
+        countries.emplace_back(std::vector{ o });
     }
-    return origins;
 }
 
 
 void Hexagon::rot(Board* board)
 {
-    if(resident >= Resident::Warrior1 && resident <= Resident::Warrior4) setResident(Resident::Gravestone);
-    else if((resident >= Resident::Castle && resident <= Resident::StrongTower) || resident == Resident::Gravestone)
+    if(warrior(resident)) setResident(Resident::Gravestone);
+    else if((resident >= Resident::Castle && resident <= Resident::StrongTower) || gravestone(resident))
     {
-        if((neighbours(board, 0, false, [](Hexagon* h) { return h->resident == Resident::Water; })).size()) setResident(Resident::PalmTree);
+        if((neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size()) setResident(Resident::PalmTree);
         else setResident(Resident::PineTree);
     }
 }
 
+// Sam liczy farmy
+void Hexagon::setCastle(Board* board, int money)
+{
+    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    resident = Resident::Castle;
+
+    auto province = neighbours(board, BIG_NUMBER, false, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+    int farmsNumber = 0;
+    for(Hexagon* h : province)
+    {
+        if(farm(h->getResident())) farmsNumber++;
+    }
+
+    castlesMap[this] = MoneyAndFarms({money, farmsNumber});
+}
+
+void Hexagon::setCastle(Board* board, int money, int farms)
+{
+    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    resident = Resident::Castle;
+    castlesMap[this] = MoneyAndFarms({money, farms});
+}
+
+int Hexagon::removeCastle(Board* board)
+{
+    if(castle(resident)) resident = Resident::Empty;
+    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    if(castlesMap.count(this))
+    {
+        int money = castlesMap[this].money;
+        castlesMap.erase(this);
+        return money;
+    }
+    return 0;
+}
 
 std::unordered_set<Hexagon*> Board::getHexesOfCountry(int countryID)
 {
@@ -184,22 +230,22 @@ std::unordered_set<Hexagon*> Board::getHexesOfCountry(int countryID)
 
 std::vector<std::pair<coord, coord>> evenDirections =
 {
+    { 0, -1}, // górny
     {-1, -1}, // lewy górny
     {-1,  0}, // lewy dolny
-    { 0, -1}, // górny
     { 0,  1}, // dolny
-    { 1, -1}, // prawy górny
-    { 1,  0}  // prawy dolny
+    { 1,  0}, // prawy dolny
+    { 1, -1}  // prawy górny
 };
 
 std::vector<std::pair<coord, coord>> oddDirections =
 {
+    { 0, -1}, // górny
     {-1,  0}, // lewy górny
     {-1,  1}, // lewy dolny
-    { 0, -1}, // górny
     { 0,  1}, // dolny
-    { 1,  0}, // prawy górny
-    { 1,  1}  // prawy dolny
+    { 1,  1}, // prawy dolny
+    { 1,  0}  // prawy górny
 };
 
 void addNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(Hexagon*)> filter)
@@ -241,11 +287,11 @@ std::vector<Hexagon*> Hexagon::neighbours(Board *board, int recursion, bool incl
 std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
 {
     if(this->getOwnerId() == 0) return std::vector<Hexagon*>();
-    std::vector<Hexagon*> province = this->neighbours(board, 10000000, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+    std::vector<Hexagon*> province = this->neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     int castlesNumber = 0;
     for(int i = 0; i < province.size(); i++)
     {
-        if(province[i]->getResident() == Resident::Castle)
+        if(castle(province[i]->getResident()))
         {
             Hexagon* t = province[castlesNumber];
             province[castlesNumber] = province[i];
@@ -260,12 +306,67 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(castlesNumber > 1)
     {
+        std::unordered_map<Hexagon*, MoneyAndFarms> castlesMap = board->getCountries()[ownerId].getCastles();
+        int mostFarms = 0;
         int mostMoney = 0;
         int bestI = 0;
+        for(int i = 0; i < castlesNumber; i++)
+        {
+            MoneyAndFarms moneyAndFarms = castlesMap[province[i]];
+            if(moneyAndFarms.farms > mostFarms)
+            {
+                bestI = i;
+                mostMoney = moneyAndFarms.money;
+                mostFarms = moneyAndFarms.farms;
+            }
+            else if(moneyAndFarms.farms == mostFarms)
+            {
+                if(moneyAndFarms.money > mostMoney)
+                {
+                    bestI = i;
+                    mostMoney = moneyAndFarms.money;
+                    mostFarms = moneyAndFarms.farms;
+                }
+            }
+        }
+        if(bestI != 0)
+        {
+            Hexagon* t = province[bestI];
+            province[bestI] = province[0];
+            province[0] = t;
+        }
         for(int i = 1; i < castlesNumber; i++)
         {
-            // DODAĆ: znajdywanie zamku z największą ilością pieniędzy
+            castlesMap[province[0]].money += province[i]->removeCastle(board);
         }
+        return province;
+    }
+    if(castlesNumber == 0)
+    {
+        std::vector<Hexagon*> firstLine;
+        firstLine.reserve(province.size());
+        std::vector<Hexagon*> secondLine;
+        secondLine.reserve(province.size());
+        for(Hexagon* h : province)
+        {
+            if(empty(h->getResident())) firstLine.push_back(h);
+            else secondLine.push_back(h);
+        }
+        
+        Hexagon* newCastle;
+        if(firstLine.size()) // w pierwszej kolejności próbuje położyć zamek na pustym polu
+        {
+            std::mt19937 gen(std::random_device{}());
+            std::uniform_int_distribution<int> rand(0, firstLine.size() - 1);
+            newCastle = firstLine[rand(gen)];
+        }
+        else // potem na niepustym
+        {
+            std::mt19937 gen(std::random_device{}());
+            std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
+            newCastle = secondLine[rand(gen)];
+        }
+        newCastle->setCastle(board, 0);
     }
     return province;
 }
@@ -273,11 +374,11 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
 // Tańsza od calculateProvince() ale jedynie znajduje istniejącą prowincję. Używać do pozyskania prowincji która na pewno jest poprawna
 std::vector<Hexagon*> Hexagon::province(Board* board)
 {
-    if(this->getOwnerId() == 0) return std::vector<Hexagon*>{ this };
-    std::vector<Hexagon*> neighbours = this->neighbours(board, 10000000, true, [this](Hexagon* h) { return h->getOwnerId() == this->ownerId; });
+    if(ownerId == 0) return std::vector<Hexagon*>{ this };
+    std::vector<Hexagon*> neighbours = this->neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     for(int i = 1; i < neighbours.size(); i++)
     {
-        if(neighbours[i]->getResident() == Resident::Castle)
+        if(castle(neighbours[i]->getResident()))
         {
             Hexagon* t = neighbours[0];
             neighbours[0] = neighbours[i];
@@ -305,7 +406,7 @@ int power(Resident resident)
 // Sprawdza czy dany żołnierz może wejść na inne pole. Nie używać dla innych rezydentów
 bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
 {
-    if(resident == Resident::Water) return false; // nie po wodzie
+    if(water(resident)) return false; // nie po wodzie
     if(this->ownerId == ownerId) return power(resident) < 0; // żołnierz może deptać po swoim lądzie, drzewach i grobach
     int attackerPower = power(warrior);
     if(attackerPower == 4) return true; // czwarty żołnierz rozjeżdża wszystko (włącznie z innymi czwartymi żołnierzami)
@@ -321,9 +422,9 @@ bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
     if(ownerId == 0) return std::vector<Hexagon*>();
-    if(resident >= Resident::Warrior1 && resident <= Resident::Warrior4)
+    if(warrior(resident))
     {
-        return neighbours(board, 10000000, true, [this, board, resident](Hexagon* h)
+        return neighbours(board, BIG_NUMBER, true, [this, board, resident](Hexagon* h)
         {
             if(h->ownerId == this->ownerId) return h->allows(board, resident, this->ownerId); // pola prowincji które pozwalają na tego żołnierza
             else return h->allows(board, resident, this->ownerId) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId; }).size(); // obce pola wokół prowincji które pozwalają na tego żołnierza
@@ -331,31 +432,72 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     }
     if(resident == Resident::Farm)
     {
-        return neighbours(board, 10000000, true, [this, board](Hexagon* h) { return h->ownerId == this->ownerId && (h->resident == Resident::Empty || h->resident == Resident::Gravestone) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId && (h->resident == Resident::Castle || h->resident == Resident::Farm); }).size(); }); // nasze pola które graniczą z innymi farmami lub zamkiem
+        return neighbours(board, BIG_NUMBER, true, [this, board](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident)) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId && (castle(h->resident) || farm(h->resident)); }).size(); }); // nasze pola które graniczą z innymi farmami lub zamkiem
     }
     if(resident == Resident::Tower)
     {
-        return neighbours(board, 10000000, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (h->resident == Resident::Empty || h->resident == Resident::Gravestone); }); // nasze puste pola
+        return neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident)); }); // nasze puste pola
     }
     if(resident == Resident::StrongTower)
     {
-        return neighbours(board, 10000000, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (h->resident == Resident::Empty || h->resident == Resident::Gravestone || h->resident == Resident::Tower); }); // nasze puste pola lub zwykłe wieże
+        return neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident) || h->resident == Resident::Tower); }); // nasze puste pola lub zwykłe wieże
     }
     return std::vector<Hexagon*>();
 }
 
+// Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination)
 {
-    if(resident >= Resident::Warrior1 && resident <= Resident::Warrior4)
+    if(!warrior(resident)) return false;
+    if(!destination->allows(board, resident, ownerId)) return false;
+    if(castle(destination->getResident())) destination->removeCastle(board);
+    destination->setResident(resident);
+    uint8 oldOwnerId = destination->getOwnerId();
+    destination->setOwnerId(ownerId);
+    setResident(Resident::Empty);
+
+    if(oldOwnerId != 0 && ownerId != oldOwnerId)
     {
-        if(destination->allows(board, resident, ownerId))
+        // by ograniczyć wywołania drogiej kalkulacji wybieramy tylko punkty które przypuszczamy że należą do różnych prowincji
+        std::vector<Hexagon*> neighboursRequiringCalculation;
+        bool add = true;
+        bool trimLast = false;
+        auto& directions = (destination->x % 2 == 0) ? evenDirections : oddDirections;
+        for(int i = 0; i < directions.size(); i++)
         {
-            destination->setResident(resident);
-            destination->setOwnerId(ownerId);
-            setResident(Resident::Empty);
-            return true;
+            auto [dx, dy] = directions[i];
+            Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex == nullptr || hex->ownerId == 0 || hex->ownerId != destination->ownerId)
+            {
+                add = true;
+            }
+            else if(add)
+            {
+                if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
+                add = false;
+                if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+            }
         }
-        return false;
+
+        for(Hexagon* h : neighboursRequiringCalculation) h->calculateProvince(board);
     }
-    return false;
+
+    destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
+
+    return true;
+}
+
+// Konstruktor nie liczy farm, jeśli Ci tego trzeba użyj setCastle(Board* board, int money) na tych heksagonach później
+Country::Country(std::vector<Hexagon*> castles)
+{
+    for(Hexagon* h : castles)
+    {
+        h->setResident(Resident::Castle);
+        this->castles[h] = MoneyAndFarms({10, 0});
+    }
+}
+
+Player::Player(Country* country) : country(country)
+{
+    country->setPlayer(this);
 }

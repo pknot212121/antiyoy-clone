@@ -36,11 +36,21 @@ void Game::Init()
 
     coord x = 10;
     coord y = 10;
-    board = new Board(x, y);
+    board = new Board(x, y, this);
     int total = x * y;
     board->InitializeRandomA(0, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
     //board->InitializeNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
-    std::vector<Hexagon*> hexesWithCastles = board->InitializeCountriesA(0, playerCount, 6, 8);
+    board->InitializeCountriesA(0, playerCount, 6, 8);
+
+    if(board->getCountries().size() == playerCount)
+    {
+        players.reserve(playerCount);
+        for(Country& country : board->getCountries())
+        {
+            players.emplace_back(&country);
+        }
+    }
+    else std::cout << "Countries initialization error\n";
 
     // this -> grid = Grid(300.0f,300.0f,100.0f);
     // // grid.AddHexagon(1,0);
