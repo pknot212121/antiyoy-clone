@@ -92,31 +92,40 @@ void Game::ProcessInput(float dt)
         if (this->mousePressed)
         {
             std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
-            if (!isHexSelected)
+            float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+            Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+            Hexagon *hex = board->getHexagon(p.x,p.y);
+            std::set<Hexagon*> orderedHexes(
+                hexes.begin(),
+                hexes.end()
+            );
+            Hexagon* h = *hexes.begin();
+            std::vector<Hexagon*> neigh = h->possiblePlacements(board,Resident::Warrior1);
+            if (!board->getHexagon(p.x,p.y)->marked())
             {
-                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-                Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
                 if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
                 {
-                    isHexSelected = true;
-                    selectedHex = p;
+                    std::cout << "MARKED!!!" << std::endl;
+                    board->getHexagon(p.x,p.y)->mark();
                 }
-
+                else
+                {
+                    std::cout << "ELSE!!!" << std::endl;
+                    for (auto& element : orderedHexes)
+                    {
+                        if (element->marked() && element->getResident()==Resident::Warrior1)
+                        {
+                            std::cout << "MOVED!!!" << std::endl;
+                            element->move(board,hex);
+                            break;
+                        }
+                    }
+                }
             }
+
             if(this->onePressed)
             {
-                std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-                Point p = Renderer->CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-                Hexagon *hex = board->getHexagon(p.x,p.y);
-                std::set<Hexagon*> orderedHexes(
-                    hexes.begin(),
-                    hexes.end()
-                );
-                Hexagon* h = *hexes.begin();
-                std::vector<Hexagon*> neigh = h->possiblePlacements(board,Resident::Warrior1);
-
-
                 for (const auto& element : neigh) {
                     // std::cout << "X: " << element->getX() << "Y: " << element->getY() << std::endl;
                     if (hex->getX()==element->getX() && hex->getY()==element->getY())
