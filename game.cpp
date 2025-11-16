@@ -22,7 +22,7 @@ Game::~Game()
 void Game::Init()
 {
     playerCount = 3;
-    playerIndex = 0;
+    playerIndex = 1;
     // load shaders
     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
     // configure shaders
@@ -106,18 +106,23 @@ void Game::ProcessInput(float dt)
             if(this->onePressed)
             {
                 std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+                Point p = Renderer->CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+                Hexagon *hex = board->getHexagon(p.x,p.y);
                 std::set<Hexagon*> orderedHexes(
                     hexes.begin(),
                     hexes.end()
                 );
-                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-                Point p = Renderer->CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-                Hexagon *hex = board->getHexagon(p.x,p.y);
-                for (const auto& element : orderedHexes) {
+                Hexagon* h = *hexes.begin();
+                std::vector<Hexagon*> neigh = h->possiblePlacements(board,Resident::Warrior1);
+
+
+                for (const auto& element : neigh) {
                     // std::cout << "X: " << element->getX() << "Y: " << element->getY() << std::endl;
                     if (hex->getX()==element->getX() && hex->getY()==element->getY())
                     {
                         board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
+                        board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
                     }
                 }
                 onePressed=false;
@@ -173,8 +178,8 @@ void Game::ProcessInput(float dt)
         }
         if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
         {
-            playerIndex = (playerIndex+1)%playerCount;
-            std::cout << "GRACZ NR: " << playerIndex+1 << std::endl;
+            playerIndex = (playerIndex)%playerCount+1;
+            std::cout << "GRACZ NR: " << playerIndex << std::endl;
             enterPressed = false;
         }
     }
