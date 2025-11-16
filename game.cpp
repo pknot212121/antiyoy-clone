@@ -106,17 +106,14 @@ void Game::ProcessInput(float dt)
             {
                 if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
                 {
-                    std::cout << "MARKED!!!" << std::endl;
                     board->getHexagon(p.x,p.y)->mark();
                 }
                 else
                 {
-                    std::cout << "ELSE!!!" << std::endl;
                     for (auto& element : orderedHexes)
                     {
                         if (element->marked() && element->getResident()==Resident::Warrior1)
                         {
-                            std::cout << "MOVED!!!" << std::endl;
                             element->move(board,hex);
                             break;
                         }
