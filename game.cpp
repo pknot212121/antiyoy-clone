@@ -1,4 +1,7 @@
 #include "game.h"
+
+#include <set>
+
 #include "resource_manager.h"
 
 
@@ -31,8 +34,8 @@ void Game::Init()
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
     // load textures
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
-    ResourceManager::LoadTexture("textures/level1warrior.png",true,"level1warrior");
-    ResourceManager::LoadTexture("textures/soilder1.png",true,"soilder1");
+    ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
+    ResourceManager::LoadTexture("textures/awesomeface.png",true,"s1");
 
     coord x = 10;
     coord y = 10;
@@ -100,6 +103,25 @@ void Game::ProcessInput(float dt)
                 }
 
             }
+            if(this->onePressed)
+            {
+                std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+                std::set<Hexagon*> orderedHexes(
+                    hexes.begin(),
+                    hexes.end()
+                );
+                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+                Point p = Renderer->CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+                Hexagon *hex = board->getHexagon(p.x,p.y);
+                for (const auto& element : orderedHexes) {
+                    // std::cout << "X: " << element->getX() << "Y: " << element->getY() << std::endl;
+                    if (hex->getX()==element->getX() && hex->getY()==element->getY())
+                    {
+                        board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
+                    }
+                }
+                onePressed=false;
+            }
             this -> mousePressed = false;
         }
         if(this->scroll == -1)
@@ -131,10 +153,6 @@ void Game::ProcessInput(float dt)
         if (this->Keys[GLFW_KEY_1])
         {
             onePressed=true;
-        }
-        if(!this->Keys[GLFW_KEY_1] && onePressed)
-        {
-
         }
         if (this->Keys[GLFW_KEY_2])
         {
