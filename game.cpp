@@ -114,8 +114,14 @@ void Game::ProcessInput(float dt)
                     {
                         if (element->marked() && element->getResident()==Resident::Warrior1)
                         {
-                            element->move(board,hex);
-                            break;
+                            for (const auto& e : neigh) {
+                                if (hex->getX()==e->getX() && hex->getY()==e->getY())
+                                {
+                                    std::cout << "MOVED!!!" << std::endl;
+                                    element->move(board,hex);
+                                }
+                            }
+
                         }
                     }
                 }
