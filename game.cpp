@@ -8,7 +8,7 @@ SpriteRenderer  *Renderer;
 
 
 Game::Game(unsigned int width, unsigned int height)
-    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board() {
+    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board(), selectedHex(Point(0,0)) {
 }
 
 Game::~Game()
@@ -86,12 +86,22 @@ void Game::ProcessInput(float dt)
     if (this->State == GameState::GAME_ACTIVE)
     {
         // move playerboard
-        // if (this->mousePressed)
-        // {
-        //     std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
-        //     grid.TryToClickOnHexagon((float)cursorPosX,(float)cursorPosY);
-        //     this -> mousePressed = false;
-        // }
+        if (this->mousePressed)
+        {
+            std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
+            if (!isHexSelected)
+            {
+                float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+                Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+                if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
+                {
+                    isHexSelected = true;
+                    selectedHex = p;
+                }
+
+            }
+            this -> mousePressed = false;
+        }
         if(this->scroll == -1)
         {
             Renderer -> addToResizeMultiplier(0.9,board, this->Width);
@@ -120,24 +130,11 @@ void Game::ProcessInput(float dt)
         }
         if (this->Keys[GLFW_KEY_1])
         {
-
             onePressed=true;
         }
         if(!this->Keys[GLFW_KEY_1] && onePressed)
         {
-            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex+1);
-            std::cout << "FIRSTLY -----------------" << std::endl;
-            for (const auto hex : hexes)
-            {
-                std::cout << hex->getX() << " " << hex->getY() << std::endl;
-            }
-            board -> addNeighboursLayer(hexes,0,[this](const Hexagon* h) { return h->getResident() != Resident::Water;});
-            std::cout << "SECONDLY -----------------" << std::endl;
-            for (const auto hex : hexes)
-            {
-                std::cout << hex->getX() << " " << hex->getY() << std::endl;
-            }
-            onePressed = false;
+
         }
         if (this->Keys[GLFW_KEY_2])
         {

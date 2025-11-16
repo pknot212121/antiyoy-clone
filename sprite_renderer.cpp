@@ -152,13 +152,31 @@ void SpriteRenderer::InitPalette() {
     }
 }
 
-
-void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
+Point fromAxial(int q,int r)
 {
-    glm::vec3 color = glm::vec3(1.0f,0.5f,0.0f);
+    int parity = q&1;
+    int col = q;
+    int row = r + (q - parity) / 2;
+    return Point(col, row);
+}
 
+Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float a)
+{
+    float x = _x - a;
+    float y = _y - 0.866*a;
+    float x2 = x / a;
+    float y2 = y / a;
+    int q = round(2./3 * x2);
+    int r = round(-1./3 * x2  +  sqrt(3)/3 * y2);
+    Point p = fromAxial(q,r);
+    std::cout << "Q: " << p.x << " R: " << p.y << std::endl;
+    return p;
+}
+
+
+void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
+{
     size *= resizeMultiplier;
-
     float smallSize = size * 0.6;
     color = glm::vec3(1.0f,1.0f,1.0f);
     if (hex.getOwnerId()!=0) {
@@ -187,10 +205,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size)
                 this->DrawSprite(ResourceManager::GetTexture("level1warrior"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(size*0.6,size*0.6), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
             }
         }
-
     }
-
-
 }
 
 

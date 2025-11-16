@@ -34,6 +34,8 @@ public:
     coord                   playerIndex;
     bool                    enterPressed = false;
     bool                    onePressed = false;
+    Point                   selectedHex;
+    bool                    isHexSelected = false;
 
     std::vector<Player>     players;
 

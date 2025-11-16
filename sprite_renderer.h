@@ -13,6 +13,13 @@
 #include "board.h"
 #include <cstdlib>
 
+struct Point
+{
+    Point(int x,int y): x(x),y(y){}
+    int x;
+    int y;
+};
+
 class SpriteRenderer
 {
 public:
@@ -23,7 +30,8 @@ public:
     // Renders a defined quad textured with given sprite
     void DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
     // void DrawHexagon(float x, float y, float a, glm::vec3 col);
-    void DrawHexagon(const Hexagon &hex, float size);
+    void DrawHexagon(const Hexagon &hex, float size,glm::vec3 color= glm::vec3(1.0f,0.5f,0.0f));
+    Point CheckWhichHexagon(int x, int y, float size);
     // void DrawWarrior(Hexagon hex,Warrior war);
     void DrawBoard(Board *board, int width, int height);
     void InitPalette();
