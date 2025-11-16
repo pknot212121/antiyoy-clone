@@ -126,7 +126,6 @@ public:
     inline const Game* getGame() const noexcept { return game; }
 };
 
-// Jednak je rozdzieliłem
 struct MoneyAndFarms
 {
 public:

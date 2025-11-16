@@ -418,29 +418,85 @@ bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
     return true;
 }
 
+void addNeighboursLayerWithBorder(Board* board, std::unordered_set<Hexagon*>& visited, std::unordered_set<Hexagon*>& border, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(Hexagon*)> filter)
+{
+    if(hexagons.size() == 0) return;
+    std::vector<Hexagon*> newHexagons;
+    newHexagons.reserve(hexagons.size() * 6);
+
+    for(auto hexagon : hexagons)
+    {
+        coord x = hexagon->getX();
+        coord y = hexagon->getY();
+        auto& directions = (x % 2 == 0) ? evenDirections : oddDirections;
+
+        for (auto [dx, dy] : directions)
+        {
+            Hexagon* hex = board->getHexagon(x + dx, y + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex != nullptr && !visited.count(hex) && !border.count(hex))
+            {
+                if(filter(hex))
+                {
+                    visited.insert(hex);
+                    newHexagons.push_back(hex);
+                }
+                else
+                {
+                    border.insert(hex);
+                }
+            }
+        }
+    }
+    if(recursion > 0) addNeighboursLayerWithBorder(board, visited, border, newHexagons, recursion - 1, filter);
+}
+
 // Używać dla żołnierzy, farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
     if(ownerId == 0) return std::vector<Hexagon*>();
+    std::vector<Hexagon*> valid;
     if(warrior(resident))
     {
-        return neighbours(board, BIG_NUMBER, true, [this, board, resident](Hexagon* h)
+        /*return neighbours(board, BIG_NUMBER, true, [this, board, resident](Hexagon* h)
         {
             if(h->ownerId == this->ownerId) return h->allows(board, resident, this->ownerId); // pola prowincji które pozwalają na tego żołnierza
             else return h->allows(board, resident, this->ownerId) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId; }).size(); // obce pola wokół prowincji które pozwalają na tego żołnierza
-        });
+        });*/
+        std::unordered_set<Hexagon*> visited = { this };
+        std::unordered_set<Hexagon*> border;
+        std::vector<Hexagon*> newHexagons = { this };
+        addNeighboursLayerWithBorder(board, visited, border, newHexagons, BIG_NUMBER, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+        
+        valid.reserve(visited.size() + border.size());
+        for (Hexagon* h : visited) if(h->allows(board, resident, ownerId)) valid.push_back(h);
+        for (Hexagon* h : border) if(h->allows(board, resident, ownerId)) valid.push_back(h);
+        return valid;
     }
+    std::vector<Hexagon*> province = neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+    valid.reserve(province.size());
     if(resident == Resident::Farm)
     {
-        return neighbours(board, BIG_NUMBER, true, [this, board](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident)) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId && (castle(h->resident) || farm(h->resident)); }).size(); }); // nasze pola które graniczą z innymi farmami lub zamkiem
+        for (Hexagon* h : province) // nasze pola które graniczą z innymi farmami lub zamkiem
+        {
+            if((empty(h->resident) || gravestone(h->resident)) && h->neighbours(board, 0, false, [this](Hexagon* h) { return h->ownerId == this->ownerId && (castle(h->resident) || farm(h->resident)); }).size()) valid.push_back(h);
+        }
+        return valid;
     }
     if(resident == Resident::Tower)
     {
-        return neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident)); }); // nasze puste pola
+        for (Hexagon* h : province) // nasze puste pola
+        {
+            if(empty(h->resident) || gravestone(h->resident)) valid.push_back(h);
+        }
+        return valid;
     }
     if(resident == Resident::StrongTower)
     {
-        return neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId && (empty(h->resident) || gravestone(h->resident) || h->resident == Resident::Tower); }); // nasze puste pola lub zwykłe wieże
+        for (Hexagon* h : province) // nasze puste pola lub zwykłe wieże
+        {
+            if(empty(h->resident) || gravestone(h->resident) || h->resident == Resident::Tower) valid.push_back(h);
+        }
+        return valid;
     }
     return std::vector<Hexagon*>();
 }
