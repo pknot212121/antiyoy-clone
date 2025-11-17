@@ -5,8 +5,9 @@
 #include <GLFW/glfw3.h>
 #include "sprite_renderer.h"
 #include <iostream>
-
+#include <ranges>
 #include "board.h"
+
 
 // Represents the current state of the game
 enum class GameState
@@ -49,6 +50,8 @@ public:
     void ProcessInput(float dt);
     void Update(float dt);
     void Render();
+    void moveAction();
+    void spawnAction();
 };
 
 #endif
