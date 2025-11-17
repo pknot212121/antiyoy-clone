@@ -121,6 +121,7 @@ public:
     inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
     std::unordered_set<Hexagon*> getHexesOfCountry(int countryID); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
 
+    inline Country* getCountry(uint8 id) noexcept { if(id == 0) return nullptr; return &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
 
     inline const Game* getGame() const noexcept { return game; }

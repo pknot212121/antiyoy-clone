@@ -182,7 +182,7 @@ void Hexagon::rot(Board* board)
 // Sam liczy farmy
 void Hexagon::setCastle(Board* board, int money)
 {
-    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    auto castlesMap = board->getCountry(ownerId)->getCastles();
     resident = Resident::Castle;
 
     auto province = neighbours(board, BIG_NUMBER, false, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
@@ -197,7 +197,7 @@ void Hexagon::setCastle(Board* board, int money)
 
 void Hexagon::setCastle(Board* board, int money, int farms)
 {
-    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    auto castlesMap = board->getCountry(ownerId)->getCastles();
     resident = Resident::Castle;
     castlesMap[this] = MoneyAndFarms({money, farms});
 }
@@ -205,7 +205,7 @@ void Hexagon::setCastle(Board* board, int money, int farms)
 int Hexagon::removeCastle(Board* board)
 {
     if(castle(resident)) resident = Resident::Empty;
-    auto castlesMap = board->getCountries()[ownerId].getCastles();
+    auto castlesMap = board->getCountry(ownerId)->getCastles();
     if(castlesMap.count(this))
     {
         int money = castlesMap[this].money;
@@ -286,6 +286,7 @@ std::vector<Hexagon*> Hexagon::neighbours(Board *board, int recursion, bool incl
 // Droższa ale dokładniejsza od province(). Używać po zmianie terytorium by naprawić prowincje (dodać/odjąć zamki)
 std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
 {
+    std::cout << "Calculate province for " << (int)ownerId << "\n";
     if(this->getOwnerId() == 0) return std::vector<Hexagon*>();
     std::vector<Hexagon*> province = this->neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     int castlesNumber = 0;
@@ -306,7 +307,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(castlesNumber > 1)
     {
-        std::unordered_map<Hexagon*, MoneyAndFarms> castlesMap = board->getCountries()[ownerId].getCastles();
+        std::unordered_map<Hexagon*, MoneyAndFarms> castlesMap = board->getCountry(ownerId)->getCastles();
         int mostFarms = 0;
         int mostMoney = 0;
         int bestI = 0;
@@ -523,7 +524,7 @@ bool Hexagon::move(Board* board, Hexagon* destination)
         {
             auto [dx, dy] = directions[i];
             Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
-            if(hex == nullptr || hex->ownerId == 0 || hex->ownerId != destination->ownerId)
+            if(hex == nullptr || hex->ownerId == 0 || hex->ownerId == destination->ownerId)
             {
                 add = true;
             }
@@ -535,10 +536,15 @@ bool Hexagon::move(Board* board, Hexagon* destination)
             }
         }
 
-        for(Hexagon* h : neighboursRequiringCalculation) h->calculateProvince(board);
+        for(Hexagon* h : neighboursRequiringCalculation) 
+        {
+            h->calculateProvince(board);
+            std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
+        }
     }
 
     destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
+    std::cout << "Kalkulacja dla " << (int)destination->getOwnerId() << "\n";
 
     return true;
 }
