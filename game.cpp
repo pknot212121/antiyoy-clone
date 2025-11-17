@@ -6,6 +6,8 @@
 
 
 
+
+
 // Game-related State data
 SpriteRenderer  *Renderer;
 
@@ -63,61 +65,52 @@ void Game::Update(float dt)
     
 }
 
+void Game::moveAction()
+{
+    float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+    Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+    Hexagon *hex = board->getHexagon(p.x,p.y);
+    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
+    std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1){board->getHexagon(p.x,p.y)->mark();}
+    else{
+        for (auto& element : orderedHexes){
+            auto it = std::ranges::find(neigh,hex);
+            if (element->marked() && element->getResident()==Resident::Warrior1 && it!=neigh.end()){
+                element->move(board,hex);
+                element->unmark();
+            }
+        }
+    }
+}
+
+void Game::spawnAction()
+{
+    float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+    Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+    Hexagon *hex = board->getHexagon(p.x,p.y);
+    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
+    std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+    if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
+        board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
+        board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
+    }
+}
+
+
+
 void Game::ProcessInput(float dt)
 {
    
     if (this->State == GameState::GAME_ACTIVE)
     {
-        // move playerboard
         if (this->mousePressed)
         {
-            std::cout << "POSITION_X: " << cursorPosX << " POSITION_Y: " << cursorPosY << std::endl;
-            float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-            Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-            Hexagon *hex = board->getHexagon(p.x,p.y);
-            std::set<Hexagon*> orderedHexes(
-                hexes.begin(),
-                hexes.end()
-            );
-            Hexagon* h = *hexes.begin();
-            std::vector<Hexagon*> neigh = h->possiblePlacements(board,Resident::Warrior1);
-            if (!board->getHexagon(p.x,p.y)->marked())
-            {
-                if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
-                {
-                    board->getHexagon(p.x,p.y)->mark();
-                }
-                else
-                {
-                    for (auto& element : orderedHexes)
-                    {
-                        if (element->marked() && element->getResident()==Resident::Warrior1)
-                        {
-                            for (const auto& e : neigh) {
-                                if (hex->getX()==e->getX() && hex->getY()==e->getY())
-                                {
-                                    std::cout << "MOVED!!!" << std::endl;
-                                    element->move(board,hex);
-                                    element->unmark();
-                                }
-                            }
-
-                        }
-                    }
-                }
-            }
-
-            if(this->onePressed)
-            {
-                for (const auto& element : neigh) {
-                    // std::cout << "X: " << element->getX() << "Y: " << element->getY() << std::endl;
-                    if (hex->getX()==element->getX() && hex->getY()==element->getY())
-                    {
-                        board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
-                        board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
-                    }
-                }
+            this->moveAction();
+            if(this->onePressed){
+                this->spawnAction();
                 onePressed=false;
             }
             this -> mousePressed = false;
@@ -172,7 +165,6 @@ void Game::ProcessInput(float dt)
         if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
         {
             playerIndex = (playerIndex)%playerCount+1;
-            std::cout << "GRACZ NR: " << playerIndex << std::endl;
             enterPressed = false;
         }
     }
@@ -182,12 +174,6 @@ void Game::ProcessInput(float dt)
 
 void Game::Render()
 {
-    // Renderer->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(-100.0f, 0.0f), glm::vec2(300.0f, 300.0f * sqrt(3)/2), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-    // Renderer->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(300.0f, 200.0f), glm::vec2(300.0f, 300.0f * sqrt(3)/2), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-    // Renderer -> DrawHexagon(100.0f,100.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f));
-    // Renderer -> DrawHexagon(Hexagon(200.0f,200.0f,100.0f,glm::vec3(0.0f,1.0f,0.0f)));
     Renderer -> DrawBoard(board, this->Width, this->Height);
-
-    // Renderer -> DrawSprite(ResourceManager::GetTexture("level1warrior"), glm::vec2(500.0f, 0.0f), glm::vec2(100.0f, 100.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-
 }
+

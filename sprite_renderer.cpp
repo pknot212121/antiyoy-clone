@@ -169,7 +169,6 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float a)
     int q = round(2./3 * x2);
     int r = round(-1./3 * x2  +  sqrt(3)/3 * y2);
     Point p = fromAxial(q,r);
-    std::cout << "Q: " << p.x << " R: " << p.y << std::endl;
     return p;
 }
 
