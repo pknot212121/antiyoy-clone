@@ -56,27 +56,6 @@ void Game::Init()
     }
     else std::cout << "Countries initialization error\n";
 
-    // this -> grid = Grid(300.0f,300.0f,100.0f);
-    // // grid.AddHexagon(1,0);
-    // // grid.AddHexagon(-1,0);
-    // // grid.AddHexagon(0,1);
-    // // grid.AddHexagon(0,2);
-    // // grid.AddHexagon(0,-1);
-    // // grid.AddHexagon(-1,-1);
-    // grid.GenerateMap(100);
-    //
-    // grid.AddPlayer(glm::vec3(0.0f,1.0f,0.0f),"tk2");
-    // grid.AddPlayer(glm::vec3(1.0f,0.0f,0.0f),"tk3");
-    //
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk2");
-    // grid.AddWarToPlayer(grid.GetRandomHex(),"tk3");
-    // grid.currentPlayer = grid.names[0];
 }
 
 void Game::Update(float dt)
@@ -120,6 +99,7 @@ void Game::ProcessInput(float dt)
                                 {
                                     std::cout << "MOVED!!!" << std::endl;
                                     element->move(board,hex);
+                                    element->unmark();
                                 }
                             }
 
