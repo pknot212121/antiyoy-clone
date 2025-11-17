@@ -33,9 +33,10 @@ void Game::Init()
     // set render-specific controls
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
     // load textures
+    ResourceManager::LoadTexture("textures/soilder1_256.png",true,"s1");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
-    ResourceManager::LoadTexture("textures/awesomeface.png",true,"s1");
+
 
     coord x = 10;
     coord y = 10;
