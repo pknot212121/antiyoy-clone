@@ -13,7 +13,7 @@ SpriteRenderer  *Renderer;
 
 
 Game::Game(unsigned int width, unsigned int height)
-    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board(), selectedHex(Point(0,0)) {
+    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board() {
 }
 
 Game::~Game()
@@ -86,14 +86,12 @@ void Game::moveAction()
     Hexagon *hex = board->getHexagon(p.x,p.y);
     std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
     std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
-    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1){board->getHexagon(p.x,p.y)->mark();}
-    else{
-        for (auto& element : orderedHexes){
-            auto it = std::ranges::find(neigh,hex);
-            if (element->marked() && element->getResident()==Resident::Warrior1 && it!=neigh.end()){
-                element->move(board,hex);
-                element->unmark();
-            }
+
+    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1){selectedHex=hex;isHexSelected=true;}
+    else if (isHexSelected){
+        if (auto it = std::ranges::find(neigh,hex);it!=neigh.end()){
+            selectedHex->move(board,hex);
+            isHexSelected=false;
         }
     }
 }
