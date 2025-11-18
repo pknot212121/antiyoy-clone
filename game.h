@@ -49,6 +49,7 @@ public:
     // game loop
     void ProcessInput(float dt);
     void Update(float dt);
+    void Resize(int width, int height);
     void Render();
     void moveAction();
     void spawnAction();

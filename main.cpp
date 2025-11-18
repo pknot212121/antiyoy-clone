@@ -107,8 +107,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, true);
     if (key == GLFW_KEY_F && action == GLFW_PRESS && !fullScreen && !fPressed)
     {
-        Anti -> Width = glfwGetVideoMode(glfwGetPrimaryMonitor())->width / 2;
-        Anti -> Height = glfwGetVideoMode(glfwGetPrimaryMonitor())->height / 2;
+        Anti -> Width = glfwGetVideoMode(glfwGetPrimaryMonitor())->width;
+        Anti -> Height = glfwGetVideoMode(glfwGetPrimaryMonitor())->height;
         glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,glfwGetVideoMode(glfwGetPrimaryMonitor())->width,glfwGetVideoMode(glfwGetPrimaryMonitor())->height,1);
         fPressed = true;
     }
@@ -152,6 +152,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+    Anti->Resize(width, height);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)

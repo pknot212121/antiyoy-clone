@@ -65,6 +65,19 @@ void Game::Update(float dt)
     
 }
 
+void Game::Resize(int width, int height)
+{
+    this->Width = width;
+    this->Height = height;
+
+    // Przeliczamy macierz projekcji dla nowych wymiarów
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width),
+        static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
+
+    // Aktualizujemy shader
+    ResourceManager::GetShader("sprite").Use().SetMatrix4("projection", projection);
+}
+
 void Game::moveAction()
 {
     float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();

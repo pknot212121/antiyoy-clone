@@ -176,7 +176,7 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float a)
 void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
 {
     size *= resizeMultiplier;
-    float smallSize = size * 0.6;
+    float smallSize = size * 0.8;
     color = glm::vec3(1.0f,1.0f,1.0f);
     if (hex.getOwnerId()!=0) {
         color = palette[hex.getOwnerId()%10];
@@ -186,7 +186,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
             this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2+ displacementY) , glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
             if (hex.getResident()==Resident::Warrior1)
             {
-                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(size*0.6,size*0.6), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(size*0.8,size*0.8), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
             }
             else if (hex.getResident()==Resident::Castle)
             {
@@ -197,7 +197,7 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
             this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
             if (hex.getResident()==Resident::Warrior1)
             {
-                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(size*0.6,size*0.6), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(size*0.8,size*0.8), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
             }
             else if (hex.getResident()==Resident::Castle)
             {
