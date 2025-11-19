@@ -44,8 +44,7 @@ void Game::Init()
     coord y = 10;
     board = new Board(x, y, this);
     int total = x * y;
-    board->InitializeRandomA(0, total * 0.5, total * 0.9); // zapełniamy 50%-90% mapy
-    //board->InitializeNeighbour(2, false); // inicjalizacja sąsiadowa (odkomentuj i zakomentuj tą wyżej by zobaczyć)
+    board->InitializeRandomA(0, total * 0.5, total * 0.9);
     board->InitializeCountriesA(0, playerCount, 6, 8);
 
     if(board->getCountries().size() == playerCount)
@@ -82,17 +81,18 @@ void Game::moveAction()
 {
     float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
     Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+    if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
     std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
     Hexagon *hex = board->getHexagon(p.x,p.y);
     std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-    std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
 
     if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1){selectedHex=hex;isHexSelected=true;}
     else if (isHexSelected){
-        if (auto it = std::ranges::find(neigh,hex);it!=neigh.end()){
+        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
+        if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             selectedHex->move(board,hex);
-            isHexSelected=false;
         }
+        isHexSelected=false;
     }
 }
 
@@ -100,7 +100,8 @@ void Game::spawnAction()
 {
     float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
     Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+    if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);d
     Hexagon *hex = board->getHexagon(p.x,p.y);
     std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
     std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
