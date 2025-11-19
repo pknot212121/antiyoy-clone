@@ -204,6 +204,8 @@ void Game::ProcessInput(float dt)
         }
         if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
         {
+            provinceSelector = nullptr;
+            selectedHex = nullptr;
             playerIndex = (playerIndex)%playerCount+1;
             enterPressed = false;
         }
