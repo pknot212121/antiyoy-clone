@@ -112,7 +112,7 @@ void Game::ProcessInput(float dt)
    
     if (this->State == GameState::GAME_ACTIVE)
     {
-        if(this->onePressed)
+        if(this->Keys[GLFW_KEY_1])
         {
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
             std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
@@ -130,7 +130,7 @@ void Game::ProcessInput(float dt)
 
 
             this->moveAction(hex,p);
-            if(this->onePressed){
+            if(this->Keys[GLFW_KEY_1]){
                 this->spawnAction(neigh,hex,p);
                 onePressed=false;
             }
