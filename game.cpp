@@ -38,6 +38,7 @@ void Game::Init()
     ResourceManager::LoadTexture("textures/soilder1_256.png",true,"s1");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
+    ResourceManager::LoadTexture("textures/exclamation.png",true,"ex");
 
 
     coord x = 10;
@@ -186,6 +187,6 @@ void Game::ProcessInput(float dt)
 
 void Game::Render()
 {
-    Renderer -> DrawBoard(board, this->Width, this->Height);
+    Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
 }
 

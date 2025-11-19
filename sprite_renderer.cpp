@@ -1,5 +1,8 @@
 #include "sprite_renderer.h"
 
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+
 
 SpriteRenderer::SpriteRenderer(Shader &shader)
 {
@@ -185,7 +188,7 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
 }
 
 
-void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
+void SpriteRenderer::DrawHexagon(int playerIndex,const ::Hexagon& hex, float size, glm::vec3 color)
 {
     size *= resizeMultiplier;
     float smallSize = size * 0.8;
@@ -205,6 +208,10 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
             else if (hex.getResident()==Resident::Castle)
             {
                 this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                if (hex.getOwnerId()==playerIndex)
+                {
+                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                }
             }
         }
         else {
@@ -216,6 +223,10 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
             else if (hex.getResident()==Resident::Castle)
             {
                 this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                if (hex.getOwnerId()==playerIndex)
+                {
+                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                }
             }
         }
     }
@@ -223,12 +234,12 @@ void SpriteRenderer::DrawHexagon(const Hexagon &hex,float size,glm::vec3 color)
 
 
 
-void SpriteRenderer::DrawBoard(Board *board, int width, int height)
+void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
     // std::cout << "Width: " << width << " " << "Height: " << height << std::endl;
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
+            this->DrawHexagon(playerIndex,*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
         }
     }
 
