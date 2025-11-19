@@ -134,7 +134,7 @@ void Game::ProcessInput(float dt)
         if(this->Keys[GLFW_KEY_1] && provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-            std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+            std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
             Renderer -> setBrightenedHexes(neigh);
         }
         if (this->mousePressed)
