@@ -80,7 +80,9 @@ void Game::Resize(int width, int height)
 
 void Game::moveAction(Hexagon* hex,Point p)
 {
-    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
+    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1 && orderedHexes.contains(hex))
     {
         selectedHex=hex;isHexSelected=true;
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
