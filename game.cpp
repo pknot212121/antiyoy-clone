@@ -112,7 +112,14 @@ void Game::spawnAction(Hexagon* hex,Point p)
 
 void Game::SelectAction(Point p)
 {
-    provinceSelector = board->getHexagon(p.x,p.y);
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+    Hexagon *hex = board->getHexagon(p.x,p.y);
+    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
+    if (orderedHexes.contains(board->getHexagon(p.x,p.y)))
+    {
+        provinceSelector = board->getHexagon(p.x,p.y);
+    }
+
 }
 
 
@@ -122,7 +129,7 @@ void Game::ProcessInput(float dt)
    
     if (this->State == GameState::GAME_ACTIVE)
     {
-        if(this->Keys[GLFW_KEY_1])
+        if(this->Keys[GLFW_KEY_1] && provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
             std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
@@ -151,7 +158,7 @@ void Game::ProcessInput(float dt)
             }
             this -> mousePressed = false;
         }
-        if (!this->Keys[GLFW_KEY_1] && selectedHex==nullptr)
+        if (!this->Keys[GLFW_KEY_1] && isHexSelected==false && provinceSelector!=nullptr)
         {
             Renderer->ClearBrightenedHexes();
         }
