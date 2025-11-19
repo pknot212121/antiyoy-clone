@@ -98,12 +98,11 @@ void Game::moveAction(Hexagon* hex,Point p)
 
 void Game::spawnAction(std::vector<Hexagon*> neigh,Hexagon* hex,Point p)
 {
-    Renderer -> setBrightenedHexes(neigh);
     if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
         board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
         board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
-        // Renderer -> setBrightenedHexes(neigh);
     }
+    Renderer -> ClearBrightenedHexes();
 }
 
 
@@ -113,6 +112,12 @@ void Game::ProcessInput(float dt)
    
     if (this->State == GameState::GAME_ACTIVE)
     {
+        if(this->onePressed)
+        {
+            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+            std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+            Renderer -> setBrightenedHexes(neigh);
+        }
         if (this->mousePressed)
         {
             float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
