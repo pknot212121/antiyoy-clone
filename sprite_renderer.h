@@ -30,7 +30,7 @@ public:
     // Renders a defined quad textured with given sprite
     void DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
     // void DrawHexagon(float x, float y, float a, glm::vec3 col);
-    void DrawHexagon(int playerIndex,const Hexagon &hex, float size,glm::vec3 color= glm::vec3(1.0f,0.5f,0.0f));
+    void DrawHexagon(int playerIndex, const ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.0f));
     Point CheckWhichHexagon(int x, int y, float size);
     // void DrawWarrior(Hexagon hex,Warrior war);
     void DrawBoard(Board* board, int width, int height, int playerIndex);
@@ -38,6 +38,8 @@ public:
     void addToDisplacementX(int dx);
     void addToDisplacementY(int dy);
     void addToResizeMultiplier(double ds, Board* board, float width);
+    void setBrightenedHexes(std::vector<Hexagon*> hexes);
+    void ClearBrightenedHexes();
 
 private:
     // Render state
@@ -47,6 +49,7 @@ private:
     int   displacementX = 0;
     int   displacementY = 0;
     double resizeMultiplier = 1.0f;
+    std::vector<Hexagon*> brightenedHexes;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
 };

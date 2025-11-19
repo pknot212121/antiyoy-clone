@@ -2,6 +2,8 @@
 
 #include "glm/common.hpp"
 #include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
 
 
 SpriteRenderer::SpriteRenderer(Shader &shader)
@@ -53,6 +55,19 @@ void SpriteRenderer::addToDisplacementY(int dy)
 void SpriteRenderer::addToResizeMultiplier(double ds,Board *board,float width)
 {
     resizeMultiplier *= ds;
+}
+
+void SpriteRenderer::setBrightenedHexes(std::vector<Hexagon*> hexes)
+{
+    for (auto hex : hexes)
+    {
+        brightenedHexes.push_back(hex);
+    }
+}
+
+void SpriteRenderer::ClearBrightenedHexes()
+{
+    brightenedHexes.clear();
 }
 
 
@@ -188,44 +203,52 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
 }
 
 
-void SpriteRenderer::DrawHexagon(int playerIndex,const ::Hexagon& hex, float size, glm::vec3 color)
+void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size, glm::vec3 color)
 {
     size *= resizeMultiplier;
     float smallSize = size * 0.8;
     color = glm::vec3(1.0f,1.0f,1.0f);
-    if (hex.getOwnerId()!=0) {
-        color = palette[hex.getOwnerId()%10];
+    if (hex->getOwnerId()!=0) {
+        color = palette[hex->getOwnerId()%10];
+    }
+    if (!brightenedHexes.empty())
+    {
+        if (auto it = std::ranges::find(brightenedHexes,hex);it!=brightenedHexes.end())
+        {
+            color -= glm::vec3(0.2,0.2,0.2);
+        }
     }
 
 
-    if (hex.getResident()!=Resident::Water) {
-        if (hex.getX()%2==0) {
-            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2+ displacementY) , glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
-            if (hex.getResident()==Resident::Warrior1)
+
+    if (hex->getResident()!=Resident::Water) {
+        if (hex->getX()%2==0) {
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex->getX()*size * 3/4 + displacementX, hex->getY()*size*sqrt(3)/2+ displacementY) , glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+            if (hex->getResident()==Resident::Warrior1)
             {
-                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
             }
-            else if (hex.getResident()==Resident::Castle)
+            else if (hex->getResident()==Resident::Castle)
             {
-                this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
-                if (hex.getOwnerId()==playerIndex)
+                this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                if (hex->getOwnerId()==playerIndex)
                 {
-                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
                 }
             }
         }
         else {
-            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex.getX()*size * 3/4 + displacementX, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
-            if (hex.getResident()==Resident::Warrior1)
+            this->DrawSprite(ResourceManager::GetTexture("hexagon"), glm::vec2(hex->getX()*size * 3/4 + displacementX, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + displacementY), glm::vec2(size,size*sqrt(3)/2), 0.0f, color);
+            if (hex->getResident()==Resident::Warrior1)
             {
-                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                this->DrawSprite(ResourceManager::GetTexture("s1"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
             }
-            else if (hex.getResident()==Resident::Castle)
+            else if (hex->getResident()==Resident::Castle)
             {
-                this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
-                if (hex.getOwnerId()==playerIndex)
+                this->DrawSprite(ResourceManager::GetTexture("lw"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                if (hex->getOwnerId()==playerIndex)
                 {
-                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex.getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex.getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
+                    this->DrawSprite(ResourceManager::GetTexture("ex"),glm::vec2(hex->getX()*size * 3/4 + displacementX + size/2 - smallSize/2, hex->getY()*size*sqrt(3)/2 + size*sqrt(3)/4 + size*sqrt(3)/4 - smallSize*sqrt(3)/4 + displacementY), glm::vec2(smallSize,smallSize), 0.0f,glm::vec3(1.0f,1.0f,1.0f));
                 }
             }
         }
@@ -239,7 +262,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
     // std::cout << "Width: " << width << " " << "Height: " << height << std::endl;
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(playerIndex,*board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
+            this->DrawHexagon(playerIndex,board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
         }
     }
 

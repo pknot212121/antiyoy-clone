@@ -50,8 +50,8 @@ public:
     void Update(float dt);
     void Resize(int width, int height);
     void Render();
-    void moveAction();
-    void spawnAction();
+    void moveAction(Hexagon* hex, Point p);
+    void spawnAction(std::vector<Hexagon*> neigh, Hexagon* hex, Point p);
 };
 
 #endif

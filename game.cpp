@@ -78,37 +78,31 @@ void Game::Resize(int width, int height)
     ResourceManager::GetShader("sprite").Use().SetMatrix4("projection", projection);
 }
 
-void Game::moveAction()
+void Game::moveAction(Hexagon* hex,Point p)
 {
-    float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-    Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-    if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    Hexagon *hex = board->getHexagon(p.x,p.y);
-    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-
-    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1){selectedHex=hex;isHexSelected=true;}
+    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1)
+    {
+        selectedHex=hex;isHexSelected=true;
+        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
+        Renderer -> setBrightenedHexes(nearby);
+    }
     else if (isHexSelected){
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             selectedHex->move(board,hex);
         }
+        Renderer -> ClearBrightenedHexes();
         isHexSelected=false;
     }
 }
 
-void Game::spawnAction()
+void Game::spawnAction(std::vector<Hexagon*> neigh,Hexagon* hex,Point p)
 {
-    float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-    Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-    if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    Hexagon *hex = board->getHexagon(p.x,p.y);
-    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-    std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+    Renderer -> setBrightenedHexes(neigh);
     if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
         board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
         board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
+        // Renderer -> setBrightenedHexes(neigh);
     }
 }
 
@@ -121,9 +115,18 @@ void Game::ProcessInput(float dt)
     {
         if (this->mousePressed)
         {
-            this->moveAction();
+            float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+            Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
+            if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
+            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
+            Hexagon *hex = board->getHexagon(p.x,p.y);
+            std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
+            std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
+
+
+            this->moveAction(hex,p);
             if(this->onePressed){
-                this->spawnAction();
+                this->spawnAction(neigh,hex,p);
                 onePressed=false;
             }
             this -> mousePressed = false;
