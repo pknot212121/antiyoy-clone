@@ -101,7 +101,7 @@ void Game::spawnAction()
     float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
     Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
     if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);d
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
     Hexagon *hex = board->getHexagon(p.x,p.y);
     std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
     std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
