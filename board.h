@@ -84,11 +84,13 @@ public:
     int removeCastle(Board* board);
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(Hexagon*)> filter = nullptr);
+    std::vector<Hexagon*> doubleFilterNeighbours(Board* board, int recursion, bool includeSelf, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter);
     std::vector<Hexagon*> province(Board* board);
-    std::vector<Hexagon*> calculateProvince(Board* board);
+    std::vector<Hexagon*> calculateProvince(Board *board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
-    bool move(Board* board, Hexagon* destination);
+    std::vector<Hexagon *> possibleMovements(Board *board);
+    bool move(Board *board, Hexagon *destination);
 
     inline void mark() noexcept { isMarked = true; }
     inline void unmark() noexcept { isMarked = false; }

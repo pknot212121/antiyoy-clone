@@ -283,6 +283,43 @@ std::vector<Hexagon*> Hexagon::neighbours(Board *board, int recursion, bool incl
     return std::vector<Hexagon*>(visited.begin(), visited.end());
 }
 
+void doubleFilterAddNeighboursLayer(Board* board, std::unordered_set<Hexagon*>& visited, std::vector<Hexagon*>& hexagons, int recursion, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter)
+{
+    if(hexagons.size() == 0) return;
+    std::vector<Hexagon*> newHexagons;
+    newHexagons.reserve(hexagons.size() * 6);
+
+    for(auto hexagon : hexagons)
+    {
+        coord x = hexagon->getX();
+        coord y = hexagon->getY();
+        auto& directions = (x % 2 == 0) ? evenDirections : oddDirections;
+
+        for (auto [dx, dy] : directions)
+        {
+            Hexagon* hex = board->getHexagon(x + dx, y + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex != nullptr && !visited.count(hex) && expansionFilter(hex))
+            {
+                newHexagons.push_back(hex);
+                if(resultFilter(hex)) visited.insert(hex);
+            }
+        }
+    }
+    if(recursion > 0) doubleFilterAddNeighboursLayer(board, visited, newHexagons, recursion - 1, expansionFilter, resultFilter);
+}
+
+// Działa podobnie do neighbours() ale ma dwa filtry: rozrostu (które heksy analizujemy przy następnej iteracji) i wyniku (co zostanie zwrócone)
+std::vector<Hexagon*> Hexagon::doubleFilterNeighbours(Board *board, int recursion, bool includeSelf, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter)
+{
+    if (!expansionFilter) expansionFilter = [](Hexagon*) { return true; };
+    if (!resultFilter) resultFilter = [](Hexagon*) { return true; };
+    std::unordered_set<Hexagon*> visited = { this };
+    std::vector<Hexagon*> newHexagons = { this };
+    doubleFilterAddNeighboursLayer(board, visited, newHexagons, recursion, expansionFilter, resultFilter);
+    if(!includeSelf) visited.erase(this);
+    return std::vector<Hexagon*>(visited.begin(), visited.end());
+}
+
 // Droższa ale dokładniejsza od province(). Używać po zmianie terytorium by naprawić prowincje (dodać/odjąć zamki)
 std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
 {
@@ -502,6 +539,25 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     return std::vector<Hexagon*>();
 }
 
+// Używać dla żołnierzy (przesuwanych, nie kładzionych)
+std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
+{
+    if(ownerId == 0) return std::vector<Hexagon*>();
+    std::vector<Hexagon*> valid;
+    if(warrior(resident))
+    {
+        std::unordered_set<Hexagon*> visited = { this };
+        std::unordered_set<Hexagon*> border;
+        std::vector<Hexagon*> newHexagons = { this };
+        addNeighboursLayerWithBorder(board, visited, border, newHexagons, 3, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+        
+        valid.reserve(visited.size() + border.size());
+        for (Hexagon* h : visited) if(h->allows(board, resident, ownerId)) valid.push_back(h);
+        for (Hexagon* h : border) if(h->allows(board, resident, ownerId)) valid.push_back(h);
+    }
+    return valid;
+}
+
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination)
 {
@@ -539,12 +595,12 @@ bool Hexagon::move(Board* board, Hexagon* destination)
         for(Hexagon* h : neighboursRequiringCalculation) 
         {
             h->calculateProvince(board);
-            std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
+            //std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
         }
     }
 
     destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
-    std::cout << "Kalkulacja dla " << (int)destination->getOwnerId() << "\n";
+    //std::cout << "Kalkulacja dla " << (int)destination->getOwnerId() << "\n";
 
     return true;
 }
