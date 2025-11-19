@@ -96,13 +96,23 @@ void Game::moveAction(Hexagon* hex,Point p)
     }
 }
 
-void Game::spawnAction(std::vector<Hexagon*> neigh,Hexagon* hex,Point p)
+void Game::spawnAction(Hexagon* hex,Point p)
 {
-    if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-        board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
-        board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
+    if (provinceSelector!=nullptr)
+    {
+        std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
+        if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
+            board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
+            board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
+        }
+        Renderer -> ClearBrightenedHexes();
     }
-    Renderer -> ClearBrightenedHexes();
+
+}
+
+void Game::SelectAction(Point p)
+{
+    provinceSelector = board->getHexagon(p.x,p.y);
 }
 
 
@@ -129,12 +139,21 @@ void Game::ProcessInput(float dt)
             std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
 
 
-            this->moveAction(hex,p);
+
             if(this->Keys[GLFW_KEY_1]){
-                this->spawnAction(neigh,hex,p);
+                this->spawnAction(hex,p);
                 onePressed=false;
             }
+            else
+            {
+                this->moveAction(hex,p);
+                this->SelectAction(p);
+            }
             this -> mousePressed = false;
+        }
+        if (!this->Keys[GLFW_KEY_1] && selectedHex==nullptr)
+        {
+            Renderer->ClearBrightenedHexes();
         }
         if(this->scroll == -1)
         {

@@ -36,7 +36,8 @@ public:
     bool                    enterPressed = false;
     bool                    onePressed = false;
     bool                    isHexSelected = false;
-    Hexagon                 *selectedHex;
+    Hexagon                 *selectedHex = nullptr;
+    Hexagon                 *provinceSelector = nullptr;
     std::vector<Player>     players;
 
     Board *board;
@@ -51,7 +52,8 @@ public:
     void Resize(int width, int height);
     void Render();
     void moveAction(Hexagon* hex, Point p);
-    void spawnAction(std::vector<Hexagon*> neigh, Hexagon* hex, Point p);
+    void spawnAction(Hexagon* hex, Point p);
+    void SelectAction(Point p);
 };
 
 #endif
