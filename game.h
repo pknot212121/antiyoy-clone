@@ -35,9 +35,8 @@ public:
     coord                   playerIndex;
     bool                    enterPressed = false;
     bool                    onePressed = false;
-    Point                   selectedHex;
     bool                    isHexSelected = false;
-
+    Hexagon                 *selectedHex;
     std::vector<Player>     players;
 
     Board *board;
@@ -49,6 +48,7 @@ public:
     // game loop
     void ProcessInput(float dt);
     void Update(float dt);
+    void Resize(int width, int height);
     void Render();
     void moveAction();
     void spawnAction();

@@ -107,19 +107,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, true);
     if (key == GLFW_KEY_F && action == GLFW_PRESS && !fullScreen && !fPressed)
     {
-        Anti -> Width = glfwGetVideoMode(glfwGetPrimaryMonitor())->width / 2;
-        Anti -> Height = glfwGetVideoMode(glfwGetPrimaryMonitor())->height / 2;
-        glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,glfwGetVideoMode(glfwGetPrimaryMonitor())->width,glfwGetVideoMode(glfwGetPrimaryMonitor())->height,1);
+        glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,glfwGetVideoMode(glfwGetPrimaryMonitor())->width,glfwGetVideoMode(glfwGetPrimaryMonitor())->height,GLFW_DONT_CARE);
         fPressed = true;
     }
     else if (key == GLFW_KEY_F && action == GLFW_RELEASE && !fullScreen && fPressed){fPressed=false;fullScreen=true;}
     else if (key == GLFW_KEY_F && action == GLFW_PRESS && fullScreen && !fPressed)
     {
-        Anti -> Width = 800;
-        Anti -> Height = 600;
-        glfwSetWindowMonitor(window,NULL,0,0,SCREEN_WIDTH,SCREEN_HEIGHT,1);
+        glfwSetWindowMonitor(window,NULL,0,0,SCREEN_WIDTH,SCREEN_HEIGHT,GLFW_DONT_CARE);
         fPressed = true;
-
     }
     else if (key == GLFW_KEY_F && action == GLFW_RELEASE && fullScreen && fPressed){fullScreen=false;fPressed=false;}
     // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;
@@ -152,6 +147,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+    Anti->Resize(width, height);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
