@@ -10,9 +10,10 @@
 typedef short coord;
 typedef unsigned char uint8;
 
+// NIE ZMIENIAĆ KOLEJNOŚCI WARTOŚCI ANI NIE DODAWAĆ NOWYCH BEZ ZGODY
 enum class Resident : uint8
 {
-    Water, // woda ma mieć indeks 0
+    Water,
     Empty,
 
     Warrior1,

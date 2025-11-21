@@ -444,8 +444,13 @@ int power(Resident resident)
 // Sprawdza czy dany żołnierz może wejść na inne pole. Nie używać dla innych rezydentów
 bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
 {
+    if(!::warrior(warrior)) return false;
     if(water(resident)) return false; // nie po wodzie
-    if(this->ownerId == ownerId) return power(resident) < 0; // żołnierz może deptać po swoim lądzie, drzewach i grobach
+    if(this->ownerId == ownerId)
+    {
+        if(::warrior(resident)) return power(resident) + power(warrior) <= 4; // mieszanie żołnierzy
+        return power(resident) < 0; // żołnierz może deptać po swoim lądzie, drzewach i grobach
+    }
     int attackerPower = power(warrior);
     if(attackerPower == 4) return true; // czwarty żołnierz rozjeżdża wszystko (włącznie z innymi czwartymi żołnierzami)
     std::vector<Hexagon*> neighbours = this->neighbours(board, 0, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
@@ -563,45 +568,52 @@ bool Hexagon::move(Board* board, Hexagon* destination)
 {
     if(!warrior(resident)) return false;
     if(!destination->allows(board, resident, ownerId)) return false;
-    if(castle(destination->getResident())) destination->removeCastle(board);
-    destination->setResident(resident);
     uint8 oldOwnerId = destination->getOwnerId();
-    destination->setOwnerId(ownerId);
+    if(oldOwnerId == ownerId && warrior(destination->getResident()))
+    {
+        destination->setResident((Resident)(power(resident) + power(destination->getResident()) + (int)Resident::Warrior1 - 1)); // mieszanie żołnierzy
+    }
+    else
+    {
+        if(castle(destination->getResident())) destination->removeCastle(board);
+        destination->setResident(resident);
+    }
     setResident(Resident::Empty);
 
-    if(oldOwnerId != 0 && ownerId != oldOwnerId)
+    if(ownerId != oldOwnerId)
     {
-        // by ograniczyć wywołania drogiej kalkulacji wybieramy tylko punkty które przypuszczamy że należą do różnych prowincji
-        std::vector<Hexagon*> neighboursRequiringCalculation;
-        bool add = true;
-        bool trimLast = false;
-        auto& directions = (destination->x % 2 == 0) ? evenDirections : oddDirections;
-        for(int i = 0; i < directions.size(); i++)
+        destination->setOwnerId(ownerId);
+        if(oldOwnerId != 0) // by ograniczyć wywołania drogiej kalkulacji wybieramy tylko punkty które przypuszczamy że należą do różnych prowincji
         {
-            auto [dx, dy] = directions[i];
-            Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
-            if(hex == nullptr || hex->ownerId == 0 || hex->ownerId == destination->ownerId)
+            std::vector<Hexagon*> neighboursRequiringCalculation;
+            bool add = true;
+            bool trimLast = false;
+            auto& directions = (destination->x % 2 == 0) ? evenDirections : oddDirections;
+            for(int i = 0; i < directions.size(); i++)
             {
-                add = true;
+                auto [dx, dy] = directions[i];
+                Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
+                if(hex == nullptr || hex->ownerId == 0 || hex->ownerId == destination->ownerId)
+                {
+                    add = true;
+                }
+                else if(add)
+                {
+                    if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
+                    add = false;
+                    if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                }
             }
-            else if(add)
+
+            for(Hexagon* h : neighboursRequiringCalculation) 
             {
-                if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
-                add = false;
-                if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                h->calculateProvince(board);
+                //std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
             }
         }
 
-        for(Hexagon* h : neighboursRequiringCalculation) 
-        {
-            h->calculateProvince(board);
-            //std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
-        }
+        destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
     }
-
-    destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
-    //std::cout << "Kalkulacja dla " << (int)destination->getOwnerId() << "\n";
-
     return true;
 }
 
