@@ -1,0 +1,15 @@
+Witaj przybyszu! Skoro to czytasz to najpewniej dostałeś bojowe zadanie napisania AI dla botów w tej grze. Oto wyjaśnienie wszystkiego co powinieneś wiedzieć:
+
+
+config.txt:
+Plik z konfiguracją ustawień gry, wymagany przy uruchamianiu, może być edytowany ręcznie.
+Musi zawierać rozmiar mapy (x i y), ziarno (0 oznacza losowe ziarno) oraz markery graczy (L - gracz lokalny, B - bot).
+Przykładowo zawartość:
+
+10 10
+0
+LBB
+
+tworzy mapę 10x10 (100 pól) o losowej generacji (losowe ziarno) z jednym graczem lokalnym i dwoma botami.
+Mimo że mapy teoretycznie mogą być znacznie większe to zalecam trzymania się bezpiecznego limitu 50-10000 pól. Nie powinny być też zbyt płaskie lub chude.
+Należy również pamiętać że każdy gracz musi mieć przydzielone państwo a każde państwo musi mieć swoje kilka pól więc nie powinno się tworzyć zbyt wielu graczy na zbyt małej mapie. Dobrze jest też zostawić przynajmniej 25% pól niezajętych.

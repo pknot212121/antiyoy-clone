@@ -5,6 +5,7 @@
 #include "resource_manager.h"
 
 #include <iostream>
+#include <fstream>
 
 // GLFW function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -31,6 +32,46 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
     glfwWindowHint(GLFW_RESIZABLE, false);
+
+    std::cout << "Started\n";
+    std::ifstream file("config.txt");
+    if (!file.is_open())
+    {
+        file.open("Antiyoy/config.txt");
+    }
+    if (!file.is_open())
+    {
+        std::cout << "Cannot open config.txt\n";
+        getchar();
+        return 1;
+    }
+
+    std::cout << "Checkpoint\n";
+
+    coord x, y;
+    int seed;
+    std::string playerMarkers;
+
+    if (!(file >> x >> y >> seed >> playerMarkers))
+    {
+        std::cout << "Invalid content of config.txt\n";
+        getchar();
+        return 1;
+    }
+
+    std::cout << "Checkpoint\n";
+
+    for(int i = 0; i < playerMarkers.length(); i++)
+    {
+        if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B')
+        {
+            std::cout << "Unidentified player markers in config.txt\n";
+            getchar();
+            return 1;
+        }
+    }
+
+    std::cout << x << y << seed << playerMarkers << '\n';
 
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Anti", nullptr, nullptr);
     glfwMakeContextCurrent(window);
@@ -59,7 +100,7 @@ int main(int argc, char *argv[])
 
     // initialize game
     // ---------------
-    Anti->Init();
+    Anti->Init(x, y, seed, playerMarkers);
 
     // deltaTime variables
     // -------------------

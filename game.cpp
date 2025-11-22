@@ -18,12 +18,16 @@ Game::Game(unsigned int width, unsigned int height)
 
 Game::~Game()
 {
+    for(Player* p : players)
+    {
+        delete p;
+    }
     delete Renderer;
 }
 
-void Game::Init()
+void Game::Init(coord x, coord y, int seed, std::string playerMarkers)
 {
-    playerCount = 3;
+    playerCount = playerMarkers.length();
     playerIndex = 1;
     // load shaders
     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
@@ -40,23 +44,41 @@ void Game::Init()
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"ex");
 
+    gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
 
-    coord x = 10;
-    coord y = 10;
+    //coord x = 10;
+    //coord y = 10;
     board = new Board(x, y, this);
     int total = x * y;
-    board->InitializeRandomA(0, total * 0.5, total * 0.9);
-    board->InitializeCountriesA(0, playerCount, 6, 8);
+    board->InitializeRandomA(total * 0.5, total * 0.9);
+    board->InitializeCountriesA(playerCount, 6, 8);
 
-    if(board->getCountries().size() == playerCount)
+    auto countries = board->getCountries();
+    if(countries.size() == playerCount)
     {
         players.reserve(playerCount);
-        for(Country& country : board->getCountries())
+        for(int i = 0; i < playerCount; i++)
+        {
+            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i]));
+            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i]));
+            else
+            {
+                std::cout << "Unidentified player markers\n";
+                getchar();
+                std::exit(1);
+            }
+        }
+        /*for(Country& country : countries)
         {
             players.emplace_back(&country);
-        }
+        }*/
     }
-    else std::cout << "Countries initialization error\n";
+    else
+    {
+        std::cout << "Countries initialization error\n";
+        getchar();
+        std::exit(1);
+    }
 
 }
 

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <functional>
 #include <unordered_set>
+#include <random>
 
 #define BIG_NUMBER 10000000
 
@@ -47,6 +48,7 @@ inline bool gravestone(Resident resident) noexcept { return resident == Resident
     coord y;
 };*/
 
+inline std::mt19937 gen; // generator liczb losowych
 
 class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
 class Board;
@@ -112,9 +114,9 @@ private:
 public:
     // inicjalizatory
     Board(coord width, coord height, Game* game);
-    void InitializeRandomA(int seed, int min, int max);
+    void InitializeRandomA(int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
-    void InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize);
+    void InitializeCountriesA(uint8 countriesCount, int minCountrySize, int maxCountrySize);
     void InitializeFromFile();
 
     // gettery/settery
@@ -160,17 +162,19 @@ public:
     Player(Country* country);
 };
 
-/*class LocalPlayer : Player
+class LocalPlayer : public Player
 {
-
+public:
+    LocalPlayer(Country* country);
 };
 
-class BotPlayer : Player
+class BotPlayer : public Player
 {
-
+public:
+    BotPlayer(Country* country);
 };
 
 class NetworkPlayer : Player // Easter egg
 {
 
-};*/
+};

@@ -1,6 +1,5 @@
 #include "board.h"
 #include <unordered_set>
-#include <random>
 
 void markAll(std::vector<Hexagon*> hexagons)
 {
@@ -45,9 +44,8 @@ void Board::InitializeNeighbour(int recursion, bool includeMiddle)
 }
 
 
-void Board::InitializeRandomA(int seed, int min, int max)
+void Board::InitializeRandomA(int min, int max)
 {
-    std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
     std::uniform_int_distribution<int> randN(min, max);
     int n = randN(gen);
 
@@ -79,7 +77,7 @@ void Board::InitializeRandomA(int seed, int min, int max)
     }
 }
 
-void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountrySize, int maxCountrySize)
+void Board::InitializeCountriesA(uint8 countriesCount, int minCountrySize, int maxCountrySize)
 {
     if(minCountrySize > maxCountrySize)
     {
@@ -88,7 +86,6 @@ void Board::InitializeCountriesA(int seed, uint8 countriesCount, int minCountryS
         minCountrySize = t;
     }
     if(minCountrySize < 1) return;
-    std::mt19937 gen(seed == 0 ? std::random_device{}() : seed);
 
     int tries = 0;
 
@@ -394,13 +391,11 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
         Hexagon* newCastle;
         if(firstLine.size()) // w pierwszej kolejności próbuje położyć zamek na pustym polu
         {
-            std::mt19937 gen(std::random_device{}());
             std::uniform_int_distribution<int> rand(0, firstLine.size() - 1);
             newCastle = firstLine[rand(gen)];
         }
         else // potem na niepustym
         {
-            std::mt19937 gen(std::random_device{}());
             std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
             newCastle = secondLine[rand(gen)];
         }
@@ -571,7 +566,9 @@ bool Hexagon::move(Board* board, Hexagon* destination)
     uint8 oldOwnerId = destination->getOwnerId();
     if(oldOwnerId == ownerId && warrior(destination->getResident()))
     {
-        destination->setResident((Resident)(power(resident) + power(destination->getResident()) + (int)Resident::Warrior1 - 1)); // mieszanie żołnierzy
+        int powerSum = power(resident) + power(destination->getResident()); // mieszanie żołnierzy
+        if(powerSum < 1 || powerSum > 4) return false;
+        destination->setResident((Resident)(powerSum + (int)Resident::Warrior1 - 1));
     }
     else
     {
@@ -630,4 +627,14 @@ Country::Country(std::vector<Hexagon*> castles)
 Player::Player(Country* country) : country(country)
 {
     country->setPlayer(this);
+}
+
+LocalPlayer::LocalPlayer(Country* country) : Player(country)
+{
+    std::cout << "Local player created\n";
+}
+
+BotPlayer::BotPlayer(Country* country) : Player(country)
+{
+    std::cout << "Bot player created\n";
 }
