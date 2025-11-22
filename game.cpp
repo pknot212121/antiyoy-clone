@@ -25,7 +25,7 @@ Game::~Game()
     delete Renderer;
 }
 
-void Game::Init(coord x, coord y, int seed, std::string playerMarkers)
+void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes)
 {
     playerCount = playerMarkers.length();
     playerIndex = 1;
@@ -59,8 +59,8 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers)
         players.reserve(playerCount);
         for(int i = 0; i < playerCount; i++)
         {
-            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i]));
-            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i]));
+            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], maxMoveTimes[i]));
             else
             {
                 std::cout << "Unidentified player markers\n";

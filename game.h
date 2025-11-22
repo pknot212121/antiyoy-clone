@@ -45,7 +45,7 @@ public:
     Game(unsigned int width, unsigned int height);
     ~Game();
     // initialize game state (load all shaders/textures/levels)
-    void Init(coord x, coord y, int seed, std::string playerMarkers);
+    void Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes);
     // game loop
     void ProcessInput(float dt);
     void Update(float dt);

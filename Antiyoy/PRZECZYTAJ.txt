@@ -3,13 +3,14 @@ Witaj przybyszu! Skoro to czytasz to najpewniej dostałeś bojowe zadanie napisa
 
 config.txt:
 Plik z konfiguracją ustawień gry, wymagany przy uruchamianiu, może być edytowany ręcznie.
-Musi zawierać rozmiar mapy (x i y), ziarno (0 oznacza losowe ziarno) oraz markery graczy (L - gracz lokalny, B - bot).
+Musi zawierać rozmiar mapy (x i y), ziarno (0 oznacza losowe ziarno), markery graczy (L - gracz lokalny, B - bot) oraz maksymalny czas wykonywania ruchu dla kolejnych graczy (-1 oznacza nieskończoność).
 Przykładowo zawartość:
 
 10 10
 0
 LBB
+-1 10 10
 
-tworzy mapę 10x10 (100 pól) o losowej generacji (losowe ziarno) z jednym graczem lokalnym i dwoma botami.
+tworzy mapę 10x10 (100 pól) o losowej generacji (losowe ziarno) z jednym graczem lokalnym bez limitu czasu ruchu i dwoma botami o maksymalnym czasie ruchu 10.
 Mimo że mapy teoretycznie mogą być znacznie większe to zalecam trzymania się bezpiecznego limitu 50-10000 pól. Nie powinny być też zbyt płaskie lub chude.
 Należy również pamiętać że każdy gracz musi mieć przydzielone państwo a każde państwo musi mieć swoje kilka pól więc nie powinno się tworzyć zbyt wielu graczy na zbyt małej mapie. Dobrze jest też zostawić przynajmniej 25% pól niezajętych.

@@ -155,23 +155,24 @@ public:
 class Player
 {
     Country* country;
+    unsigned int maxMoveTime;
 
     //virtual void move() = 0; // udawaj że to funkcja abstrakcyjna
 
 public:
-    Player(Country* country);
+    Player(Country* country, unsigned int maxMoveTime = 60);
 };
 
 class LocalPlayer : public Player
 {
 public:
-    LocalPlayer(Country* country);
+    LocalPlayer(Country* country, unsigned int maxMoveTime = 60);
 };
 
 class BotPlayer : public Player
 {
 public:
-    BotPlayer(Country* country);
+    BotPlayer(Country* country, unsigned int maxMoveTime = 10);
 };
 
 class NetworkPlayer : Player // Easter egg

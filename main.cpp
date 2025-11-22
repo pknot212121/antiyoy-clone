@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
 #endif
     glfwWindowHint(GLFW_RESIZABLE, false);
 
-    std::cout << "Started\n";
     std::ifstream file("config.txt");
     if (!file.is_open())
     {
@@ -46,21 +45,19 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    std::cout << "Checkpoint\n";
-
     coord x, y;
     int seed;
     std::string playerMarkers;
+    std::vector<int> maxMoveTimes;
 
-    if (!(file >> x >> y >> seed >> playerMarkers))
+    if(!(file >> x >> y >> seed >> playerMarkers))
     {
         std::cout << "Invalid content of config.txt\n";
         getchar();
         return 1;
     }
 
-    std::cout << "Checkpoint\n";
-
+    maxMoveTimes.reserve(playerMarkers.length());
     for(int i = 0; i < playerMarkers.length(); i++)
     {
         if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B')
@@ -69,6 +66,14 @@ int main(int argc, char *argv[])
             getchar();
             return 1;
         }
+        int maxMoveTime;
+        if(!(file >> maxMoveTime) || maxMoveTime < -1)
+        {
+            std::cout << "Invalid content of config.txt\n";
+            getchar();
+            return 1;
+        }
+        maxMoveTimes.push_back(maxMoveTime);
     }
 
     std::cout << x << y << seed << playerMarkers << '\n';
@@ -100,7 +105,7 @@ int main(int argc, char *argv[])
 
     // initialize game
     // ---------------
-    Anti->Init(x, y, seed, playerMarkers);
+    Anti->Init(x, y, seed, playerMarkers, maxMoveTimes);
 
     // deltaTime variables
     // -------------------

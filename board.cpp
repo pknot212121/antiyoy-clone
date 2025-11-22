@@ -624,17 +624,17 @@ Country::Country(std::vector<Hexagon*> castles)
     }
 }
 
-Player::Player(Country* country) : country(country)
+Player::Player(Country* country, unsigned int maxMoveTime) : country(country), maxMoveTime(maxMoveTime)
 {
     country->setPlayer(this);
 }
 
-LocalPlayer::LocalPlayer(Country* country) : Player(country)
+LocalPlayer::LocalPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
 {
-    std::cout << "Local player created\n";
+    std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
 
-BotPlayer::BotPlayer(Country* country) : Player(country)
+BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
 {
-    std::cout << "Bot player created\n";
+    std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
 }
