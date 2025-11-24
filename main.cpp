@@ -76,8 +76,6 @@ int main(int argc, char *argv[])
         maxMoveTimes.push_back(maxMoveTime);
     }
 
-    std::cout << x << y << seed << playerMarkers << '\n';
-
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Anti", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     
