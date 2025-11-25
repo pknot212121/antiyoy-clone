@@ -5,10 +5,21 @@
 #include <functional>
 #include <unordered_set>
 #include <random>
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #pragma comment(lib, "ws2_32.lib")
+#else
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+#endif
+#include <unistd.h>
 
 #define BIG_NUMBER 10000000
 
 typedef short coord;
+typedef unsigned short ucoord;
 typedef unsigned char uint8;
 
 // NIE ZMIENIAĆ KOLEJNOŚCI WARTOŚCI ANI NIE DODAWAĆ NOWYCH BEZ ZGODY
@@ -59,6 +70,25 @@ class Game; // kosmita 👽👽👽
 
 void markAll(std::vector<Hexagon*> hexagons);
 void unmarkAll(std::vector<Hexagon*> hexagons);
+
+
+#define SOCKET_PORT 2137
+
+#define MAGIC_SOCKET_TAG 0
+#define CONFIGURATION_SOCKET_TAG 1
+#define CONFIRMATION_SOCKET_TAG 2
+#define BOARD_SOCKET_TAG 3
+#define MOVE_SOCKET_TAG 4
+
+#define SOCKET_MAGIC_NUMBERS { 'A', 'N', 'T', 'I', 'Y', 'O', 'Y' }
+
+inline int sock = -1;
+
+void initializeSocket();
+void closeSocket();
+void sendMagicNumbers();
+void sendConfirmation(bool approved, bool awaiting);
+
 
 class Hexagon
 {
@@ -130,6 +160,8 @@ public:
     inline std::vector<Country>& getCountries() noexcept { return countries; }
 
     inline const Game* getGame() const noexcept { return game; }
+
+    void socketSend();
 };
 
 struct MoneyAndFarms

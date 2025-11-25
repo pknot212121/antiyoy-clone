@@ -24,15 +24,7 @@ Game *Anti = new Game(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 int main(int argc, char *argv[])
 {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-    glfwWindowHint(GLFW_RESIZABLE, false);
-
+    // INICJALIZACJA PLANSZY I GRACZY
     std::ifstream file("config.txt");
     if (!file.is_open())
     {
@@ -75,6 +67,25 @@ int main(int argc, char *argv[])
         }
         maxMoveTimes.push_back(maxMoveTime);
     }
+
+    // SOCKETY
+    initializeSocket();
+    if(sock < 0)
+    {
+        std::cout << "Socket initialization failed, communication impossible\n";
+        getchar();
+        return 1;
+    }
+
+    // OPENGL
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+    glfwWindowHint(GLFW_RESIZABLE, false);
 
     GLFWwindow* window = glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Anti", nullptr, nullptr);
     glfwMakeContextCurrent(window);
@@ -140,6 +151,7 @@ int main(int argc, char *argv[])
     // ---------------------------------------------------------
     ResourceManager::Clear();
     delete Anti;
+    closeSocket();
     glfwTerminate();
     return 0;
 }

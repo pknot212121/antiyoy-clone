@@ -1,7 +1,62 @@
 #include "board.h"
 #include <unordered_set>
+#include <cstring>
 
-void markAll(std::vector<Hexagon*> hexagons)
+void initializeSocket()
+{
+#ifdef _WIN32
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+    {
+        std::cout << "WSAStartup failed\n";
+        return;
+    }
+#endif
+
+#ifdef _WIN32
+    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock == INVALID_SOCKET)
+#else
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0)
+#endif
+    {
+        std::cout << "Failed to create socket\n";
+        sock = -1;
+        return;
+    }
+
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_port = htons(SOCKET_PORT);
+
+    if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) <= 0)
+    {
+        std::cout << "Invalid address\n";
+        sock = -1;
+        return;
+    }
+
+    if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0)
+    {
+        std::cout << "Failed to connect to server\n";
+        sock = -1;
+        return;
+    }
+}
+
+void closeSocket()
+{
+#ifdef _WIN32
+    closesocket(sock);
+    WSACleanup();
+#else
+    close(sock);
+#endif
+    sock = 0;
+}
+
+void markAll(std::vector<Hexagon *> hexagons)
 {
     for(Hexagon* h : hexagons) h->mark();
 }
@@ -10,6 +65,56 @@ void unmarkAll(std::vector<Hexagon*> hexagons)
 {
     for(Hexagon* h : hexagons) h->unmark();
 }
+
+
+void sendMagicNumbers()
+{
+    if (sock == -1)
+    {
+        std::cout << "Socket not initialized, cannot send magic numbers\n";
+        return;
+    }
+    char magicNumbers[] = SOCKET_MAGIC_NUMBERS;
+    char content[1 + sizeof(magicNumbers)];
+    content[0] = MAGIC_SOCKET_TAG;
+    memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
+    int sentBytes = 0;
+    while (sentBytes < sizeof(content))
+    {
+        int r = send(sock, content + sentBytes, sizeof(content) - sentBytes, 0);
+        if (r <= 0)
+        {
+            std::cout << "Failed to send magic numbers\n";
+            break;
+        }
+        sentBytes += r;
+    }
+}
+
+void sendConfirmation(bool approved, bool awaiting)
+{
+    if (sock == -1)
+    {
+        std::cout << "Socket not initialized, cannot send confirmation\n";
+        return;
+    }
+    char content[3];
+    content[0] = CONFIRMATION_SOCKET_TAG;
+    content[1] = approved;
+    content[2] = awaiting;
+    int sentBytes = 0;
+    while (sentBytes < sizeof(content))
+    {
+        int r = send(sock, content + sentBytes, sizeof(content) - sentBytes, 0);
+        if (r <= 0)
+        {
+            std::cout << "Failed to send confirmation\n";
+            break;
+        }
+        sentBytes += r;
+    }
+}
+
 
 Hexagon::Hexagon() : x(0), y(0), ownerId(0), resident(Resident::Water){}
 
@@ -163,6 +268,44 @@ restart:
     {
         countries.emplace_back(std::vector{ o });
     }
+}
+
+void Board::socketSend()
+{
+    if(sock == -1)
+    {
+        std::cout << "Socket not initialized, cannot send board data\n";
+        return;
+    }
+    int hexesNumber = width * height;
+    ucoord wh = htons(width);
+    ucoord hh = htons(height);
+    int total = 1 + sizeof(wh) + sizeof(hh) + hexesNumber * 2;
+    uint8* result = new uint8[total];
+    result[0] = BOARD_SOCKET_TAG;
+    uint8* position = result + 1;
+    memcpy(position, &wh, sizeof(wh));
+    position += sizeof(wh);
+    memcpy(position, &hh, sizeof(hh));
+    position += sizeof(hh);
+    for(int i = 0; i < hexesNumber; i++)
+    {
+        position[i * 2] = board[i].getOwnerId();
+        position[i * 2 + 1] = static_cast<uint8>(board[i].getResident());
+    }
+
+    int sentBytes = 0;
+    while (sentBytes < total)
+    {
+        int r = send(sock, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
+        if (r <= 0)
+        {
+            std::cout << "Failed to send board data\n";
+            break;
+        }
+        sentBytes += r;
+    }
+    delete[] result;
 }
 
 
