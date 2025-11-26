@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
             getchar();
             return 1;
         }
+        sendMagicNumbers();
     }
 
 

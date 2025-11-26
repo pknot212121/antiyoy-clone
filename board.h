@@ -71,11 +71,13 @@ class Game; // kosmita 👽👽👽
 void markAll(std::vector<Hexagon*> hexagons);
 void unmarkAll(std::vector<Hexagon*> hexagons);
 
-#define MAGIC_SOCKET_TAG 0
-#define CONFIGURATION_SOCKET_TAG 1
-#define CONFIRMATION_SOCKET_TAG 2
-#define BOARD_SOCKET_TAG 3
-#define MOVE_SOCKET_TAG 4
+#define MAGIC_SOCKET_TAG 0 // Magiczne numerki wysyłane na początku by mieć 100% pewności że jesteśmy poprawnie połączeni, wysyłane przez sendMagicNumbers()
+#define CONFIGURATION_SOCKET_TAG 1 // Dane gry wysyłane przy rozpoczęciu nowej gry (DO ZROBIENIA)
+#define BOARD_SOCKET_TAG 2 // Plansza (właściciele i rezydenci), wysyłana przez Board::sendBoard()
+#define MOVE_SOCKET_TAG 3 // Lista ruchów gracza (DO ZROBIENIA)
+#define CONFIRMATION_SOCKET_TAG 4 // Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu, wysyłane przez sendConfirmation()
+#define TURN_CHANGE_SOCKET_TAG 5 // Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza), wysyłane przez sendTurnChange()
+#define GAME_OVER_SOCKET_TAG 6 // Numery graczy w kolejności od wygranego do pierwszego który odpadł, wysyłane przez Board::sendGameOver()
 
 #define SOCKET_MAGIC_NUMBERS { 'A', 'N', 'T', 'I', 'Y', 'O', 'Y' }
 
@@ -86,8 +88,9 @@ void initializeSocket(int port);
 void awaitSocketClient();
 inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
 void closeSocket();
-void sendMagicNumbers();
-void sendConfirmation(bool approved, bool awaiting);
+void sendMagicNumbers(int receivingSocket = -1);
+void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
+void sendTurnChange(uint8 player, int receivingSocket = -1);
 
 
 class Hexagon
@@ -138,6 +141,7 @@ private:
     std::vector<Hexagon> board;
 
     std::vector<Country> countries;
+    std::vector<uint8> leaderboard;
 
     const Game* game;
 
@@ -161,7 +165,8 @@ public:
 
     inline const Game* getGame() const noexcept { return game; }
 
-    void socketSend();
+    void sendBoard(int receivingSocket = -1);
+    void sendGameOver(int receivingSocket = -1);
 };
 
 struct MoneyAndFarms

@@ -77,7 +77,7 @@ void awaitSocketClient()
     int clientSize = sizeof(client);
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
-    if (clientSock == INVALID_SOCKET)
+    if (clientSock == INVALID_SOCKET || clientSock < 0)
     {
         std::cout << "Accept failed, error: " << WSAGetLastError() << "\n";
         return;
@@ -109,11 +109,11 @@ void closeSocket()
     sock = -1;
 }
 
-void sendMagicNumbers()
+void sendMagicNumbers(int receivingSocket)
 {
     if (invalidSocks())
     {
-        std::cout << "Socket not initialized, cannot send magic numbers\n";
+        std::cout << "Socket not initialized, cannot send magic numbers data\n";
         return;
     }
     char magicNumbers[] = SOCKET_MAGIC_NUMBERS;
@@ -122,25 +122,28 @@ void sendMagicNumbers()
     memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
     for(int s : clientSocks)
     {
-        int sentBytes = 0;
-        while (sentBytes < sizeof(content))
+        if(receivingSocket == -1 || s == receivingSocket)
         {
-            int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
-            if (r <= 0)
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
             {
-                std::cout << "Failed to send magic numbers\n";
-                break;
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send magic numbers data\n";
+                    break;
+                }
+                sentBytes += r;
             }
-            sentBytes += r;
         }
     }
 }
 
-void sendConfirmation(bool approved, bool awaiting)
+void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
 {
     if (invalidSocks())
     {
-        std::cout << "Socket not initialized, cannot send confirmation\n";
+        std::cout << "Socket not initialized, cannot send confirmation data\n";
         return;
     }
     char content[3];
@@ -149,16 +152,48 @@ void sendConfirmation(bool approved, bool awaiting)
     content[2] = awaiting;
     for(int s : clientSocks)
     {
-        int sentBytes = 0;
-        while (sentBytes < sizeof(content))
+        if(receivingSocket == -1 || s == receivingSocket)
         {
-            int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
-            if (r <= 0)
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
             {
-                std::cout << "Failed to send confirmation\n";
-                break;
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send confirmation data\n";
+                    break;
+                }
+                sentBytes += r;
             }
-            sentBytes += r;
+        }
+    }
+}
+
+void sendTurnChange(uint8 player, int receivingSocket)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send turn change data\n";
+        return;
+    }
+    char content[2];
+    content[0] = TURN_CHANGE_SOCKET_TAG;
+    content[1] = player;
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
+            {
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send turn change data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
         }
     }
 }
@@ -318,7 +353,7 @@ restart:
     }
 }
 
-void Board::socketSend()
+void Board::sendBoard(int receivingSocket)
 {
     if(invalidSocks())
     {
@@ -344,21 +379,60 @@ void Board::socketSend()
 
     for(int s : clientSocks)
     {
-        int sentBytes = 0;
-        while (sentBytes < total)
+        if(receivingSocket == -1 || s == receivingSocket)
         {
-            int r = send(s, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
-            if (r <= 0)
+            int sentBytes = 0;
+            while (sentBytes < total)
             {
-                std::cout << "Failed to send board data\n";
-                break;
+                int r = send(s, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send board data\n";
+                    break;
+                }
+                sentBytes += r;
             }
-            sentBytes += r;
         }
     }
     
     delete[] result;
 }
+
+void Board::sendGameOver(int receivingSocket)
+{
+    if(invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send game over data\n";
+        return;
+    }
+    int lbSize = leaderboard.size();
+    int total = 2 + lbSize;
+    uint8* lb = new uint8[total];
+    lb[0] = GAME_OVER_SOCKET_TAG;
+    lb[1] = lbSize;
+    memcpy(lb + 2, leaderboard.data(), lbSize);
+
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < total)
+            {
+                int r = send(s, reinterpret_cast<char*>(lb) + sentBytes, total - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send game over data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+    
+    delete[] lb;
+}
+
 
 
 void Hexagon::rot(Board* board)
@@ -785,7 +859,7 @@ bool Hexagon::move(Board* board, Hexagon* destination)
             {
                 auto [dx, dy] = directions[i];
                 Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
-                if(hex == nullptr || hex->ownerId == 0 || hex->ownerId == destination->ownerId)
+                if(hex == nullptr || hex->ownerId == 0 || hex->ownerId != oldOwnerId)
                 {
                     add = true;
                 }
