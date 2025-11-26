@@ -2,7 +2,19 @@
 #include <unordered_set>
 #include <cstring>
 
-void initializeSocket()
+
+void markAll(std::vector<Hexagon *> hexagons)
+{
+    for(Hexagon* h : hexagons) h->mark();
+}
+
+void unmarkAll(std::vector<Hexagon*> hexagons)
+{
+    for(Hexagon* h : hexagons) h->unmark();
+}
+
+
+void initializeSocket(int port)
 {
 #ifdef _WIN32
     WSADATA wsa;
@@ -28,9 +40,22 @@ void initializeSocket()
 
     sockaddr_in server{};
     server.sin_family = AF_INET;
-    server.sin_port = htons(SOCKET_PORT);
+    server.sin_port = htons(port);
+    server.sin_addr.s_addr = INADDR_ANY;
 
-    if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) <= 0)
+    if (bind(sock, (sockaddr*)&server, sizeof(server)) < 0)
+    {
+        std::cout << "Bind failed, error: " << WSAGetLastError() << "\n";
+        return;
+    }
+
+    if (listen(sock, 1) < 0)
+    {
+        std::cout << "Listen failed, error: " << WSAGetLastError() << "\n";
+        return;
+    }
+
+    /*if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) <= 0)
     {
         std::cout << "Invalid address\n";
         sock = -1;
@@ -39,10 +64,38 @@ void initializeSocket()
 
     if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0)
     {
-        std::cout << "Failed to connect to server\n";
+        std::cout << "Failed to connect to server, error: " << WSAGetLastError() << "\n";
         sock = -1;
         return;
+    }*/
+}
+
+void awaitSocketClient()
+{
+    std::cout << "Server waiting for client...\n";
+    sockaddr_in client{};
+    int clientSize = sizeof(client);
+    int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
+
+    if (clientSock == INVALID_SOCKET)
+    {
+        std::cout << "Accept failed, error: " << WSAGetLastError() << "\n";
+        return;
     }
+    clientSocks.push_back(clientSock);
+
+    /*bool contains = false;
+    for (int i : clientSocks)
+    {
+        if (i == clientSock)
+        {
+            contains = true;
+            break;
+        }
+    }
+    if(!contains) clientSocks.push_back(clientSock);*/
+
+    std::cout << "Client connected!\n";
 }
 
 void closeSocket()
@@ -53,23 +106,12 @@ void closeSocket()
 #else
     close(sock);
 #endif
-    sock = 0;
+    sock = -1;
 }
-
-void markAll(std::vector<Hexagon *> hexagons)
-{
-    for(Hexagon* h : hexagons) h->mark();
-}
-
-void unmarkAll(std::vector<Hexagon*> hexagons)
-{
-    for(Hexagon* h : hexagons) h->unmark();
-}
-
 
 void sendMagicNumbers()
 {
-    if (sock == -1)
+    if (invalidSocks())
     {
         std::cout << "Socket not initialized, cannot send magic numbers\n";
         return;
@@ -78,22 +120,25 @@ void sendMagicNumbers()
     char content[1 + sizeof(magicNumbers)];
     content[0] = MAGIC_SOCKET_TAG;
     memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
-    int sentBytes = 0;
-    while (sentBytes < sizeof(content))
+    for(int s : clientSocks)
     {
-        int r = send(sock, content + sentBytes, sizeof(content) - sentBytes, 0);
-        if (r <= 0)
+        int sentBytes = 0;
+        while (sentBytes < sizeof(content))
         {
-            std::cout << "Failed to send magic numbers\n";
-            break;
+            int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+            if (r <= 0)
+            {
+                std::cout << "Failed to send magic numbers\n";
+                break;
+            }
+            sentBytes += r;
         }
-        sentBytes += r;
     }
 }
 
 void sendConfirmation(bool approved, bool awaiting)
 {
-    if (sock == -1)
+    if (invalidSocks())
     {
         std::cout << "Socket not initialized, cannot send confirmation\n";
         return;
@@ -102,16 +147,19 @@ void sendConfirmation(bool approved, bool awaiting)
     content[0] = CONFIRMATION_SOCKET_TAG;
     content[1] = approved;
     content[2] = awaiting;
-    int sentBytes = 0;
-    while (sentBytes < sizeof(content))
+    for(int s : clientSocks)
     {
-        int r = send(sock, content + sentBytes, sizeof(content) - sentBytes, 0);
-        if (r <= 0)
+        int sentBytes = 0;
+        while (sentBytes < sizeof(content))
         {
-            std::cout << "Failed to send confirmation\n";
-            break;
+            int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+            if (r <= 0)
+            {
+                std::cout << "Failed to send confirmation\n";
+                break;
+            }
+            sentBytes += r;
         }
-        sentBytes += r;
     }
 }
 
@@ -272,7 +320,7 @@ restart:
 
 void Board::socketSend()
 {
-    if(sock == -1)
+    if(invalidSocks())
     {
         std::cout << "Socket not initialized, cannot send board data\n";
         return;
@@ -294,17 +342,21 @@ void Board::socketSend()
         position[i * 2 + 1] = static_cast<uint8>(board[i].getResident());
     }
 
-    int sentBytes = 0;
-    while (sentBytes < total)
+    for(int s : clientSocks)
     {
-        int r = send(sock, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
-        if (r <= 0)
+        int sentBytes = 0;
+        while (sentBytes < total)
         {
-            std::cout << "Failed to send board data\n";
-            break;
+            int r = send(s, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
+            if (r <= 0)
+            {
+                std::cout << "Failed to send board data\n";
+                break;
+            }
+            sentBytes += r;
         }
-        sentBytes += r;
     }
+    
     delete[] result;
 }
 

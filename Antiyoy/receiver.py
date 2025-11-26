@@ -151,8 +151,9 @@ def receive_all():
 
     return result
 
+print("Started!")
 
-# Program odpalany przez std::system("python3 receiver.py 127.0.0.1 2137");
+# Program odpalany przez std::system("python3 receiver.py 127.0.0.1 2137"); (adres i port mogą się zmienić)
 HOST = '127.0.0.1'
 PORT = 2137
 

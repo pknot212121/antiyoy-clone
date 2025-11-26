@@ -41,6 +41,11 @@ int main(int argc, char *argv[])
     int seed;
     std::string playerMarkers;
     std::vector<int> maxMoveTimes;
+    std::string pythonProgram;
+    std::string ipAddress;
+    int port;
+
+    bool shouldRunAI = false;
 
     if(!(file >> x >> y >> seed >> playerMarkers))
     {
@@ -52,7 +57,8 @@ int main(int argc, char *argv[])
     maxMoveTimes.reserve(playerMarkers.length());
     for(int i = 0; i < playerMarkers.length(); i++)
     {
-        if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B')
+        if(playerMarkers[i] == 'B') shouldRunAI = true;
+        else if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B')
         {
             std::cout << "Unidentified player markers in config.txt\n";
             getchar();
@@ -68,14 +74,41 @@ int main(int argc, char *argv[])
         maxMoveTimes.push_back(maxMoveTime);
     }
 
-    // SOCKETY
-    initializeSocket();
-    if(sock < 0)
+    if(!(file >> pythonProgram >> ipAddress >> port))
     {
-        std::cout << "Socket initialization failed, communication impossible\n";
+        std::cout << "Invalid content of config.txt\n";
         getchar();
         return 1;
     }
+
+    // SOCKETY
+    if(shouldRunAI)
+    {
+        initializeSocket(port);
+        if(sock == -1)
+        {
+            std::cout << "Socket initialization failed, communication impossible\n";
+            getchar();
+            return 1;
+        }
+
+    #ifdef _WIN32
+        std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
+    #else
+        std::string cmd = "python3 \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port) + " &";
+    #endif
+
+        std::system(cmd.c_str());
+
+        awaitSocketClient();
+        if(invalidSocks())
+        {
+            std::cout << "Socket client initialization failed, communication impossible\n";
+            getchar();
+            return 1;
+        }
+    }
+
 
     // OPENGL
     glfwInit();

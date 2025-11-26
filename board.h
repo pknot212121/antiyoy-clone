@@ -71,9 +71,6 @@ class Game; // kosmita 👽👽👽
 void markAll(std::vector<Hexagon*> hexagons);
 void unmarkAll(std::vector<Hexagon*> hexagons);
 
-
-#define SOCKET_PORT 2137
-
 #define MAGIC_SOCKET_TAG 0
 #define CONFIGURATION_SOCKET_TAG 1
 #define CONFIRMATION_SOCKET_TAG 2
@@ -83,8 +80,11 @@ void unmarkAll(std::vector<Hexagon*> hexagons);
 #define SOCKET_MAGIC_NUMBERS { 'A', 'N', 'T', 'I', 'Y', 'O', 'Y' }
 
 inline int sock = -1;
+inline std::vector<int> clientSocks;
 
-void initializeSocket();
+void initializeSocket(int port);
+void awaitSocketClient();
+inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
 void closeSocket();
 void sendMagicNumbers();
 void sendConfirmation(bool approved, bool awaiting);
