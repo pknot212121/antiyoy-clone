@@ -1,5 +1,7 @@
+import sys
 import socket
 import struct
+import select
 
 from enum import IntEnum
 
@@ -46,9 +48,6 @@ class Board:
 
 
 
-HOST = '127.0.0.1'
-PORT = 2137
-
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 CONFIRMATION_SOCKET_TAG = 2 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
@@ -57,8 +56,9 @@ MOVE_SOCKET_TAG = 4 # Ruchy (wysyłane przez AI do gry)
 
 SOCKET_MAGIC_NUMBERS = b'ANTIYOY'
 
+sock = None # Socket
 
-# 
+
 def receive_magic() -> bool:
     """
     Odbiera magiczne numerki, zwraca bool czy pasują czy nie. Zakłada że tag został już odebrany
@@ -66,7 +66,7 @@ def receive_magic() -> bool:
     magic_len = len(SOCKET_MAGIC_NUMBERS)
     data = bytearray()
     while len(data) < magic_len:
-        chunk = s.recv(magic_len - len(data))
+        chunk = sock.recv(magic_len - len(data))
         if not chunk:
             raise RuntimeError("Nie udało się pobrać magicznych numerków")
         data.extend(chunk)
@@ -79,7 +79,7 @@ def receive_confirmation() -> tuple[bool, bool]:
     """
     data = bytearray()
     while len(data) < 2:
-        chunk = s.recv(2 - len(data))
+        chunk = sock.recv(2 - len(data))
         if not chunk:
             raise RuntimeError("Nie udało się pobrać potwierdzenia")
         data.extend(chunk)
@@ -93,7 +93,7 @@ def receive_board() -> Board:
     Odbiera planszę. Zakłada że tag został już odebrany
     """
     header_size = 4
-    header = s.recv(header_size)
+    header = sock.recv(header_size)
     if len(header) < header_size:
         raise RuntimeError("Nie udało się pobrać nagłówka")
 
@@ -104,7 +104,7 @@ def receive_board() -> Board:
 
     data = bytearray()
     while len(data) < data_size:
-        chunk = s.recv(data_size - len(data))
+        chunk = sock.recv(data_size - len(data))
         if not chunk:
             raise RuntimeError("Nie udało się pobrać wszystkich danych")
         data.extend(chunk)
@@ -126,29 +126,62 @@ def receive_all():
     Odbiera wszystko z socketa
     """
     result = []
-    tag = s.recv(1)
+    tag = sock.recv(1)
     while len(tag) > 0:
         tag = struct.unpack('B', tag)[0]
 
         if tag == MAGIC_SOCKET_TAG:
-            result.append(receive_magic())
+            result.append((MAGIC_SOCKET_TAG, receive_magic()))
 
         elif tag == CONFIRMATION_SOCKET_TAG:
-            result.append(receive_confirmation())
+            result.append((CONFIRMATION_SOCKET_TAG, receive_confirmation()))
 
         elif tag == BOARD_SOCKET_TAG:
-            result.append(receive_board())
+            result.append((BOARD_SOCKET_TAG, receive_board()))
+        
+        else: # Odebrano nieznany tag, socket najpewniej jest zawalony śmieciami z którymi nie wiemy co zrobić, nie możemy wydedukować stanu gry, trzeba zakończyć
+            sock.close()
+            raise RuntimeError("Odebrano błędne dane")
 
-        tag = s.recv(1)
+        ready, _, _ = select.select([sock], [], [], 0)
+        if not ready: # Jeśli nie ma więcej danych do pobrania kończymy
+            return result
+
+        tag = sock.recv(1)
+
     return result
 
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
+# Program odpalany przez std::system("python3 receiver.py 127.0.0.1 2137");
+HOST = '127.0.0.1'
+PORT = 2137
 
-    received = receive_all()
+if len(sys.argv) >= 2:
+    HOST = sys.argv[1]
+if len(sys.argv) >= 3:
+    PORT = int(sys.argv[2])
 
-    # Po pierwszym odebraniu sprawdzamy czy dostaliśmy magiczne numerki
-    if isinstance(received[0], bool) and received[0]: print("Działa!")
-    else: print("Nie działa ToT")
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((HOST, PORT))
 
+while True:
+    received = receive_all() # Czeka na dane
+
+    if not received:
+        continue # Nie powinno się zdarzyć, ale dla bezpieczeństwa
+
+    for tag, payload in received:
+        if tag == MAGIC_SOCKET_TAG:
+            if payload:
+                print("Działa!")
+            else:
+                print("Magic numbers złe!")
+
+        elif tag == CONFIRMATION_SOCKET_TAG:
+            approved, awaiting = payload
+            print("Potwierdzenie:", approved, awaiting)
+
+        elif tag == BOARD_SOCKET_TAG:
+            board = payload
+            print("Nowa plansza:")
+            print(board)
