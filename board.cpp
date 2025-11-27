@@ -30,6 +30,10 @@ void initializeSocket(int port)
     if (sock == INVALID_SOCKET)
 #else
     sock = socket(AF_INET, SOCK_STREAM, 0);
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        std::cout << "Setsockopt failed\n";
+    }
     if (sock < 0)
 #endif
     {
