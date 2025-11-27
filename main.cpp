@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
     // ---------------------------------------------------------
     ResourceManager::Clear();
     delete Anti;
-    closeSocket();
+    closeSockets();
     glfwTerminate();
     return 0;
 }

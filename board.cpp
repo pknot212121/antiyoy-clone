@@ -102,12 +102,20 @@ void awaitSocketClient()
     std::cout << "Client connected!\n";
 }
 
-void closeSocket()
+void closeSockets()
 {
 #ifdef _WIN32
+    for(int s : clientSocks)
+    {
+        closesocket(s);
+    }
     closesocket(sock);
     WSACleanup();
 #else
+    for(int s : clientSocks)
+    {
+        close(s);
+    }
     close(sock);
 #endif
     sock = -1;

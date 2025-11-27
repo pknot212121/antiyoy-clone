@@ -88,7 +88,7 @@ inline std::vector<int> clientSocks;
 void initializeSocket(int port);
 void awaitSocketClient();
 inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
-void closeSocket();
+void closeSockets();
 void sendMagicNumbers(int receivingSocket = -1);
 void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
 void sendTurnChange(uint8 player, int receivingSocket = -1);
@@ -152,7 +152,7 @@ public:
     void InitializeRandomA(int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
     void InitializeCountriesA(uint8 countriesCount, int minCountrySize, int maxCountrySize);
-    void InitializeFromFile();
+    //void InitializeFromFile();
 
     // gettery/settery
     inline coord getWidth() const noexcept { return width; }
