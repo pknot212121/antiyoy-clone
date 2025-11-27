@@ -252,8 +252,14 @@ void Game::ProcessInput(float dt)
 
 void Game::Render()
 {
-    Text->RenderText("Money:" ,10.0f, 10.0f, 1.0f);
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
+    std::unordered_map<Hexagon*, MoneyAndFarms>& m= board->getCountry(playerIndex)->getCastles();
+    int sum=0;
+    for (auto a : m)
+    {
+        sum+=a.second.money;
+    }
+    Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
 }
 
 
