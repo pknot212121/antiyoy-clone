@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <vector>
 #ifdef _WIN32
@@ -10,6 +11,8 @@
     #include <unistd.h>
     #define INVALID_SOCKET -1
 #endif
+
+typedef unsigned char uint8;
 
 #define MAGIC_SOCKET_TAG 0 // Magiczne numerki wysyłane na początku by mieć 100% pewności że jesteśmy poprawnie połączeni, wysyłane przez sendMagicNumbers()
 #define CONFIGURATION_SOCKET_TAG 1 // Dane gry wysyłane przy rozpoczęciu nowej gry (DO ZROBIENIA)

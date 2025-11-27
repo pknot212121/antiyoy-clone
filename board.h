@@ -14,7 +14,6 @@
 
 typedef short coord;
 typedef unsigned short ucoord;
-typedef unsigned char uint8;
 
 // NIE ZMIENIAĆ KOLEJNOŚCI WARTOŚCI ANI NIE DODAWAĆ NOWYCH BEZ ZGODY
 enum class Resident : uint8
@@ -169,34 +168,4 @@ public:
 
     inline std::unordered_map<Hexagon*, MoneyAndFarms>& getCastles() noexcept { return castles; }
     inline void setPlayer(Player* player) noexcept { this->player = player; }
-};
-
-class Player
-{
-    Country* country;
-    unsigned int maxMoveTime;
-
-public:
-    Player(Country* country, unsigned int maxMoveTime = 60);
-
-    virtual void act() = 0; // udawaj że to funkcja abstrakcyjna
-};
-
-class LocalPlayer : public Player
-{
-public:
-    LocalPlayer(Country* country, unsigned int maxMoveTime = 60);
-    virtual void act();
-};
-
-class BotPlayer : public Player
-{
-public:
-    BotPlayer(Country* country, unsigned int maxMoveTime = 10);
-    virtual void act();
-};
-
-class NetworkPlayer : Player // Easter egg
-{
-
 };

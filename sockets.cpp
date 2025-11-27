@@ -173,3 +173,94 @@ void closeSockets()
 #endif
     sock = -1;
 }
+
+
+
+void sendMagicNumbers(int receivingSocket)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send magic numbers data\n";
+        return;
+    }
+    char magicNumbers[] = SOCKET_MAGIC_NUMBERS;
+    char content[1 + sizeof(magicNumbers)];
+    content[0] = MAGIC_SOCKET_TAG;
+    memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
+            {
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send magic numbers data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+}
+
+void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send confirmation data\n";
+        return;
+    }
+    char content[3];
+    content[0] = CONFIRMATION_SOCKET_TAG;
+    content[1] = approved;
+    content[2] = awaiting;
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
+            {
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send confirmation data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+}
+
+void sendTurnChange(uint8 player, int receivingSocket)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send turn change data\n";
+        return;
+    }
+    char content[2];
+    content[0] = TURN_CHANGE_SOCKET_TAG;
+    content[1] = player;
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < sizeof(content))
+            {
+                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send turn change data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+}

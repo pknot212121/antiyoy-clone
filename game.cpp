@@ -251,3 +251,27 @@ void Game::Render()
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
 }
 
+
+
+Player::Player(Country* country, unsigned int maxMoveTime) : country(country), maxMoveTime(maxMoveTime)
+{
+    country->setPlayer(this);
+}
+
+LocalPlayer::LocalPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+{
+    std::cout << "Local player created with max move time " << maxMoveTime << "\n";
+}
+
+void LocalPlayer::act()
+{
+}
+
+BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+{
+    std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
+}
+
+void BotPlayer::act()
+{
+}

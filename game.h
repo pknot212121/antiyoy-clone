@@ -58,4 +58,35 @@ public:
     void SelectAction(Point p);
 };
 
+
+class Player
+{
+    Country* country;
+    unsigned int maxMoveTime;
+
+public:
+    Player(Country* country, unsigned int maxMoveTime = 60);
+
+    virtual void act() = 0; // udawaj że to funkcja abstrakcyjna
+};
+
+class LocalPlayer : public Player
+{
+public:
+    LocalPlayer(Country* country, unsigned int maxMoveTime = 60);
+    virtual void act();
+};
+
+class BotPlayer : public Player
+{
+public:
+    BotPlayer(Country* country, unsigned int maxMoveTime = 10);
+    virtual void act();
+};
+
+class NetworkPlayer : Player // Easter egg
+{
+
+};
+
 #endif
