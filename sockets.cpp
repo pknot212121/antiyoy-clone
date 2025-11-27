@@ -1,5 +1,6 @@
 #include "sockets.h"
 #include <sstream>
+#include <cstring>
 
 int getSocketError()
 {
@@ -56,17 +57,33 @@ void initializeSocket(int port)
         return;
     }
 
-    u_long mode = 1;
-    if (ioctlsocket(sock, FIONBIO, &mode) != 0)
-    {
-        std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
-    }
+    #ifdef _WIN32
+        u_long mode = 1;
+        if (ioctlsocket(sock, FIONBIO, &mode) != 0)
+        {
+            std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
+        }
+    #else
+        int flags = fcntl(sock, F_GETFL, 0);
+        if (flags == -1 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1)
+        {
+            std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
+        }
+    #endif
 }
 
 // 0 = blokujący (czeka na klienta), 1 = nieblokujący (jeśli nie ma klienta to kończy)
 void acceptSocketClient(u_long mode)
 {
-    ioctlsocket(sock, FIONBIO, &mode);
+    #ifdef _WIN32
+        ioctlsocket(sock, FIONBIO, &mode);
+    #else
+        int flags = fcntl(sock, F_GETFL, 0);
+        if (mode == 1)
+            fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+        else
+            fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
+    #endif
 
     sockaddr_in client{};
 #ifdef _WIN32

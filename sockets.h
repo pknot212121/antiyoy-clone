@@ -8,8 +8,18 @@
 #else
     #include <sys/socket.h>
     #include <arpa/inet.h>
+    #include <netinet/in.h>
     #include <unistd.h>
+    #include <fcntl.h>
+    #include <cerrno>
+
     #define INVALID_SOCKET -1
+    #define SOCKET_ERROR -1
+    #define closesocket close
+
+    inline void Sleep(unsigned int milliseconds) {
+        usleep(milliseconds * 1000);
+    }
 #endif
 
 typedef unsigned char uint8;

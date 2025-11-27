@@ -7,6 +7,7 @@
 #include <iostream>
 #include <ranges>
 #include "board.h"
+#include "text_renderer.h"
 
 
 // Represents the current state of the game
@@ -56,6 +57,7 @@ public:
     inline Player* getPlayer(uint8 id) noexcept { if(id == 0) return nullptr; return players[id-1]; }
 
     Board *board;
+    TextRenderer  *Text;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
     ~Game();

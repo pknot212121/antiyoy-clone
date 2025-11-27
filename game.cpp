@@ -2,6 +2,9 @@
 
 #include <set>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "resource_manager.h"
 
 
@@ -89,7 +92,8 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"ex");
-
+    Text = new TextRenderer(800, 600);
+    Text->Load("Roboto-Black.ttf", 24);
     gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
 
     //coord x = 10;
@@ -295,6 +299,22 @@ void Game::ProcessInput(float dt)
 void Game::Render()
 {
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
+    std::unordered_map<Hexagon*, MoneyAndFarms>& m= board->getCountry(playerIndex)->getCastles();
+    int sum=0;
+    if (provinceSelector!=nullptr)
+    {
+        for (auto a : m)
+        {
+
+            if (provinceSelector->province(board)[0]==a.first)
+            {
+                sum+=a.second.money;
+                break;
+            }
+
+        }
+    }
+    Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
 }
 
 
