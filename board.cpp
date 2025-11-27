@@ -1,6 +1,7 @@
 #include "board.h"
 #include <unordered_set>
 #include <cstring>
+#include <sstream>
 
 
 void markAll(std::vector<Hexagon *> hexagons)
@@ -59,51 +60,101 @@ void initializeSocket(int port)
         return;
     }
 
-    /*if (inet_pton(AF_INET, "127.0.0.1", &server.sin_addr) <= 0)
+    u_long mode = 1;
+    if (ioctlsocket(sock, FIONBIO, &mode) != 0)
     {
-        std::cout << "Invalid address\n";
-        sock = -1;
-        return;
+        std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
     }
-
-    if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0)
-    {
-        std::cout << "Failed to connect to server, error: " << WSAGetLastError() << "\n";
-        sock = -1;
-        return;
-    }*/
 }
 
-void awaitSocketClient()
+// 0 = blokujący (czeka na klienta), 1 = nieblokujący (jeśli nie ma klienta to kończy)
+void acceptSocketClient(u_long mode)
 {
-    std::cout << "Server waiting for client...\n";
+    ioctlsocket(sock, FIONBIO, &mode);
+
     sockaddr_in client{};
 #ifdef _WIN32
     int clientSize = sizeof(client);
 #else
     unsigned int clientSize = sizeof(client);
 #endif
+
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
-    if (clientSock == INVALID_SOCKET || clientSock < 0)
+    if (mode == 0 && (clientSock == INVALID_SOCKET || clientSock < 0))
     {
         std::cout << "Accept failed, error: " << getSocketError() << "\n";
         return;
     }
     clientSocks.push_back(clientSock);
+}
 
-    /*bool contains = false;
-    for (int i : clientSocks)
+void searchForSocketClient(int discoveryPort)
+{
+    int udpSock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    int broadcastEnable = 1;
+    setsockopt(udpSock, SOL_SOCKET, SO_BROADCAST, (char*)&broadcastEnable, sizeof(broadcastEnable));
+
+    sockaddr_in bc{};
+    bc.sin_family = AF_INET;
+    bc.sin_port = htons(discoveryPort);
+    bc.sin_addr.s_addr = INADDR_BROADCAST;
+
+    std::string msg = "ANTIYOY " + std::to_string(discoveryPort);
+
+    int requiredClients = clientSocks.size() + 1;
+    while (requiredClients > clientSocks.size()) // Jeśli liczba klientów się zmniejszy czekamy aż się nadrobi i wciąż na jednego więcej
     {
-        if (i == clientSock)
+        sendto(udpSock, msg.c_str(), msg.length(), 0, (sockaddr*)&bc, sizeof(bc));
+
+        acceptSocketClient(1);
+
+        Sleep(300);
+    }
+
+    closesocket(udpSock);
+}
+
+void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
+{
+    int udpSock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    sockaddr_in local{};
+    local.sin_family = AF_INET;
+    local.sin_port = htons(discoveryPort);
+    local.sin_addr.s_addr = INADDR_ANY;
+
+    bind(udpSock, (sockaddr*)&local, sizeof(local));
+
+    char buffer[32];
+    sockaddr_in sender;
+    socklen_t senderLen = sizeof(sender);
+
+    while(true)
+    {
+        int bytes = recvfrom(udpSock, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&sender, &senderLen);
+
+        if (bytes <= 0) continue;
+
+        buffer[bytes] = '\0';
+
+        std::istringstream iss(buffer);
+        std::string header;
+        int port;
+
+        if (iss >> header >> port)
         {
-            contains = true;
-            break;
+            if (header == "ANTIYOY")
+            {
+                *returnIp = inet_ntoa(sender.sin_addr);
+                *returnPort = port;
+
+                closesocket(udpSock);
+                return;
+            }
         }
     }
-    if(!contains) clientSocks.push_back(clientSock);*/
-
-    std::cout << "Client connected!\n";
 }
 
 void closeSockets()

@@ -86,7 +86,9 @@ inline int sock = -1;
 inline std::vector<int> clientSocks;
 
 void initializeSocket(int port);
-void awaitSocketClient();
+void acceptSocketClient(u_long mode = 0);
+void searchForSocketClient(int discoveryPort);
+void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort);
 inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
 void closeSockets();
 void sendMagicNumbers(int receivingSocket = -1);

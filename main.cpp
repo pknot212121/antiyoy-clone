@@ -44,15 +44,35 @@ int main(int argc, char *argv[])
     std::string pythonProgram;
     std::string ipAddress;
     int port;
+    int discoveryPort;
 
     bool shouldRunAI = false;
     bool shouldNetwork = false;
 
     if(!(file >> x >> y >> seed >> playerMarkers))
     {
-        std::cout << "Invalid content of config.txt\n";
-        getchar();
-        return 1;
+        std::string net;
+        file.clear();
+        file.seekg(0, std::ios::beg);
+        if(!(file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
+        {
+            if(!(file >> discoveryPort))
+            {
+                std::cout << "Invalid content of config.txt\n";
+                getchar();
+                return 1;
+            }
+            std::cout << "Searching for a match...\n";
+            searchForServer(discoveryPort, &ipAddress, &port);
+
+            goto skipFileConfiguration;
+        }
+        else
+        {
+            std::cout << "Invalid content of config.txt\n";
+            getchar();
+            return 1;
+        }
     }
 
     maxMoveTimes.reserve(playerMarkers.length());
@@ -75,7 +95,7 @@ int main(int argc, char *argv[])
         maxMoveTimes.push_back(maxMoveTime);
     }
 
-    if(!(file >> pythonProgram >> ipAddress >> port))
+    if(!(file >> pythonProgram >> ipAddress >> port >> discoveryPort))
     {
         std::cout << "Invalid content of config.txt\n";
         getchar();
@@ -103,13 +123,15 @@ int main(int argc, char *argv[])
 
             std::system(cmd.c_str());
 
-            awaitSocketClient();
+            std::cout << "Awaiting Python client...\n";
+            acceptSocketClient();
             if(invalidSocks())
             {
                 std::cout << "Socket client initialization failed, communication impossible\n";
                 getchar();
                 return 1;
             }
+            std::cout << "Python client connected!\n";
         }
 
         if(shouldNetwork)
@@ -120,6 +142,7 @@ int main(int argc, char *argv[])
         sendMagicNumbers();
     }
 
+skipFileConfiguration: // Dla gracza sieciowego
 
     // OPENGL
     glfwInit();
