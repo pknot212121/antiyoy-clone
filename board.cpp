@@ -45,13 +45,13 @@ void initializeSocket(int port)
 
     if (bind(sock, (sockaddr*)&server, sizeof(server)) < 0)
     {
-        std::cout << "Bind failed, error: " << WSAGetLastError() << "\n";
+        std::cout << "Bind failed, error: " << getSocketError() << "\n";
         return;
     }
 
     if (listen(sock, 1) < 0)
     {
-        std::cout << "Listen failed, error: " << WSAGetLastError() << "\n";
+        std::cout << "Listen failed, error: " << getSocketError() << "\n";
         return;
     }
 
@@ -74,12 +74,12 @@ void awaitSocketClient()
 {
     std::cout << "Server waiting for client...\n";
     sockaddr_in client{};
-    int clientSize = sizeof(client);
+    unsigned int clientSize = sizeof(client);
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
     if (clientSock == INVALID_SOCKET || clientSock < 0)
     {
-        std::cout << "Accept failed, error: " << WSAGetLastError() << "\n";
+        std::cout << "Accept failed, error: " << getSocketError() << "\n";
         return;
     }
     clientSocks.push_back(clientSock);
@@ -138,6 +138,17 @@ void sendMagicNumbers(int receivingSocket)
         }
     }
 }
+
+int getSocketError()
+{
+#ifdef _WIN32
+    return WSAGetLastError();
+#else
+    return errno;
+#endif
+
+}
+
 
 void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
 {

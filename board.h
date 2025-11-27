@@ -13,6 +13,7 @@
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <unistd.h>
+    #define INVALID_SOCKET -1
 #endif
 #include <unistd.h>
 
@@ -91,7 +92,7 @@ void closeSocket();
 void sendMagicNumbers(int receivingSocket = -1);
 void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
 void sendTurnChange(uint8 player, int receivingSocket = -1);
-
+int getSocketError();
 
 class Hexagon
 {
