@@ -84,7 +84,7 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
 
 void Game::Update(float dt)
 {
-    
+    //players[playerIndex].act();
 }
 
 void Game::Resize(int width, int height)

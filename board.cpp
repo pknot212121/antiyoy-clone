@@ -983,7 +983,15 @@ LocalPlayer::LocalPlayer(Country* country, unsigned int maxMoveTime) : Player(co
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
 
+void LocalPlayer::act()
+{
+}
+
 BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
 {
     std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
+}
+
+void BotPlayer::act()
+{
 }

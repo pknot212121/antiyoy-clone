@@ -31,8 +31,8 @@ public:
     float                   cursorPosY;
     int                     scroll = 0;
     unsigned int            Width, Height;
-    coord                   playerCount;
-    coord                   playerIndex;
+    uint8                   playerCount;
+    uint8                   playerIndex;
     bool                    enterPressed = false;
     bool                    onePressed = false;
     bool                    isHexSelected = false;
