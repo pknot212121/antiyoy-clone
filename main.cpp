@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
     int port;
 
     bool shouldRunAI = false;
+    bool shouldNetwork = false;
 
     if(!(file >> x >> y >> seed >> playerMarkers))
     {
@@ -82,7 +83,7 @@ int main(int argc, char *argv[])
     }
 
     // SOCKETY
-    if(shouldRunAI)
+    if(shouldRunAI || shouldNetwork)
     {
         initializeSocket(port);
         if(sock == -1)
@@ -92,21 +93,30 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-    #ifdef _WIN32
-        std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
-    #else
-        std::string cmd = "python3 \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port) + " &";
-    #endif
-
-        std::system(cmd.c_str());
-
-        awaitSocketClient();
-        if(invalidSocks())
+        if(shouldRunAI)
         {
-            std::cout << "Socket client initialization failed, communication impossible\n";
-            getchar();
-            return 1;
+        #ifdef _WIN32
+            std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
+        #else
+            std::string cmd = "python3 \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port) + " &";
+        #endif
+
+            std::system(cmd.c_str());
+
+            awaitSocketClient();
+            if(invalidSocks())
+            {
+                std::cout << "Socket client initialization failed, communication impossible\n";
+                getchar();
+                return 1;
+            }
         }
+
+        if(shouldNetwork)
+        {
+            
+        }
+
         sendMagicNumbers();
     }
 

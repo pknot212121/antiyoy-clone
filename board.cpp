@@ -74,7 +74,11 @@ void awaitSocketClient()
 {
     std::cout << "Server waiting for client...\n";
     sockaddr_in client{};
+#ifdef _WIN32
+    int clientSize = sizeof(client);
+#else
     unsigned int clientSize = sizeof(client);
+#endif
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
     if (clientSock == INVALID_SOCKET || clientSock < 0)
