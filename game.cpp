@@ -84,7 +84,8 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
 
 void Game::Update(float dt)
 {
-    //players[playerIndex].act();
+    // getPlayer odejmuje od podanego indeksu 1 co jest kluczowe (id graczy numerowane są od 1), analogiczna do getCountry()
+    //getPlayer(playerIndex)->act();
 }
 
 void Game::Resize(int width, int height)

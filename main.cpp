@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
             }
             std::cout << "Searching for a match...\n";
             searchForServer(discoveryPort, &ipAddress, &port);
+            std::cout << "Match found, awaiting configuration data...\n";
 
             goto skipFileConfiguration;
         }

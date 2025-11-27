@@ -40,6 +40,8 @@ public:
     Hexagon                 *provinceSelector = nullptr;
     std::vector<Player*>     players;
 
+    inline Player* getPlayer(uint8 id) noexcept { if(id == 0) return nullptr; return players[id-1]; }
+
     Board *board;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
