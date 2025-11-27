@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
         #ifdef _WIN32
             std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
         #else
-            std::string cmd = "python3 \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port) + " &";
+            std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
         #endif
 
             std::system(cmd.c_str());
