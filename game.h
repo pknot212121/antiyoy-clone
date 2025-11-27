@@ -17,6 +17,19 @@ enum class GameState
     GAME_WIN
 };
 
+class GameConfigData
+{
+    coord x, y;
+    int seed;
+    std::string playerMarkers;
+
+    GameConfigData(coord x, coord y, int seed, std::string playerMarkers);
+    GameConfigData(char* data);
+
+    inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + 1 + playerMarkers.length(); };
+    void sendGameConfigData(int receivingSocket = -1);
+};
+
 // Game holds all game-related state and functionality.
 // Combines all game-related data into a single class for
 // easy access to each of the components and manageability.

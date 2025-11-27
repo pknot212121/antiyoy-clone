@@ -15,7 +15,7 @@
 typedef unsigned char uint8;
 
 #define MAGIC_SOCKET_TAG 0 // Magiczne numerki wysyłane na początku by mieć 100% pewności że jesteśmy poprawnie połączeni, wysyłane przez sendMagicNumbers()
-#define CONFIGURATION_SOCKET_TAG 1 // Dane gry wysyłane przy rozpoczęciu nowej gry (DO ZROBIENIA)
+#define CONFIGURATION_SOCKET_TAG 1 // Dane gry wysyłane przy rozpoczęciu nowej gry, wysyłane przez GameConfigData::sendGameConfigData()
 #define BOARD_SOCKET_TAG 2 // Plansza (właściciele i rezydenci), wysyłana przez Board::sendBoard()
 #define MOVE_SOCKET_TAG 3 // Lista ruchów gracza (DO ZROBIENIA)
 #define CONFIRMATION_SOCKET_TAG 4 // Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu, wysyłane przez sendConfirmation()

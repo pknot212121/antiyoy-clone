@@ -12,8 +12,8 @@
 
 #define BIG_NUMBER 10000000
 
-typedef short coord;
-typedef unsigned short ucoord;
+typedef int16_t coord;
+typedef uint16_t ucoord;
 
 // NIE ZMIENIAĆ KOLEJNOŚCI WARTOŚCI ANI NIE DODAWAĆ NOWYCH BEZ ZGODY
 enum class Resident : uint8

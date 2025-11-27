@@ -9,7 +9,53 @@
 
 
 // Game-related State data
-SpriteRenderer  *Renderer;
+SpriteRenderer* Renderer;
+
+
+void GameConfigData::sendGameConfigData(int receivingSocket)
+{
+    if(invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send game config data\n";
+        return;
+    }
+    int total = 1 + estimateSize();
+    char* content = new char[total];
+    content[0] = CONFIGURATION_SOCKET_TAG;
+    char* position = content + 1;
+    ucoord xNet = htons(x);
+    memcpy(position, &xNet, sizeof(xNet));
+    position += sizeof(xNet);
+    ucoord yNet = htons(y);
+    memcpy(position, &yNet, sizeof(yNet));
+    position += sizeof(yNet);
+    unsigned int seedNet = htonl(seed);
+    memcpy(position, &seedNet, sizeof(seedNet));
+    position += sizeof(seedNet);
+    *((uint8*)position) = playerMarkers.length();
+    position++;
+    memcpy(position, playerMarkers.data(), playerMarkers.length());
+
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < total)
+            {
+                int r = send(s, content + sentBytes, total - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send game config data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+    
+    delete[] content;
+}
 
 
 Game::Game(unsigned int width, unsigned int height)
