@@ -109,6 +109,7 @@ void closeSockets()
     {
         closesocket(s);
     }
+    clientSocks.clear();
     closesocket(sock);
     WSACleanup();
 #else
@@ -116,6 +117,7 @@ void closeSockets()
     {
         close(s);
     }
+    clientSocks.clear();
     close(sock);
 #endif
     sock = -1;

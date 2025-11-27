@@ -210,27 +210,37 @@ if len(sys.argv) >= 2:
 if len(sys.argv) >= 3:
     PORT = int(sys.argv[2])
 
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((HOST, PORT))
+try:
+    sock.connect((HOST, PORT))
+    while True:
+        received = receive_all() # Czeka na dane
 
-while True:
-    received = receive_all() # Czeka na dane
+        if not received: # Jeśli nie otrzymamy danych
+            print("Server disconnected")
+            input()
+            break
 
-    if not received:
-        continue # Nie powinno się zdarzyć, ale dla bezpieczeństwa
+        for tag, payload in received:
+            if tag == MAGIC_SOCKET_TAG:
+                if payload:
+                    print("Working!")
+                else:
+                    print("Wrong magic numbers!")
 
-    for tag, payload in received:
-        if tag == MAGIC_SOCKET_TAG:
-            if payload:
-                print("Working!")
-            else:
-                print("Wrong magic numbers!")
+            elif tag == CONFIRMATION_SOCKET_TAG:
+                approved, awaiting = payload
+                print("Confirmation:", approved, awaiting)
 
-        elif tag == CONFIRMATION_SOCKET_TAG:
-            approved, awaiting = payload
-            print("Confirmation:", approved, awaiting)
+            elif tag == BOARD_SOCKET_TAG:
+                board = payload
+                print("New board:")
+                print(board)
 
-        elif tag == BOARD_SOCKET_TAG:
-            board = payload
-            print("New board:")
-            print(board)
+except:
+    print("Connection error")
+    input()
+
+if sock:
+    sock.close()
