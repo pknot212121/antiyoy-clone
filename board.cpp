@@ -14,6 +14,29 @@ void unmarkAll(std::vector<Hexagon*> hexagons)
 }
 
 
+// -1 - ląd, drzewa, groby
+// 0 - farmy
+// 1-4 - żołnierze i budowle
+int power(Resident resident)
+{
+    if(resident == Resident::Farm) return 0;
+    if(resident == Resident::Warrior1 || resident == Resident::Warrior1Moved || resident == Resident::Castle) return 1;
+    if(resident == Resident::Warrior2 || resident == Resident::Warrior2Moved || resident == Resident::Tower) return 2;
+    if(resident == Resident::Warrior3 || resident == Resident::Warrior3Moved || resident == Resident::StrongTower) return 3;
+    if(resident == Resident::Warrior4 || resident == Resident::Warrior4Moved) return 4;
+    return -1;
+}
+
+// Zwraca połączenie żołnierzy. Jeśli nie mogą być połączeni zwraca Resident::Empty
+Resident mergeWarriors(Resident warrior1, Resident warrior2)
+{
+    if(!(warrior(warrior1) && warrior(warrior2))) return Resident::Empty;
+    int sum = power(warrior1) + power(warrior2);
+    if(sum > 4) return Resident::Empty;
+    return (Resident)((int)Resident::Warrior1 - 1 + sum + 4 * (movedWarrior(warrior1) || movedWarrior(warrior2)));
+}
+
+
 Hexagon::Hexagon() : x(0), y(0), ownerId(0), resident(Resident::Water){}
 
 Hexagon::Hexagon(coord x, coord y) : x(x), y(y), ownerId(0), resident(Resident::Water){}
@@ -507,27 +530,14 @@ std::vector<Hexagon*> Hexagon::province(Board* board)
     return neighbours;
 }
 
-// -1 - ląd, drzewa, groby
-// 0 - farmy
-// 1-4 - żołnierze i budowle
-int power(Resident resident)
-{
-    if(resident == Resident::Farm) return 0;
-    if(resident == Resident::Warrior1 || resident == Resident::Castle) return 1;
-    if(resident == Resident::Warrior2 || resident == Resident::Tower) return 2;
-    if(resident == Resident::Warrior3 || resident == Resident::StrongTower) return 3;
-    if(resident == Resident::Warrior4) return 4;
-    return -1;
-}
-
 // Sprawdza czy dany żołnierz może wejść na inne pole. Nie używać dla innych rezydentów
 bool Hexagon::allows(Board* board, Resident warrior, uint8 ownerId)
 {
-    if(!::warrior(warrior)) return false;
+    if(!unmovedWarrior(warrior)) return false;
     if(water(resident)) return false; // nie po wodzie
     if(this->ownerId == ownerId)
     {
-        if(::warrior(resident)) return power(resident) + power(warrior) <= 4; // mieszanie żołnierzy
+        if(::warrior(resident)) return ::warrior(mergeWarriors(resident, warrior)); // mieszanie żołnierzy
         return power(resident) < 0; // żołnierz może deptać po swoim lądzie, drzewach i grobach
     }
     int attackerPower = power(warrior);
@@ -577,7 +587,7 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
 {
     if(ownerId == 0) return std::vector<Hexagon*>();
     std::vector<Hexagon*> valid;
-    if(warrior(resident))
+    if(unmovedWarrior(resident))
     {
         /*return neighbours(board, BIG_NUMBER, true, [this, board, resident](Hexagon* h)
         {
@@ -645,19 +655,19 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination)
 {
-    if(!warrior(resident)) return false;
+    if(!unmovedWarrior(resident)) return false;
     if(!destination->allows(board, resident, ownerId)) return false;
     uint8 oldOwnerId = destination->getOwnerId();
     if(oldOwnerId == ownerId && warrior(destination->getResident()))
     {
-        int powerSum = power(resident) + power(destination->getResident()); // mieszanie żołnierzy
-        if(powerSum < 1 || powerSum > 4) return false;
-        destination->setResident((Resident)(powerSum + (int)Resident::Warrior1 - 1));
+        Resident merged = mergeWarriors(resident, destination->getResident()); // mieszanie żołnierzy
+        if(!warrior(merged)) return false;
+        destination->setResident(merged);
     }
     else
     {
         if(castle(destination->getResident())) destination->removeCastle(board);
-        destination->setResident(resident);
+        destination->setResident(::move(resident));
     }
     setResident(Resident::Empty);
 

@@ -54,7 +54,7 @@ public:
     Hexagon                 *provinceSelector = nullptr;
     std::vector<Player*>     players;
 
-    inline Player* getPlayer(uint8 id) noexcept { if(id == 0) return nullptr; return players[id-1]; }
+    inline Player* getPlayer(uint8 id) noexcept { return (id == 0) ? nullptr : players[id-1]; }
 
     Board *board;
     TextRenderer  *Text;

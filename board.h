@@ -44,12 +44,16 @@ enum class Resident : uint8
 inline bool water(Resident resident) noexcept { return resident == Resident::Water; };
 inline bool empty(Resident resident) noexcept { return resident == Resident::Empty; };
 inline bool warrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4Moved; };
+inline bool unmovedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4; };
+inline bool movedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1Moved && resident <= Resident::Warrior4Moved; };
 inline bool building(Resident resident) noexcept { return resident >= Resident::Farm && resident <= Resident::StrongTower; };
 inline bool farm(Resident resident) noexcept { return resident == Resident::Farm; };
 inline bool castle(Resident resident) noexcept { return resident == Resident::Castle; };
 inline bool tower(Resident resident) noexcept { return resident == Resident::Tower || resident == Resident::StrongTower; };
 inline bool tree(Resident resident) noexcept { return resident == Resident::PalmTree || resident == Resident::PineTree; };
 inline bool gravestone(Resident resident) noexcept { return resident == Resident::Gravestone; };
+
+inline Resident move(Resident resident) noexcept { return (unmovedWarrior(resident)) ? (Resident)((int)resident + 4) : Resident::Empty; };
 
 /*struct Point
 {
@@ -137,11 +141,11 @@ public:
     // gettery/settery
     inline coord getWidth() const noexcept { return width; }
     inline coord getHeight() const noexcept { return height; }
-    inline Hexagon* getHexagon(coord x, coord y) { if(x < 0 || y < 0 || x >= width || y >= height) return nullptr; return &(board[y * width + x]); }
-    inline Hexagon* getHexagon(int i) { if(i < 0 || i >= width * height) return nullptr; return &(board[i]); }
+    inline Hexagon* getHexagon(coord x, coord y) { return (x < 0 || y < 0 || x >= width || y >= height) ? nullptr : &(board[y * width + x]); }
+    inline Hexagon* getHexagon(int i) { return (i < 0 || i >= width * height) ? nullptr : &(board[i]); }
     std::unordered_set<Hexagon*> getHexesOfCountry(int countryID); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
 
-    inline Country* getCountry(uint8 id) noexcept { if(id == 0) return nullptr; return &countries[id-1]; }
+    inline Country* getCountry(uint8 id) noexcept { return (id == 0) ? nullptr : &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
 
     inline const Game* getGame() const noexcept { return game; }
