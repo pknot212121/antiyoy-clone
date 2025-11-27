@@ -2,6 +2,9 @@
 
 #include <set>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "resource_manager.h"
 
 
@@ -43,7 +46,8 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"ex");
-
+    Text = new TextRenderer(this->Width, this->Height);
+    Text->Load("temp.otf", 24);
     gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
 
     //coord x = 10;
@@ -248,6 +252,7 @@ void Game::ProcessInput(float dt)
 
 void Game::Render()
 {
+    Text->RenderText("Lives:" ,-10.0f, -10.0f, 0.05f);
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
 }
 

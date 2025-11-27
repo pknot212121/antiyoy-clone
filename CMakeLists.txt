@@ -24,7 +24,11 @@ add_executable(anti
         sprite_renderer.cpp
         texture.cpp
         resource_manager.cpp
-        glad.c)
+        glad.c
+        text_renderer.h
+        text_renderer.cpp
+        sockets.h
+        sockets.cpp)
 include_directories(anti PRIVATE include)
 
 target_link_libraries(anti ${GLFW3_LIBRARY} OpenGL::GL freetype)
