@@ -255,9 +255,18 @@ void Game::Render()
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
     std::unordered_map<Hexagon*, MoneyAndFarms>& m= board->getCountry(playerIndex)->getCastles();
     int sum=0;
-    for (auto a : m)
+    if (provinceSelector!=nullptr)
     {
-        sum+=a.second.money;
+        for (auto a : m)
+        {
+
+            if (provinceSelector->province(board)[0]==a.first)
+            {
+                sum+=a.second.money;
+                break;
+            }
+
+        }
     }
     Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
 }
