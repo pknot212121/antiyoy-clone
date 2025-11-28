@@ -27,6 +27,19 @@ int power(Resident resident)
     return -1;
 }
 
+int Hexagon::price(Board* board, Resident resident)
+{
+    Hexagon* castleHex;
+    if(castle(getResident())) castleHex = this;
+    else castleHex = this->province(board)[0];
+    if(!castle(castleHex->resident)) return 0;
+    if(unmovedWarrior(resident)) return power(resident) * 10;
+    if(farm(resident)) return 12 + board->getCountry(ownerId)->getCastles()[castleHex].farms * 2;
+    if(resident == Resident::Tower) return 15;
+    if(resident == Resident::StrongTower) return 35;
+    return 0;
+}
+
 // Zwraca połączenie żołnierzy. Jeśli nie mogą być połączeni zwraca Resident::Empty
 Resident mergeWarriors(Resident warrior1, Resident warrior2)
 {
@@ -526,7 +539,6 @@ std::vector<Hexagon*> Hexagon::province(Board* board)
             return neighbours;
         }
     }
-    std::cout << "Castle not found" << std::endl;
     return neighbours;
 }
 
@@ -582,6 +594,40 @@ void addNeighboursLayerWithBorder(Board* board, std::unordered_set<Hexagon*>& vi
     if(recursion > 0) addNeighboursLayerWithBorder(board, visited, border, newHexagons, recursion - 1, filter);
 }
 
+void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
+{
+    if(oldOwnerId != 0) // by ograniczyć wywołania drogiej kalkulacji wybieramy tylko punkty które przypuszczamy że należą do różnych prowincji
+    {
+        std::vector<Hexagon*> neighboursRequiringCalculation;
+        neighboursRequiringCalculation.reserve(6);
+        bool add = true;
+        bool trimLast = false;
+        auto& directions = (center->getX() % 2 == 0) ? evenDirections : oddDirections;
+        for(int i = 0; i < directions.size(); i++)
+        {
+            auto [dx, dy] = directions[i];
+            Hexagon* hex = board->getHexagon(center->getX() + dx, center->getY() + dy); // getHexagon() robi sprawdzanie zakresów
+            if(hex == nullptr || hex->getOwnerId() == 0 || hex->getOwnerId() != oldOwnerId)
+            {
+                add = true;
+            }
+            else if(add)
+            {
+                if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
+                add = false;
+                if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+            }
+        }
+
+        for(Hexagon* h : neighboursRequiringCalculation) 
+        {
+            h->calculateProvince(board);
+        }
+    }
+
+    center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
+}
+
 // Używać dla żołnierzy, farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
@@ -633,6 +679,64 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     return std::vector<Hexagon*>();
 }
 
+// Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
+bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
+{
+    Hexagon* castleHex;
+    if(castle(getResident())) castleHex = this;
+    else castleHex = province(board)[0];
+    if(castle(castleHex->getResident())) return false;
+
+    int price = castleHex->price(board, resident);
+    if(!price) return false;
+    MoneyAndFarms maf = board->getCountry(castleHex->getOwnerId())->getCastles()[castleHex];
+    if(price > maf.money) return false;
+    
+    if(unmovedWarrior(resident))
+    {
+        if(!placement->allows(board, resident, castleHex->getOwnerId())) return false;
+        if(placement->getOwnerId() == castleHex->getOwnerId())
+        {
+            if(warrior(placement->getResident()))
+            {
+                Resident merged = mergeWarriors(resident, placement->getResident()); // mieszanie żołnierzy
+                if(!warrior(merged)) return false;
+                placement->setResident(merged);
+            }
+            else if(tree(placement->getResident()) || gravestone(placement->getResident()))
+            {
+                placement->setResident(::move(resident));
+            }
+            else
+            {
+                if(castle(placement->getResident())) placement->removeCastle(board);
+                placement->setResident(resident);
+            }
+        }
+        else
+        {
+            uint8 oldOwnerId = placement->getOwnerId();
+            if(castle(placement->getResident())) placement->removeCastle(board);
+            placement->setResident(::move(resident));
+            placement->setOwnerId(castleHex->getOwnerId());
+            
+            calculateEnvironment(board, placement, oldOwnerId);
+        }
+    }
+    else if(farm(resident))
+    {
+        maf.farms += 1;
+        placement->setResident(resident);
+    }
+    else if(tower(resident))
+    {
+        placement->setResident(resident);
+    }
+    else return false;
+    maf.money -= price;
+    return true;
+}
+
 // Używać dla żołnierzy (przesuwanych, nie kładzionych)
 std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 {
@@ -674,36 +778,7 @@ bool Hexagon::move(Board* board, Hexagon* destination)
     if(ownerId != oldOwnerId)
     {
         destination->setOwnerId(ownerId);
-        if(oldOwnerId != 0) // by ograniczyć wywołania drogiej kalkulacji wybieramy tylko punkty które przypuszczamy że należą do różnych prowincji
-        {
-            std::vector<Hexagon*> neighboursRequiringCalculation;
-            bool add = true;
-            bool trimLast = false;
-            auto& directions = (destination->x % 2 == 0) ? evenDirections : oddDirections;
-            for(int i = 0; i < directions.size(); i++)
-            {
-                auto [dx, dy] = directions[i];
-                Hexagon* hex = board->getHexagon(destination->x + dx, destination->y + dy); // getHexagon() robi sprawdzanie zakresów
-                if(hex == nullptr || hex->ownerId == 0 || hex->ownerId != oldOwnerId)
-                {
-                    add = true;
-                }
-                else if(add)
-                {
-                    if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
-                    add = false;
-                    if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
-                }
-            }
-
-            for(Hexagon* h : neighboursRequiringCalculation) 
-            {
-                h->calculateProvince(board);
-                //std::cout << "Kalkulacja dla " << (int)h->getOwnerId() << "\n";
-            }
-        }
-
-        destination->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
+        calculateEnvironment(board, destination, oldOwnerId);
     }
     return true;
 }

@@ -99,6 +99,7 @@ public:
     inline Resident getResident() const noexcept { return resident; }
     inline void setResident(Resident resident) noexcept { this->resident = resident; }
 
+    int price(Board* board, Resident resident);
     void rot(Board* board);
     void setCastle(Board* board, int money);
     void setCastle(Board* board, int money, int farms);
@@ -110,6 +111,7 @@ public:
     std::vector<Hexagon*> calculateProvince(Board *board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
+    bool place(Board* board, Resident resident, Hexagon* placement);
     std::vector<Hexagon *> possibleMovements(Board *board);
     bool move(Board *board, Hexagon *destination);
 
