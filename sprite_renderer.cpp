@@ -190,7 +190,6 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
         glm::vec2 unitPos = hexPos + (hexSizeVec * 0.5f) - (smallSizeVec * 0.5f);
 
         std::string textureName = "";
-
         if (warriorToTexture.contains(hex->getResident()))
         {
             textureName = warriorToTexture[hex->getResident()];
@@ -199,13 +198,9 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
         {
             textureName = "castle";
         }
-
-        // 6. Rysowanie jednostki/zamku
         if (!textureName.empty())
         {
             this->DrawSprite(ResourceManager::GetTexture(textureName), unitPos, smallSizeVec);
-
-            // Specjalny przypadek: Wykrzyknik nad własnym zamkiem
             if (hex->getResident() == Resident::Castle && hex->getOwnerId() == playerIndex)
             {
                 this->DrawSprite(ResourceManager::GetTexture("exclamation"), unitPos, smallSizeVec);
