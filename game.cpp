@@ -162,19 +162,19 @@ void Game::ProcessInput(float dt)
         Renderer -> addToResizeMultiplier(1.1,board,Width);
         scroll = 0;
     }
-    if (pressedKey==GLFW_KEY_W)
+    if (clickedMovingKeys[GLFW_KEY_W])
     {
         Renderer -> addToDisplacementY(10);
     }
-    if (pressedKey==GLFW_KEY_A)
+    if (clickedMovingKeys[GLFW_KEY_A])
     {
         Renderer ->addToDisplacementX(10);
     }
-    if (pressedKey==GLFW_KEY_S)
+    if (clickedMovingKeys[GLFW_KEY_S])
     {
         Renderer -> addToDisplacementY(-10);
     }
-    if (pressedKey==GLFW_KEY_D)
+    if (clickedMovingKeys[GLFW_KEY_D])
     {
         Renderer -> addToDisplacementX(-10);
     }
