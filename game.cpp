@@ -234,6 +234,8 @@ void LocalPlayer::act()
 
     if (game->State == GameState::GAME_ACTIVE)
     {
+        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+        this->game->provinceSelector = *hexes.begin();
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
@@ -273,9 +275,6 @@ void LocalPlayer::act()
         }
         if(game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed)
         {
-            game->provinceSelector = nullptr;
-            game->selectedHex = nullptr;
-            game->enterPressed = false;
             game->board->nextTurn();
 
         }
@@ -290,7 +289,8 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
     if (game->isHexSelected){
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
-            game->selectedHex->move(game->board,hex);
+            if (game->selectedHex!=hex)
+                game->selectedHex->move(game->board,hex);
         }
         Renderer -> ClearBrightenedHexes();
         game->isHexSelected=false;
