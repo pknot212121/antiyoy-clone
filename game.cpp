@@ -273,9 +273,6 @@ void LocalPlayer::act()
         }
         if(game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed)
         {
-            game->provinceSelector = nullptr;
-            game->selectedHex = nullptr;
-            game->enterPressed = false;
             game->board->nextTurn();
 
         }
