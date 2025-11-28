@@ -628,7 +628,7 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
     center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
 }
 
-// Używać dla żołnierzy, farm i wież
+// Używać dla żołnierzy (kładzionych, nie przesuwanych), farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
     if(ownerId == 0) return std::vector<Hexagon*>();
@@ -719,7 +719,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
             if(castle(placement->getResident())) placement->removeCastle(board);
             placement->setResident(::move(resident));
             placement->setOwnerId(castleHex->getOwnerId());
-            
+
             calculateEnvironment(board, placement, oldOwnerId);
         }
     }
