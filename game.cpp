@@ -214,7 +214,7 @@ void Game::ProcessInput(float dt)
             Hexagon *hex = board->getHexagon(p.x,p.y);
             if (p.x<board->getWidth() && p.x>=0 && p.y<board->getHeight() && p.y>=0)
             {
-                if(this->Keys[GLFW_KEY_1]){
+                if(this->Keys[GLFW_KEY_1] && !isHexSelected){
                     this->spawnAction(hex,p);
                     onePressed=false;
                 }
@@ -300,7 +300,7 @@ void Game::Render()
     {
         for (auto a : m)
         {
-
+            std::cout << a.second << " ";
             if (provinceSelector->province(board)[0]==a.first)
             {
                 sum+=a.second;
@@ -308,6 +308,7 @@ void Game::Render()
             }
 
         }
+        std::cout << '\n';
     }
     Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
 }
