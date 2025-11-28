@@ -163,7 +163,7 @@ void Game::moveAction(Hexagon* hex,Point p)
         Renderer -> ClearBrightenedHexes();
         isHexSelected=false;
     }
-    else if ((res==Resident::Warrior1 || res==Resident::Warrior2) && hexes.contains(hex))
+    else if ((res==Resident::Warrior1 || res==Resident::Warrior2 || res==Resident::Warrior3 || res==Resident::Warrior4) && hexes.contains(hex))
     {
         selectedHex=hex;isHexSelected=true;
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
@@ -294,7 +294,7 @@ void Game::ProcessInput(float dt)
 void Game::Render()
 {
     Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
-    std::unordered_map<Hexagon*, MoneyAndFarms>& m= board->getCountry(playerIndex)->getCastles();
+    std::unordered_map<Hexagon*, int>& m= board->getCountry(playerIndex)->getCastles();
     int sum=0;
     if (provinceSelector!=nullptr)
     {
@@ -303,7 +303,7 @@ void Game::Render()
 
             if (provinceSelector->province(board)[0]==a.first)
             {
-                sum+=a.second.money;
+                sum+=a.second;
                 break;
             }
 
