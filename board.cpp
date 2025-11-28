@@ -684,7 +684,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     if(!castle(castleHex->getResident())) return false;
     int price = castleHex->price(board, resident);
     if(!price) return false;
-    auto castles = board->getCountry(castleHex->getOwnerId())->getCastles();
+    auto& castles = board->getCountry(castleHex->getOwnerId())->getCastles();
     if(price > castles[castleHex]) return false;
     
     if(unmovedWarrior(resident))
