@@ -34,7 +34,7 @@ int Hexagon::price(Board* board, Resident resident)
     else castleHex = this->province(board)[0];
     if(!castle(castleHex->resident)) return 0;
     if(unmovedWarrior(resident)) return power(resident) * 10;
-    if(farm(resident)) return 12 + board->getCountry(ownerId)->getCastles()[castleHex].farms * 2;
+    if(farm(resident)) return 12 + 2 * countFarms(board); // + board->getCountry(ownerId)->getCastles()[castleHex].farms * 2
     if(resident == Resident::Tower) return 15;
     if(resident == Resident::StrongTower) return 35;
     return 0;
@@ -296,36 +296,32 @@ void Hexagon::rot(Board* board)
     }
 }
 
-// Sam liczy farmy
-void Hexagon::setCastle(Board* board, int money)
+int Hexagon::countFarms(Board* board)
 {
-    auto castlesMap = board->getCountry(ownerId)->getCastles();
-    resident = Resident::Castle;
-
     auto province = neighbours(board, BIG_NUMBER, false, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     int farmsNumber = 0;
     for(Hexagon* h : province)
     {
         if(farm(h->getResident())) farmsNumber++;
     }
-
-    castlesMap[this] = MoneyAndFarms({money, farmsNumber});
+    return farmsNumber;
 }
 
-void Hexagon::setCastle(Board* board, int money, int farms)
+void Hexagon::setCastle(Board* board, int money)
 {
     auto castlesMap = board->getCountry(ownerId)->getCastles();
     resident = Resident::Castle;
-    castlesMap[this] = MoneyAndFarms({money, farms});
+    castlesMap[this] = money;
 }
 
+// Zwraca ilość pieniędzy zamku przed usunięciem
 int Hexagon::removeCastle(Board* board)
 {
     if(castle(resident)) resident = Resident::Empty;
     auto castlesMap = board->getCountry(ownerId)->getCastles();
     if(castlesMap.count(this))
     {
-        int money = castlesMap[this].money;
+        int money = castlesMap[this];
         castlesMap.erase(this);
         return money;
     }
@@ -461,8 +457,8 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(castlesNumber > 1)
     {
-        std::unordered_map<Hexagon*, MoneyAndFarms> castlesMap = board->getCountry(ownerId)->getCastles();
-        int mostFarms = 0;
+        std::unordered_map<Hexagon*, int> castlesMap = board->getCountry(ownerId)->getCastles();
+        /*int mostFarms = 0;
         int mostMoney = 0;
         int bestI = 0;
         for(int i = 0; i < castlesNumber; i++)
@@ -489,10 +485,10 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
             Hexagon* t = province[bestI];
             province[bestI] = province[0];
             province[0] = t;
-        }
+        }*/
         for(int i = 1; i < castlesNumber; i++)
         {
-            castlesMap[province[0]].money += province[i]->removeCastle(board);
+            castlesMap[province[0]] += province[i]->removeCastle(board);
         }
         return province;
     }
@@ -688,8 +684,8 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     if(!castle(castleHex->getResident())) return false;
     int price = castleHex->price(board, resident);
     if(!price) return false;
-    MoneyAndFarms maf = board->getCountry(castleHex->getOwnerId())->getCastles()[castleHex];
-    if(price > maf.money) return false;
+    auto castles = board->getCountry(castleHex->getOwnerId())->getCastles();
+    if(price > castles[castleHex]) return false;
     
     if(unmovedWarrior(resident))
     {
@@ -724,7 +720,6 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     }
     else if(farm(resident))
     {
-        maf.farms += 1;
         placement->setResident(resident);
     }
     else if(tower(resident))
@@ -732,7 +727,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
         placement->setResident(resident);
     }
     else return false;
-    maf.money -= price;
+    castles[castleHex] -= price;
     return true;
 }
 
@@ -795,6 +790,6 @@ Country::Country(std::vector<Hexagon*> castles)
     for(Hexagon* h : castles)
     {
         h->setResident(Resident::Castle);
-        this->castles[h] = MoneyAndFarms({10, 0});
+        this->castles[h] = 10;
     }
 }
