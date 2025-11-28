@@ -685,8 +685,8 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     Hexagon* castleHex;
     if(castle(getResident())) castleHex = this;
     else castleHex = province(board)[0];
-    if(castle(castleHex->getResident())) return false;
-
+    // Z JAKIEGOŚ POWODU PRZEZ TĄ LINJKĘ NIE DZIAŁAŁO XD
+    // if(castle(castleHex->getResident())) return false;
     int price = castleHex->price(board, resident);
     if(!price) return false;
     MoneyAndFarms maf = board->getCountry(castleHex->getOwnerId())->getCastles()[castleHex];

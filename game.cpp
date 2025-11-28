@@ -89,10 +89,12 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
     // load textures
     ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
+    ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
+
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
     gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
@@ -156,7 +158,9 @@ void Game::moveAction(Hexagon* hex,Point p)
 {
     std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
     std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-    if (board->getHexagon(p.x,p.y)->getResident()==Resident::Warrior1 && orderedHexes.contains(hex))
+    std::cout << "TRYING TO MOVE" << std::endl;
+    Resident res = board->getHexagon(p.x,p.y)->getResident();
+    if ((res==Resident::Warrior1 || res==Resident::Warrior2) && orderedHexes.contains(hex))
     {
         selectedHex=hex;isHexSelected=true;
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
@@ -178,8 +182,7 @@ void Game::spawnAction(Hexagon* hex,Point p)
     {
         std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-            board->getHexagon(p.x,p.y)->setResident(Resident::Warrior1);
-            board->getHexagon(p.x,p.y)->setOwnerId(playerIndex);
+            provinceSelector->place(board,Resident::Warrior1,hex);
         }
         Renderer -> ClearBrightenedHexes();
     }

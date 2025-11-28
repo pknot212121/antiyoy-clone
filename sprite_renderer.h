@@ -20,7 +20,12 @@ struct Point
     int y;
 };
 
-
+inline std::map<Resident,std::string> warriorToTexture = {
+    {Resident::Warrior1,"soilder1"},
+    {Resident::Warrior1Moved,"soilder1"},
+    {Resident::Warrior2,"soilder2"},
+    {Resident::Warrior2Moved,"soilder2"}
+};
 
 class SpriteRenderer
 {
@@ -54,9 +59,6 @@ private:
     std::vector<Hexagon*> brightenedHexes;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
-    std::map<Resident,std::string> residentToTexture = {
-        {Resident::Warrior1,""}
-    };
 };
 
 #endif
