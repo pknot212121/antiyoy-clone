@@ -155,13 +155,7 @@ void Game::moveAction(Hexagon* hex,Point p)
 {
     std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
     Resident res = board->getHexagon(p.x,p.y)->getResident();
-    if ((res==Resident::Warrior1 || res==Resident::Warrior2) && hexes.contains(hex))
-    {
-        selectedHex=hex;isHexSelected=true;
-        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
-        Renderer -> setBrightenedHexes(nearby);
-    }
-    else if (isHexSelected){
+    if (isHexSelected){
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             selectedHex->move(board,hex);
@@ -169,6 +163,13 @@ void Game::moveAction(Hexagon* hex,Point p)
         Renderer -> ClearBrightenedHexes();
         isHexSelected=false;
     }
+    else if ((res==Resident::Warrior1 || res==Resident::Warrior2) && hexes.contains(hex))
+    {
+        selectedHex=hex;isHexSelected=true;
+        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
+        Renderer -> setBrightenedHexes(nearby);
+    }
+
 }
 
 void Game::spawnAction(Hexagon* hex,Point p)

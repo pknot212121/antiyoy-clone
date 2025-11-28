@@ -169,6 +169,7 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
     glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
     glm::vec2 smallSizeVec(smallSize, smallSize);
     color = glm::vec3(1.0f,1.0f,1.0f);
+
     if (hex->getOwnerId()!=0) {
         color = palette[hex->getOwnerId()%10];
     }
@@ -180,10 +181,7 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
         }
     }
 
-
-
     glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
-
     if (hex->getResident() != Resident::Water)
     {
         this->DrawSprite(ResourceManager::GetTexture("hexagon"), hexPos, hexSizeVec, 0.0f, color);
