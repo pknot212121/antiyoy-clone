@@ -23,7 +23,9 @@ inline std::map<int,Resident> keysToResidents {
 {GLFW_KEY_2,Resident::Warrior2},
 {GLFW_KEY_3,Resident::Warrior3},
 {GLFW_KEY_4,Resident::Warrior4},
-{GLFW_KEY_5,Resident::Farm}
+{GLFW_KEY_5,Resident::Farm},
+{GLFW_KEY_6,Resident::Tower},
+{GLFW_KEY_7,Resident::StrongTower}
 };
 
 class GameConfigData
