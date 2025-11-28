@@ -24,7 +24,11 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::Warrior1,"soilder1"},
     {Resident::Warrior1Moved,"soilder1"},
     {Resident::Warrior2,"soilder2"},
-    {Resident::Warrior2Moved,"soilder2"}
+    {Resident::Warrior2Moved,"soilder2"},
+    {Resident::Warrior3,"placeholder"},
+    {Resident::Warrior3Moved,"placeholder"},
+    {Resident::Warrior4,"placeholder"},
+    {Resident::Warrior4Moved,"placeholder"}
 };
 
 class SpriteRenderer

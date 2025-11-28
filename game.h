@@ -70,7 +70,7 @@ public:
     void Render();
     void moveAction(Hexagon* hex, Point p);
     void spawnAction(Hexagon* hex, Point p);
-    void SelectAction(Point p);
+    void SelectAction(Hexagon* hex, Point p);
 };
 
 

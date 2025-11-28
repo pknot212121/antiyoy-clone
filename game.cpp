@@ -157,10 +157,8 @@ void Game::Resize(int width, int height)
 void Game::moveAction(Hexagon* hex,Point p)
 {
     std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-    std::cout << "TRYING TO MOVE" << std::endl;
     Resident res = board->getHexagon(p.x,p.y)->getResident();
-    if ((res==Resident::Warrior1 || res==Resident::Warrior2) && orderedHexes.contains(hex))
+    if ((res==Resident::Warrior1 || res==Resident::Warrior2) && hexes.contains(hex))
     {
         selectedHex=hex;isHexSelected=true;
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
@@ -189,16 +187,13 @@ void Game::spawnAction(Hexagon* hex,Point p)
 
 }
 
-void Game::SelectAction(Point p)
+void Game::SelectAction(Hexagon *hex,Point p)
 {
     std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    Hexagon *hex = board->getHexagon(p.x,p.y);
-    std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-    if (orderedHexes.contains(board->getHexagon(p.x,p.y)))
+    if (hexes.contains(hex))
     {
-        provinceSelector = board->getHexagon(p.x,p.y);
+        provinceSelector = hex;
     }
-
 }
 
 
@@ -218,13 +213,8 @@ void Game::ProcessInput(float dt)
         {
             float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
             Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-            if (p.x>=board->getWidth() || p.x<=0 || p.y>=board->getHeight() || p.y<=0) return;
-            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
             Hexagon *hex = board->getHexagon(p.x,p.y);
-            if (hex == nullptr) return;
-            std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
-            std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
-
+            if (p.x>=board->getWidth() || p.x<=0 || p.y>=board->getHeight() || p.y<=0) return;
 
 
             if(this->Keys[GLFW_KEY_1]){
@@ -234,7 +224,7 @@ void Game::ProcessInput(float dt)
             else
             {
                 this->moveAction(hex,p);
-                this->SelectAction(p);
+                this->SelectAction(hex,p);
             }
             this -> mousePressed = false;
         }
