@@ -72,6 +72,8 @@ public:
     void Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes);
     // game loop
     void ProcessInput(float dt);
+    int GetSelectedCastleReserves();
+    int GetSelectedCastleIncome();
     void Update(float dt);
     void Resize(int width, int height);
     void Render();

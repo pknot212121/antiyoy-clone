@@ -180,9 +180,8 @@ void Game::ProcessInput(float dt)
     }
 }
 
-void Game::Render()
+int Game::GetSelectedCastleReserves()
 {
-    Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
     std::unordered_map<Hexagon*, int>& m= board->getCountry(board->getCurrentPlayerId())->getCastles();
     int sum=0;
     if (provinceSelector!=nullptr)
@@ -191,12 +190,31 @@ void Game::Render()
         {
             if (provinceSelector->province(board)[0]==a.first)
             {
-                sum+=a.second;
+                sum=a.second;
                 break;
             }
         }
     }
-    Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
+    return sum;
+}
+
+int Game::GetSelectedCastleIncome()
+{
+    int sum=0;
+    if (provinceSelector!=nullptr)
+    {
+        sum=provinceSelector->province(board)[0]->calculateProvinceIncome(board);
+    }
+    return sum;
+}
+
+
+void Game::Render()
+{
+    Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
+
+    Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
+    Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
 }
 
 
