@@ -109,7 +109,7 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
         players.reserve(playerCount);
         for(int i = 0; i < playerCount; i++)
         {
-            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i],this, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
             else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], maxMoveTimes[i]));
             else
             {
@@ -198,80 +198,6 @@ void Game::SelectAction(Hexagon *hex,Point p)
 
 void Game::ProcessInput(float dt)
 {
-   
-    if (this->State == GameState::GAME_ACTIVE)
-    {
-        if(keysToResidents.contains(pressedKey) && provinceSelector!=nullptr)
-        {
-            std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-            std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,keysToResidents[pressedKey]);
-            Renderer -> setBrightenedHexes(neigh);
-        }
-        if (this->mousePressed)
-        {
-            float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
-            Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-            Hexagon *hex = board->getHexagon(p.x,p.y);
-            if (p.x<board->getWidth() && p.x>=0 && p.y<board->getHeight() && p.y>=0)
-            {
-
-                if(keysToResidents.contains(pressedKey) && !isHexSelected){
-                    this->spawnAction(hex,p);
-                }
-                else
-                {
-                    this->moveAction(hex,p);
-                    this->SelectAction(hex,p);
-                }
-                this -> mousePressed = false;
-            }
-
-
-        }
-        if (!keysToResidents.contains(pressedKey) && isHexSelected==false && provinceSelector!=nullptr)
-        {
-            Renderer->ClearBrightenedHexes();
-        }
-        if(this->scroll == -1)
-        {
-            Renderer -> addToResizeMultiplier(0.9,board, this->Width);
-            scroll = 0;
-        }
-        if(this->scroll == 1)
-        {
-            Renderer -> addToResizeMultiplier(1.1,board,this->Width);
-            scroll = 0;
-        }
-        if (pressedKey==GLFW_KEY_W)
-        {
-            Renderer -> addToDisplacementY(10);
-        }
-        if (pressedKey==GLFW_KEY_A)
-        {
-            Renderer ->addToDisplacementX(10);
-        }
-        if (pressedKey==GLFW_KEY_S)
-        {
-            Renderer -> addToDisplacementY(-10);
-        }
-        if (pressedKey==GLFW_KEY_D)
-        {
-            Renderer -> addToDisplacementX(-10);
-        }
-        if(pressedKey==GLFW_KEY_ENTER)
-        {
-            enterPressed = true;
-
-        }
-        if(pressedKey!=GLFW_KEY_ENTER && enterPressed)
-        {
-            provinceSelector = nullptr;
-            selectedHex = nullptr;
-            playerIndex = (playerIndex)%playerCount+1;
-            enterPressed = false;
-        }
-    }
-
 
 }
 
@@ -301,13 +227,88 @@ Player::Player(Country* country, unsigned int maxMoveTime) : country(country), m
     country->setPlayer(this);
 }
 
-LocalPlayer::LocalPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+LocalPlayer::LocalPlayer(Country* country,Game *game, unsigned int maxMoveTime) : Player(country, maxMoveTime)
 {
+    this->game = game;
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
 
 void LocalPlayer::act()
 {
+
+    if (game->State == GameState::GAME_ACTIVE)
+    {
+        if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
+        {
+            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(game->playerIndex);
+            std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
+            Renderer -> setBrightenedHexes(neigh);
+        }
+        if (game->mousePressed)
+        {
+            float size = game->Width / game->board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * game->board->getWidth();
+            Point p = Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
+            Hexagon *hex = game->board->getHexagon(p.x,p.y);
+            if (p.x<game->board->getWidth() && p.x>=0 && p.y<game->board->getHeight() && p.y>=0)
+            {
+
+                if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
+                    game->spawnAction(hex,p);
+                }
+                else
+                {
+                    game->moveAction(hex,p);
+                    game->SelectAction(hex,p);
+                }
+                game-> mousePressed = false;
+            }
+
+
+        }
+        if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
+        {
+            Renderer->ClearBrightenedHexes();
+        }
+        if(game->scroll == -1)
+        {
+            Renderer -> addToResizeMultiplier(0.9,game->board, game->Width);
+            game->scroll = 0;
+        }
+        if(game->scroll == 1)
+        {
+            Renderer -> addToResizeMultiplier(1.1,game->board,game->Width);
+            game->scroll = 0;
+        }
+        if (game->pressedKey==GLFW_KEY_W)
+        {
+            Renderer -> addToDisplacementY(10);
+        }
+        if (game->pressedKey==GLFW_KEY_A)
+        {
+            Renderer ->addToDisplacementX(10);
+        }
+        if (game->pressedKey==GLFW_KEY_S)
+        {
+            Renderer -> addToDisplacementY(-10);
+        }
+        if (game->pressedKey==GLFW_KEY_D)
+        {
+            Renderer -> addToDisplacementX(-10);
+        }
+        if(game->pressedKey==GLFW_KEY_ENTER)
+        {
+            game->enterPressed = true;
+
+        }
+        if(game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed)
+        {
+            game->provinceSelector = nullptr;
+            game->selectedHex = nullptr;
+            // game->playerIndex = (game->playerIndex)%game->playerCount+1;
+            game->enterPressed = false;
+        }
+    }
+
 }
 
 BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)

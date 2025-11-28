@@ -97,7 +97,8 @@ public:
 class LocalPlayer : public Player
 {
 public:
-    LocalPlayer(Country* country, unsigned int maxMoveTime = 60);
+    Game *game;
+    LocalPlayer(Country* country,Game *game, unsigned int maxMoveTime = 60);
     virtual void act();
 };
 
