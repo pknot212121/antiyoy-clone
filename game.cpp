@@ -290,7 +290,8 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
     if (game->isHexSelected){
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
-            game->selectedHex->move(game->board,hex);
+            if (game->selectedHex!=hex)
+                game->selectedHex->move(game->board,hex);
         }
         Renderer -> ClearBrightenedHexes();
         game->isHexSelected=false;
