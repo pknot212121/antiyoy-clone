@@ -101,8 +101,8 @@ public:
 
     int price(Board* board, Resident resident);
     void rot(Board* board);
+    int countFarms(Board* board);
     void setCastle(Board* board, int money);
-    void setCastle(Board* board, int money, int farms);
     int removeCastle(Board* board);
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(Hexagon*)> filter = nullptr);
@@ -156,22 +156,15 @@ public:
     void sendGameOver(int receivingSocket = -1);
 };
 
-struct MoneyAndFarms
-{
-public:
-    int money;
-    int farms;
-};
-
 class Country
 {
     Player* player;
 
-    std::unordered_map<Hexagon*, MoneyAndFarms> castles; // zamki, pieniądze i liczba farm
+    std::unordered_map<Hexagon*, int> castles; // zamki i pieniądze
 
 public:
     Country(std::vector<Hexagon*> castles);
 
-    inline std::unordered_map<Hexagon*, MoneyAndFarms>& getCastles() noexcept { return castles; }
+    inline std::unordered_map<Hexagon*, int>& getCastles() noexcept { return castles; }
     inline void setPlayer(Player* player) noexcept { this->player = player; }
 };
