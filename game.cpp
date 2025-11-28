@@ -8,9 +8,6 @@
 #include "resource_manager.h"
 
 
-
-
-
 // Game-related State data
 SpriteRenderer* Renderer;
 
