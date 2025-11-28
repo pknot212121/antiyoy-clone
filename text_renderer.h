@@ -25,6 +25,7 @@ class TextRenderer
 public:
     // holds a list of pre-compiled Characters
     std::map<char, Character> Characters;
+    std::map<char, Character> CharactersOutline;
     // shader used for text rendering
     Shader TextShader;
     // constructor

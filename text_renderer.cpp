@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <ft2build.h>
 #include FT_FREETYPE_H
-
+#include FT_STROKER_H
 #include "text_renderer.h"
 #include "resource_manager.h"
 
@@ -40,6 +40,12 @@ void TextRenderer::Load(std::string font, unsigned int fontSize)
         std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
     // set size to load glyphs as
     FT_Set_Pixel_Sizes(face, 0, fontSize);
+
+    FT_Stroker stroker;
+    FT_Stroker_New(ft, &stroker);
+    // Ustawienie: promień (grubość * 64), zakończenia linii, łączenia
+    FT_Stroker_Set(stroker, static_cast<int>(2.0f * 64.0f), FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+
     // disable byte-alignment restriction
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     // then for the first 128 ASCII characters, pre-load/compile their characters and store them
@@ -80,6 +86,48 @@ void TextRenderer::Load(std::string font, unsigned int fontSize)
             static_cast<unsigned int>(face->glyph->advance.x)
         };
         Characters.insert(std::pair<char, Character>(c, character));
+
+
+
+
+        FT_Load_Char(face, c, FT_LOAD_NO_BITMAP);
+        FT_Glyph glyph;
+        FT_Get_Glyph(face->glyph, &glyph); // Pobierz glif
+
+        // To jest kluczowa funkcja - zamienia glif w pogrubiony kontur
+        FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
+
+        // Zamień wektorowy kontur na bitmapę
+        FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
+        FT_BitmapGlyph bitmapGlyph = (FT_BitmapGlyph)glyph;
+
+        unsigned int outlineTexture;
+        glGenTextures(1, &outlineTexture);
+        glBindTexture(GL_TEXTURE_2D, outlineTexture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RED,
+            bitmapGlyph->bitmap.width,
+            bitmapGlyph->bitmap.rows,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            bitmapGlyph->bitmap.buffer
+            );
+        // set texture options
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        Character outlineChar = {
+            outlineTexture,
+            glm::ivec2(bitmapGlyph->bitmap.width, bitmapGlyph->bitmap.rows),
+            glm::ivec2(bitmapGlyph->left, bitmapGlyph->top),
+            static_cast<unsigned int>(glyph->advance.x)
+        };
+        CharactersOutline.insert(std::pair<char,Character>(c,outlineChar));
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     // destroy FreeType once we're finished
@@ -91,10 +139,45 @@ void TextRenderer::RenderText(std::string text, float x, float y, float scale, g
 {
     // activate corresponding render state
     this->TextShader.Use();
-    this->TextShader.SetVector3f("textColor", color);
+
+    this->TextShader.SetVector3f("textColor", glm::vec3(0.0f, 0.0f, 0.0f));
+    float x2 = x;
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(this->VAO);
+    std::string::const_iterator c2;
+    for (c2 = text.begin(); c2 != text.end(); c2++)
+    {
+        Character outline = CharactersOutline[*c2];
+        Character ch = Characters[*c2];
+        float xpos = x2 + outline.Bearing.x * scale;
+        float ypos = y + (this->CharactersOutline['H'].Bearing.y - outline.Bearing.y) * scale;
 
+        float w = outline.Size.x * scale;
+        float h = outline.Size.y * scale;
+        // update VBO for each character
+        float vertices[6][4] = {
+            { xpos,     ypos + h,   0.0f, 1.0f },
+            { xpos + w, ypos,       1.0f, 0.0f },
+            { xpos,     ypos,       0.0f, 0.0f },
+
+            { xpos,     ypos + h,   0.0f, 1.0f },
+            { xpos + w, ypos + h,   1.0f, 1.0f },
+            { xpos + w, ypos,       1.0f, 0.0f }
+        };
+        // render glyph texture over quad
+        glBindTexture(GL_TEXTURE_2D, outline.TextureID);
+        // update content of VBO memory
+        glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // be sure to use glBufferSubData and not glBufferData
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        // render quad
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // now advance cursors for next glyph
+        x2 += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (1/64th times 2^6 = 64)
+    }
+
+
+    this->TextShader.SetVector3f("textColor", color);
     // iterate through all characters
     std::string::const_iterator c;
     for (c = text.begin(); c != text.end(); c++)
@@ -129,5 +212,6 @@ void TextRenderer::RenderText(std::string text, float x, float y, float scale, g
     }
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
