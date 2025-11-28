@@ -217,6 +217,7 @@ restart:
 
 void Board::nextTurn()
 {
+    std::cout << "Changing turn from " << (int)currentPlayerId << "\n";
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
     {
@@ -230,13 +231,14 @@ void Board::nextTurn()
     bool retry = true;
     while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
     {
-        currentPlayerId = (currentPlayerId + 1) % countries.size() + 1;
+        currentPlayerId = currentPlayerId % countries.size() + 1;
         retry = false;
         for(uint8 id : leaderboard)
         {
             if(currentPlayerId == id) retry = true;
         }
     }
+    std::cout << "Changing turn to " << (int)currentPlayerId << "\n";
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : castles)
