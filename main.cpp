@@ -20,6 +20,8 @@ unsigned int SCREEN_HEIGHT = 600;
 bool fullScreen = false;
 bool fPressed = false;
 
+
+
 Game *Anti = new Game(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 int main(int argc, char *argv[])
@@ -244,12 +246,26 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;
     if (key >= 0 && key < 1024)
     {
-        if (action == GLFW_PRESS && Anti->pressedKey==-1)
+        if (action == GLFW_PRESS)
         {
-            Anti->pressedKey = key;
+            if (Anti->pressedKey==-1)
+                Anti->pressedKey = key;
+            if (Anti->clickedMovingKeys.contains(key))
+            {
+                std::cout << key << " AAA\n";
+                Anti->clickedMovingKeys[key]=true;
+            }
         }
         else if (action == GLFW_RELEASE)
+        {
             Anti->pressedKey = -1;
+            if (Anti->clickedMovingKeys.contains(key))
+            {
+                std::cout << key <<" RRR\n";
+                Anti->clickedMovingKeys[key]=false;
+            }
+        }
+
     }
 }
 

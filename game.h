@@ -77,6 +77,12 @@ public:
     void Update(float dt);
     void Resize(int width, int height);
     void Render();
+    std::map<int,bool> clickedMovingKeys{
+        {GLFW_KEY_W,false},
+        {GLFW_KEY_A,false},
+        {GLFW_KEY_S,false},
+        {GLFW_KEY_D,false}
+    };
 };
 
 
