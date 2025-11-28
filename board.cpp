@@ -217,6 +217,16 @@ restart:
 
 void Board::nextTurn()
 {
+    std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : oldCastles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+        }
+    }
+
     bool retry = true;
     while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
     {
@@ -234,7 +244,7 @@ void Board::nextTurn()
         std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
         for(Hexagon* h : province)
         {
-            if(unmovedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
         }
         money += calculateIncome(province);
     }
@@ -808,21 +818,14 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination)
 {
-    std::cout << "MOVING\n";
     if(!unmovedWarrior(resident)) return false;
-    std::cout << "MOVING2\n";
-    if(!destination->allows(board, resident, ownerId)) std::cout << "CAN NOT MOVE\n";
     if(!destination->allows(board, resident, ownerId)) return false;
-    std::cout << "MOVING3\n";
     uint8 oldOwnerId = destination->getOwnerId();
     if(oldOwnerId == ownerId && warrior(destination->getResident()))
     {
         Resident merged = mergeWarriors(resident, destination->getResident()); // mieszanie żołnierzy
-        std::cout << "MOVING4\n";
-        if(!warrior(merged)) std::cout << "NOT SOLDIER\n";
         if(!warrior(merged)) return false;
         destination->setResident(merged);
-        std::cout << "MOVING5\n";
     }
     else
     {
