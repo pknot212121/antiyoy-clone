@@ -55,8 +55,6 @@ public:
     float                   cursorPosY;
     int                     scroll = 0;
     unsigned int            Width, Height;
-    uint8                   playerCount;
-    uint8                   playerIndex;
     bool                    enterPressed = false;
     bool                    isHexSelected = false;
     Hexagon                 *selectedHex = nullptr;
@@ -77,9 +75,6 @@ public:
     void Update(float dt);
     void Resize(int width, int height);
     void Render();
-    void moveAction(Hexagon* hex, Point p);
-    void spawnAction(Hexagon* hex, Point p);
-    void SelectAction(Hexagon* hex, Point p);
 };
 
 
@@ -98,8 +93,12 @@ class LocalPlayer : public Player
 {
 public:
     Game *game;
-    LocalPlayer(Country* country,Game *game, unsigned int maxMoveTime = 60);
+    int myIndex;
+    LocalPlayer(Country* country,Game *game,int myIndex, unsigned int maxMoveTime = 60);
     virtual void act();
+    void moveAction(Hexagon* hex, Point p);
+    void spawnAction(Hexagon* hex, Point p);
+    void SelectAction(Hexagon* hex, Point p);
 };
 
 class BotPlayer : public Player

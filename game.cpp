@@ -73,8 +73,6 @@ Game::~Game()
 
 void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes)
 {
-    playerCount = playerMarkers.length();
-    playerIndex = 1;
     // load shaders
     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
     // configure shaders
@@ -101,15 +99,15 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     board = new Board(x, y, this);
     int total = x * y;
     board->InitializeRandomA(total * 0.5, total * 0.9);
-    board->InitializeCountriesA(playerCount, 6, 8);
+    board->InitializeCountriesA(playerMarkers.length(), 6, 8);
 
     auto countries = board->getCountries();
-    if(countries.size() == playerCount)
+    if(countries.size() == playerMarkers.length())
     {
-        players.reserve(playerCount);
-        for(int i = 0; i < playerCount; i++)
+        players.reserve(playerMarkers.length());
+        for(int i = 0; i < playerMarkers.length(); i++)
         {
-            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i],this, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i],this,i+1, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
             else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], maxMoveTimes[i]));
             else
             {
@@ -151,60 +149,41 @@ void Game::Resize(int width, int height)
     ResourceManager::GetShader("sprite").Use().SetMatrix4("projection", projection);
 }
 
-void Game::moveAction(Hexagon* hex,Point p)
-{
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    Resident res = board->getHexagon(p.x,p.y)->getResident();
-    if (isHexSelected){
-        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
-        if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
-            selectedHex->move(board,hex);
-        } else std::cout << "MOVEMENT NOT POSSIBLE\n";
-        Renderer -> ClearBrightenedHexes();
-        isHexSelected=false;
-    }
-    else if ((res==Resident::Warrior1 || res==Resident::Warrior2 || res==Resident::Warrior3 || res==Resident::Warrior4) && hexes.contains(hex))
-    {
-        selectedHex=hex;isHexSelected=true;
-        std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
-        Renderer -> setBrightenedHexes(nearby);
-    }
-
-}
-
-void Game::spawnAction(Hexagon* hex,Point p)
-{
-    if (provinceSelector!=nullptr)
-    {
-        std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,keysToResidents[pressedKey]);
-        if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-            provinceSelector->place(board,keysToResidents[pressedKey],hex);
-        }
-        Renderer -> ClearBrightenedHexes();
-    }
-
-}
-
-void Game::SelectAction(Hexagon *hex,Point p)
-{
-    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-    if (hexes.contains(hex))
-    {
-        provinceSelector = hex;
-    }
-}
-
-
 
 void Game::ProcessInput(float dt)
 {
-
+    if(scroll == -1)
+    {
+        Renderer -> addToResizeMultiplier(0.9,board, Width);
+        scroll = 0;
+    }
+    if(scroll == 1)
+    {
+        Renderer -> addToResizeMultiplier(1.1,board,Width);
+        scroll = 0;
+    }
+    if (pressedKey==GLFW_KEY_W)
+    {
+        Renderer -> addToDisplacementY(10);
+    }
+    if (pressedKey==GLFW_KEY_A)
+    {
+        Renderer ->addToDisplacementX(10);
+    }
+    if (pressedKey==GLFW_KEY_S)
+    {
+        Renderer -> addToDisplacementY(-10);
+    }
+    if (pressedKey==GLFW_KEY_D)
+    {
+        Renderer -> addToDisplacementX(-10);
+    }
 }
 
 void Game::Render()
 {
-    Renderer -> DrawBoard(board, this->Width, this->Height,playerIndex);
-    std::unordered_map<Hexagon*, int>& m= board->getCountry(playerIndex)->getCastles();
+    Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
+    std::unordered_map<Hexagon*, int>& m= board->getCountry(board->getCurrentPlayerId())->getCastles();
     int sum=0;
     if (provinceSelector!=nullptr)
     {
@@ -227,9 +206,10 @@ Player::Player(Country* country, unsigned int maxMoveTime) : country(country), m
     country->setPlayer(this);
 }
 
-LocalPlayer::LocalPlayer(Country* country,Game *game, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+LocalPlayer::LocalPlayer(Country* country,Game *game,int myIndex, unsigned int maxMoveTime) : Player(country, maxMoveTime)
 {
     this->game = game;
+    this->myIndex = myIndex;
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
 
@@ -240,7 +220,7 @@ void LocalPlayer::act()
     {
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
-            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(game->playerIndex);
+            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
             std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
             Renderer -> setBrightenedHexes(neigh);
         }
@@ -253,12 +233,12 @@ void LocalPlayer::act()
             {
 
                 if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
-                    game->spawnAction(hex,p);
+                    spawnAction(hex,p);
                 }
                 else
                 {
-                    game->moveAction(hex,p);
-                    game->SelectAction(hex,p);
+                    moveAction(hex,p);
+                    SelectAction(hex,p);
                 }
                 game-> mousePressed = false;
             }
@@ -269,32 +249,7 @@ void LocalPlayer::act()
         {
             Renderer->ClearBrightenedHexes();
         }
-        if(game->scroll == -1)
-        {
-            Renderer -> addToResizeMultiplier(0.9,game->board, game->Width);
-            game->scroll = 0;
-        }
-        if(game->scroll == 1)
-        {
-            Renderer -> addToResizeMultiplier(1.1,game->board,game->Width);
-            game->scroll = 0;
-        }
-        if (game->pressedKey==GLFW_KEY_W)
-        {
-            Renderer -> addToDisplacementY(10);
-        }
-        if (game->pressedKey==GLFW_KEY_A)
-        {
-            Renderer ->addToDisplacementX(10);
-        }
-        if (game->pressedKey==GLFW_KEY_S)
-        {
-            Renderer -> addToDisplacementY(-10);
-        }
-        if (game->pressedKey==GLFW_KEY_D)
-        {
-            Renderer -> addToDisplacementX(-10);
-        }
+
         if(game->pressedKey==GLFW_KEY_ENTER)
         {
             game->enterPressed = true;
@@ -304,11 +259,55 @@ void LocalPlayer::act()
         {
             game->provinceSelector = nullptr;
             game->selectedHex = nullptr;
-            game->board->nextTurn();
             game->enterPressed = false;
+            game->board->nextTurn();
+
         }
     }
 
+}
+
+void LocalPlayer::moveAction(Hexagon* hex,Point p)
+{
+    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+    Resident res = game->board->getHexagon(p.x,p.y)->getResident();
+    if (game->isHexSelected){
+        std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
+        if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
+            game->selectedHex->move(game->board,hex);
+        } else std::cout << "MOVEMENT NOT POSSIBLE\n";
+        Renderer -> ClearBrightenedHexes();
+        game->isHexSelected=false;
+    }
+    else if ((res==Resident::Warrior1 || res==Resident::Warrior2 || res==Resident::Warrior3 || res==Resident::Warrior4) && hexes.contains(hex))
+    {
+        game->selectedHex=hex;game->isHexSelected=true;
+        std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
+        Renderer -> setBrightenedHexes(nearby);
+    }
+
+}
+
+void LocalPlayer::spawnAction(Hexagon* hex,Point p)
+{
+    if (game->provinceSelector!=nullptr)
+    {
+        std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
+        if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
+            game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex);
+        }
+        Renderer -> ClearBrightenedHexes();
+    }
+
+}
+
+void LocalPlayer::SelectAction(Hexagon *hex,Point p)
+{
+    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+    if (hexes.contains(hex))
+    {
+        game->provinceSelector = hex;
+    }
 }
 
 BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
