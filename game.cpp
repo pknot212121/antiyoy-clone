@@ -304,7 +304,7 @@ void LocalPlayer::act()
         {
             game->provinceSelector = nullptr;
             game->selectedHex = nullptr;
-            // game->playerIndex = (game->playerIndex)%game->playerCount+1;
+            game->board->nextTurn();
             game->enterPressed = false;
         }
     }
