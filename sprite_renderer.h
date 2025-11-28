@@ -20,6 +20,8 @@ struct Point
     int y;
 };
 
+
+
 class SpriteRenderer
 {
 public:
@@ -52,6 +54,9 @@ private:
     std::vector<Hexagon*> brightenedHexes;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
+    std::map<Resident,std::string> residentToTexture = {
+        {Resident::Warrior1,""}
+    };
 };
 
 #endif

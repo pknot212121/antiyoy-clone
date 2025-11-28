@@ -88,11 +88,12 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     // set render-specific controls
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
     // load textures
-    ResourceManager::LoadTexture("textures/soilder1_256.png",true,"s1");
+    ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
-    ResourceManager::LoadTexture("textures/level1warrior.png",true,"lw");
-    ResourceManager::LoadTexture("textures/exclamation.png",true,"ex");
-    Text = new TextRenderer(800, 600);
+    ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
+    ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
+    ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
+    Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
     gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
 
@@ -214,9 +215,10 @@ void Game::ProcessInput(float dt)
         {
             float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
             Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
-            if (p.x>=board->getWidth() || p.x<0 || p.y>=board->getHeight() || p.y<0) return;
+            if (p.x>=board->getWidth() || p.x<=0 || p.y>=board->getHeight() || p.y<=0) return;
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
             Hexagon *hex = board->getHexagon(p.x,p.y);
+            if (hex == nullptr) return;
             std::set<Hexagon*> orderedHexes(hexes.begin(),hexes.end());
             std::vector<Hexagon*> neigh = (*hexes.begin())->possiblePlacements(board,Resident::Warrior1);
 
