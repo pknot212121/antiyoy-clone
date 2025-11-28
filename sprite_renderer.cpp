@@ -1,5 +1,6 @@
 #include "sprite_renderer.h"
 
+#include "GLFW/glfw3.h"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
@@ -162,6 +163,14 @@ glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)
     return glm::vec2(posX, posY);
 }
 
+glm::vec2 Jump(float size)
+{
+    float time = glfwGetTime();
+    float speed = 3.0f;
+    float pulse = (std::sin(time * speed) + 1.0f) / 2.0f * size / 5;
+    return glm::vec2(0.0f,pulse);
+}
+
 void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size, glm::vec3 color)
 {
     size *= resizeMultiplier;
@@ -191,10 +200,15 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
         if (warriorToTexture.contains(hex->getResident()))
         {
             textureName = warriorToTexture[hex->getResident()];
+
         }
         else if (hex->getResident() == Resident::Castle)
         {
             textureName = "castle";
+        }
+        if (active.contains(hex->getResident()))
+        {
+            unitPos-=Jump(size);
         }
         if (!textureName.empty())
         {

@@ -34,6 +34,8 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::StrongTower,"placeholder"}
 };
 
+inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warrior2,Resident::Warrior3,Resident::Warrior4};
+
 class SpriteRenderer
 {
 public:
