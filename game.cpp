@@ -168,7 +168,7 @@ void Game::moveAction(Hexagon* hex,Point p)
         std::vector<Hexagon*> nearby = selectedHex->possibleMovements(board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             selectedHex->move(board,hex);
-        }
+        } else std::cout << "MOVEMENT NOT POSSIBLE\n";
         Renderer -> ClearBrightenedHexes();
         isHexSelected=false;
     }

@@ -685,8 +685,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     Hexagon* castleHex;
     if(castle(getResident())) castleHex = this;
     else castleHex = province(board)[0];
-    // Z JAKIEGOŚ POWODU PRZEZ TĄ LINJKĘ NIE DZIAŁAŁO XD
-    // if(castle(castleHex->getResident())) return false;
+    if(!castle(castleHex->getResident())) return false;
     int price = castleHex->price(board, resident);
     if(!price) return false;
     MoneyAndFarms maf = board->getCountry(castleHex->getOwnerId())->getCastles()[castleHex];
@@ -759,14 +758,21 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination)
 {
+    std::cout << "MOVING\n";
     if(!unmovedWarrior(resident)) return false;
+    std::cout << "MOVING2\n";
+    if(!destination->allows(board, resident, ownerId)) std::cout << "CAN NOT MOVE\n";
     if(!destination->allows(board, resident, ownerId)) return false;
+    std::cout << "MOVING3\n";
     uint8 oldOwnerId = destination->getOwnerId();
     if(oldOwnerId == ownerId && warrior(destination->getResident()))
     {
         Resident merged = mergeWarriors(resident, destination->getResident()); // mieszanie żołnierzy
+        std::cout << "MOVING4\n";
+        if(!warrior(merged)) std::cout << "NOT SOLDIER\n";
         if(!warrior(merged)) return false;
         destination->setResident(merged);
+        std::cout << "MOVING5\n";
     }
     else
     {
