@@ -244,10 +244,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;
     if (key >= 0 && key < 1024)
     {
-        if (action == GLFW_PRESS)
-            Anti->Keys[key] = true;
+        if (action == GLFW_PRESS && Anti->pressedKey==-1)
+        {
+            Anti->pressedKey = key;
+        }
         else if (action == GLFW_RELEASE)
-            Anti->Keys[key] = false;
+            Anti->pressedKey = -1;
     }
 }
 

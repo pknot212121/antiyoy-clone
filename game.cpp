@@ -59,7 +59,7 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
 
 
 Game::Game(unsigned int width, unsigned int height)
-    : State(GameState::GAME_ACTIVE), Keys(), Width(width), Height(height), board() {
+    : State(GameState::GAME_ACTIVE), Width(width), Height(height), board() {
 }
 
 Game::~Game()
@@ -178,7 +178,7 @@ void Game::spawnAction(Hexagon* hex,Point p)
     {
         std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-            provinceSelector->place(board,Resident::Warrior1,hex);
+            provinceSelector->place(board,keysToResidents[pressedKey],hex);
         }
         Renderer -> ClearBrightenedHexes();
     }
@@ -201,7 +201,7 @@ void Game::ProcessInput(float dt)
    
     if (this->State == GameState::GAME_ACTIVE)
     {
-        if(this->Keys[GLFW_KEY_1] && provinceSelector!=nullptr)
+        if(keysToResidents.contains(pressedKey) && provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
             std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
@@ -214,9 +214,9 @@ void Game::ProcessInput(float dt)
             Hexagon *hex = board->getHexagon(p.x,p.y);
             if (p.x<board->getWidth() && p.x>=0 && p.y<board->getHeight() && p.y>=0)
             {
-                if(this->Keys[GLFW_KEY_1] && !isHexSelected){
+
+                if(keysToResidents.contains(pressedKey) && !isHexSelected){
                     this->spawnAction(hex,p);
-                    onePressed=false;
                 }
                 else
                 {
@@ -228,7 +228,7 @@ void Game::ProcessInput(float dt)
 
 
         }
-        if (!this->Keys[GLFW_KEY_1] && isHexSelected==false && provinceSelector!=nullptr)
+        if (!keysToResidents.contains(pressedKey) && isHexSelected==false && provinceSelector!=nullptr)
         {
             Renderer->ClearBrightenedHexes();
         }
@@ -242,44 +242,28 @@ void Game::ProcessInput(float dt)
             Renderer -> addToResizeMultiplier(1.1,board,this->Width);
             scroll = 0;
         }
-        if (this->Keys[GLFW_KEY_W])
+        if (pressedKey==GLFW_KEY_W)
         {
             Renderer -> addToDisplacementY(10);
         }
-        if (this->Keys[GLFW_KEY_A])
+        if (pressedKey==GLFW_KEY_A)
         {
             Renderer ->addToDisplacementX(10);
         }
-        if (this->Keys[GLFW_KEY_S])
+        if (pressedKey==GLFW_KEY_S)
         {
             Renderer -> addToDisplacementY(-10);
         }
-        if (this->Keys[GLFW_KEY_D])
+        if (pressedKey==GLFW_KEY_D)
         {
             Renderer -> addToDisplacementX(-10);
         }
-        if (this->Keys[GLFW_KEY_1])
-        {
-            onePressed=true;
-        }
-        if (this->Keys[GLFW_KEY_2])
-        {
-
-        }
-        if (this->Keys[GLFW_KEY_3])
-        {
-
-        }
-        if (this->Keys[GLFW_KEY_4])
-        {
-
-        }
-        if(this->Keys[GLFW_KEY_ENTER])
+        if(pressedKey==GLFW_KEY_ENTER)
         {
             enterPressed = true;
 
         }
-        if(!this->Keys[GLFW_KEY_ENTER] && enterPressed)
+        if(pressedKey!=GLFW_KEY_ENTER && enterPressed)
         {
             provinceSelector = nullptr;
             selectedHex = nullptr;
@@ -300,15 +284,12 @@ void Game::Render()
     {
         for (auto a : m)
         {
-            std::cout << a.second << " ";
             if (provinceSelector->province(board)[0]==a.first)
             {
                 sum+=a.second;
                 break;
             }
-
         }
-        std::cout << '\n';
     }
     Text->RenderText("Money:"+std::to_string(sum) ,10.0f, 10.0f, 1.0f);
 }

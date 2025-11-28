@@ -18,6 +18,14 @@ enum class GameState
     GAME_WIN
 };
 
+inline std::map<int,Resident> keysToResidents {
+{GLFW_KEY_1,Resident::Warrior1},
+{GLFW_KEY_2,Resident::Warrior2},
+{GLFW_KEY_3,Resident::Warrior3},
+{GLFW_KEY_4,Resident::Warrior4},
+{GLFW_KEY_5,Resident::Farm}
+};
+
 class GameConfigData
 {
     coord x, y;
@@ -39,7 +47,7 @@ class Game
 public:
     // game state
     GameState               State;	
-    bool                    Keys[1024];
+    int                     pressedKey;
     bool                    mousePressed;
     float                   cursorPosX;
     float                   cursorPosY;
@@ -48,7 +56,6 @@ public:
     uint8                   playerCount;
     uint8                   playerIndex;
     bool                    enterPressed = false;
-    bool                    onePressed = false;
     bool                    isHexSelected = false;
     Hexagon                 *selectedHex = nullptr;
     Hexagon                 *provinceSelector = nullptr;
