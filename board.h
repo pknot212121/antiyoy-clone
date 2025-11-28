@@ -54,6 +54,33 @@ inline bool tree(Resident resident) noexcept { return resident == Resident::Palm
 inline bool gravestone(Resident resident) noexcept { return resident == Resident::Gravestone; };
 
 inline Resident move(Resident resident) noexcept { return (unmovedWarrior(resident)) ? (Resident)((int)resident + 4) : Resident::Empty; };
+inline Resident unmove(Resident resident) noexcept { return (movedWarrior(resident)) ? (Resident)((int)resident - 4) : Resident::Empty; };
+
+
+inline int8_t incomeBoard[] =
+{
+    0, //Water,
+    0, //Empty, 0 bo 1 jest domyślnie liczony za każde pole
+
+    -2, //Warrior1,
+    -6, //Warrior2,
+    -18, //Warrior3,
+    -38, //Warrior4,
+
+    -2, //Warrior1Moved,
+    -6, //Warrior2Moved,
+    -18, //Warrior3Moved,
+    -36, //Warrior4Moved,
+
+    4, //Farm,
+    0, //Castle,
+    -1, //Tower,
+    -6, //StrongTower,
+
+    -1, //PalmTree,
+    -1, //PineTree,
+    0, //Gravestone
+};
 
 /*struct Point
 {
@@ -109,6 +136,7 @@ public:
     std::vector<Hexagon*> doubleFilterNeighbours(Board* board, int recursion, bool includeSelf, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter);
     std::vector<Hexagon*> province(Board* board);
     std::vector<Hexagon*> calculateProvince(Board *board);
+    int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
     bool place(Board* board, Resident resident, Hexagon* placement);

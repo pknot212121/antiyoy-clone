@@ -49,6 +49,16 @@ Resident mergeWarriors(Resident warrior1, Resident warrior2)
     return (Resident)((int)Resident::Warrior1 - 1 + sum + 4 * (movedWarrior(warrior1) || movedWarrior(warrior2)));
 }
 
+int calculateIncome(std::vector<Hexagon*> hexagons)
+{
+    int total = 0;
+    for(Hexagon* h : hexagons)
+    {
+        total += incomeBoard[(int)h->getResident()] + 1;
+    }
+
+    return total;
+}
 
 Hexagon::Hexagon() : x(0), y(0), ownerId(0), resident(Resident::Water){}
 
@@ -205,9 +215,31 @@ restart:
 }
 
 
-void nextTurn()
+void Board::nextTurn()
 {
-    
+    bool retry = true;
+    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
+    {
+        currentPlayerId = (currentPlayerId + 1) % countries.size() + 1;
+        retry = false;
+        for(uint8 id : leaderboard)
+        {
+            if(currentPlayerId == id) retry = true;
+        }
+    }
+
+    std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : castles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(unmovedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+        }
+        money += calculateIncome(province);
+    }
+
+    sendTurnChange(currentPlayerId);
 }
 
 
@@ -526,6 +558,21 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
         newCastle->setCastle(board, 0);
     }
     return province;
+}
+
+int Hexagon::calculateProvinceIncome(Board* board)
+{
+    if(ownerId == 0) return 0;
+    std::vector<Hexagon*> province = this->neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
+    if(province.size() < 2) return 0;
+
+    int total = 0;
+    for(Hexagon* h : province)
+    {
+        total += incomeBoard[(int)h->getResident()] + 1;
+    }
+
+    return total;
 }
 
 // Tańsza od calculateProvince() ale jedynie znajduje istniejącą prowincję
