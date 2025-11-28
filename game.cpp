@@ -214,19 +214,21 @@ void Game::ProcessInput(float dt)
             float size = Width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
             Point p = Renderer -> CheckWhichHexagon(cursorPosX,cursorPosY,size/2);
             Hexagon *hex = board->getHexagon(p.x,p.y);
-            if (p.x>=board->getWidth() || p.x<=0 || p.y>=board->getHeight() || p.y<=0) return;
-
-
-            if(this->Keys[GLFW_KEY_1]){
-                this->spawnAction(hex,p);
-                onePressed=false;
-            }
-            else
+            if (p.x<board->getWidth() && p.x>=0 && p.y<board->getHeight() && p.y>=0)
             {
-                this->moveAction(hex,p);
-                this->SelectAction(hex,p);
+                if(this->Keys[GLFW_KEY_1]){
+                    this->spawnAction(hex,p);
+                    onePressed=false;
+                }
+                else
+                {
+                    this->moveAction(hex,p);
+                    this->SelectAction(hex,p);
+                }
+                this -> mousePressed = false;
             }
-            this -> mousePressed = false;
+
+
         }
         if (!this->Keys[GLFW_KEY_1] && isHexSelected==false && provinceSelector!=nullptr)
         {
