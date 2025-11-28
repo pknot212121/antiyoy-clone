@@ -51,6 +51,7 @@ public:
     void addToResizeMultiplier(double ds, Board* board, float width);
     void setBrightenedHexes(std::vector<Hexagon*> hexes);
     void ClearBrightenedHexes();
+    glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
 
 private:
     // Render state
