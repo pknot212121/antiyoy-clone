@@ -176,7 +176,7 @@ void Game::spawnAction(Hexagon* hex,Point p)
 {
     if (provinceSelector!=nullptr)
     {
-        std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
+        std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,keysToResidents[pressedKey]);
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
             provinceSelector->place(board,keysToResidents[pressedKey],hex);
         }
@@ -204,7 +204,7 @@ void Game::ProcessInput(float dt)
         if(keysToResidents.contains(pressedKey) && provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(playerIndex);
-            std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,Resident::Warrior1);
+            std::vector<Hexagon*> neigh = provinceSelector->possiblePlacements(board,keysToResidents[pressedKey]);
             Renderer -> setBrightenedHexes(neigh);
         }
         if (this->mousePressed)

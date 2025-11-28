@@ -797,6 +797,6 @@ Country::Country(std::vector<Hexagon*> castles)
     for(Hexagon* h : castles)
     {
         h->setResident(Resident::Castle);
-        this->castles[h] = 10;
+        this->castles[h] = 100;
     }
 }
