@@ -48,6 +48,7 @@ public:
     // void DrawHexagon(float x, float y, float a, glm::vec3 col);
     void DrawHexagon(int playerIndex, const ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.0f));
     Point CheckWhichHexagon(int x, int y, float size);
+    void Zoom(float zoomFactor, float pivotX, float pivotY);
     // void DrawWarrior(Hexagon hex,Warrior war);
     void DrawBoard(Board* board, int width, int height, int playerIndex);
     void InitPalette();

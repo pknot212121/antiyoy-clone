@@ -149,6 +149,21 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
     return fromAxial(q, r);
 }
 
+void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY)
+{
+    float oldZoom = resizeMultiplier;
+    float newZoom = oldZoom * zoomFactor;
+
+    if (newZoom < 0.5f) newZoom = 0.5f;
+    if (newZoom > 3.0f) newZoom = 3.0f;
+
+    float scaleRatio = newZoom / oldZoom;
+    displacementX = pivotX - (pivotX - displacementX) * scaleRatio;
+    displacementY = pivotY - (pivotY - displacementY) * scaleRatio;
+
+    resizeMultiplier = newZoom;
+}
+
 const float SQRT_3 = 1.7320508f;
 
 glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)

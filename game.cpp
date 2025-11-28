@@ -141,25 +141,23 @@ void Game::Resize(int width, int height)
     this->Width = width;
     this->Height = height;
 
-    // Przeliczamy macierz projekcji dla nowych wymiarów
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width),
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
 
-    // Aktualizujemy shader
     ResourceManager::GetShader("sprite").Use().SetMatrix4("projection", projection);
 }
 
 
 void Game::ProcessInput(float dt)
 {
-    if(scroll == -1)
+    if (this->scroll != 0)
     {
-        Renderer -> addToResizeMultiplier(0.9,board, Width);
-        scroll = 0;
-    }
-    if(scroll == 1)
-    {
-        Renderer -> addToResizeMultiplier(1.1,board,Width);
+        float zoomFactor = (this->scroll == 1) ? 1.1f : 0.9f;
+        float centerX = this->Width / 2.0f;
+        float centerY = this->Height / 2.0f;
+
+        Renderer->Zoom(zoomFactor, centerX, centerY);
+
         scroll = 0;
     }
     if (clickedMovingKeys[GLFW_KEY_W])
