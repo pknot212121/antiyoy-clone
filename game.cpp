@@ -336,3 +336,12 @@ BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(countr
 void BotPlayer::act()
 {
 }
+
+NetworkPlayer::NetworkPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+{
+    std::cout << "Network player created with max move time " << maxMoveTime << "\n";
+}
+
+void NetworkPlayer::act()
+{
+}
