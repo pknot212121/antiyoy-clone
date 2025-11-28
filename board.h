@@ -127,6 +127,8 @@ private:
     const coord height;
     std::vector<Hexagon> board;
 
+    uint8 currentPlayerId = 1;
+
     std::vector<Country> countries;
     std::vector<uint8> leaderboard;
 
@@ -149,8 +151,12 @@ public:
 
     inline Country* getCountry(uint8 id) noexcept { return (id == 0) ? nullptr : &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
+    inline void leaderboardInsert(uint8 id) { leaderboard.insert(leaderboard.begin(), id); }
 
     inline const Game* getGame() const noexcept { return game; }
+    inline int getCurrentPlayerId() const noexcept { return currentPlayerId; }
+
+    void nextTurn();
 
     void sendBoard(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);

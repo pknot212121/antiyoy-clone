@@ -204,6 +204,13 @@ restart:
     }
 }
 
+
+void nextTurn()
+{
+    
+}
+
+
 void Board::sendBoard(int receivingSocket)
 {
     if(invalidSocks())
@@ -309,7 +316,7 @@ int Hexagon::countFarms(Board* board)
 
 void Hexagon::setCastle(Board* board, int money)
 {
-    auto castlesMap = board->getCountry(ownerId)->getCastles();
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
     resident = Resident::Castle;
     castlesMap[this] = money;
 }
@@ -318,11 +325,12 @@ void Hexagon::setCastle(Board* board, int money)
 int Hexagon::removeCastle(Board* board)
 {
     if(castle(resident)) resident = Resident::Empty;
-    auto castlesMap = board->getCountry(ownerId)->getCastles();
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
     if(castlesMap.count(this))
     {
         int money = castlesMap[this];
         castlesMap.erase(this);
+        if(!castlesMap.size()) board->leaderboardInsert(getOwnerId());
         return money;
     }
     return 0;
@@ -520,7 +528,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     return province;
 }
 
-// Tańsza od calculateProvince() ale jedynie znajduje istniejącą prowincję. Używać do pozyskania prowincji która na pewno jest poprawna
+// Tańsza od calculateProvince() ale jedynie znajduje istniejącą prowincję
 std::vector<Hexagon*> Hexagon::province(Board* board)
 {
     if(ownerId == 0) return std::vector<Hexagon*>{ this };
@@ -784,7 +792,6 @@ bool Hexagon::move(Board* board, Hexagon* destination)
     return true;
 }
 
-// Konstruktor nie liczy farm, jeśli Ci tego trzeba użyj setCastle(Board* board, int money) na tych heksagonach później
 Country::Country(std::vector<Hexagon*> castles)
 {
     for(Hexagon* h : castles)
