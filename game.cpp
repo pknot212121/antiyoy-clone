@@ -234,6 +234,8 @@ void LocalPlayer::act()
 
     if (game->State == GameState::GAME_ACTIVE)
     {
+        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+        this->game->provinceSelector = *hexes.begin();
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
