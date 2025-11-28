@@ -112,7 +112,9 @@ public:
 
 class NetworkPlayer : Player // Easter egg
 {
-
+public:
+    NetworkPlayer(Country* country, unsigned int maxMoveTime = 10);
+    virtual void act();
 };
 
 #endif
