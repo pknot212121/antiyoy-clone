@@ -252,7 +252,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 Anti->pressedKey = key;
             if (Anti->clickedMovingKeys.contains(key))
             {
-                std::cout << key << " AAA\n";
                 Anti->clickedMovingKeys[key]=true;
             }
         }
@@ -261,7 +260,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             Anti->pressedKey = -1;
             if (Anti->clickedMovingKeys.contains(key))
             {
-                std::cout << key <<" RRR\n";
                 Anti->clickedMovingKeys[key]=false;
             }
         }
