@@ -234,7 +234,7 @@ void Board::nextTurn()
         std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
         for(Hexagon* h : province)
         {
-            if(unmovedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
         }
         money += calculateIncome(province);
     }
