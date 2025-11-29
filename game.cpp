@@ -12,6 +12,11 @@
 SpriteRenderer* Renderer;
 
 
+GameConfigData::GameConfigData(coord x, coord y, int seed, std::string playerMarkers) : x(x), y(y), seed(seed), playerMarkers(playerMarkers)
+{
+
+}
+
 void GameConfigData::sendGameConfigData(int receivingSocket)
 {
     if(invalidSocks())
@@ -39,6 +44,48 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
     sendData(receivingSocket, content, total);
     
     delete[] content;
+}
+
+bool GameConfigData::receiveFromSocket(int deliveringSocket)
+{
+    if (deliveringSocket < 0) return false;
+
+    char tag;
+    int r = recv(deliveringSocket, &tag, 1, 0);
+    if (r <= 0 || tag != CONFIGURATION_SOCKET_TAG) return false;
+
+    auto recvAll = [&](char* buf, int size)
+    {
+        int total = 0;
+        while (total < size)
+        {
+            int r = recv(deliveringSocket, buf + total, size - total, 0);
+            if (r <= 0) return false;
+            total += r;
+        }
+        return true;
+    };
+
+    ucoord xNet, yNet;
+    uint32_t seedNet;
+    uint8_t markerLen;
+
+    if (!recvAll((char*)&xNet, sizeof(xNet))) return false;
+    if (!recvAll((char*)&yNet, sizeof(yNet))) return false;
+    if (!recvAll((char*)&seedNet, sizeof(seedNet))) return false;
+    if (!recvAll((char*)&markerLen, sizeof(markerLen))) return false;
+
+    playerMarkers.resize(markerLen);
+    if (markerLen > 0)
+    {
+        if (!recvAll(playerMarkers.data(), markerLen)) return false;
+    }
+
+    x = ntohs(xNet);
+    y = ntohs(yNet);
+    seed = ntohl(seedNet);
+
+    return true;
 }
 
 
@@ -200,6 +247,45 @@ void Game::Render()
 }
 
 
+void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getPlayer()
+{
+    std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : oldCastles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+        }
+    }
+
+    uint8 oldId = currentPlayerId;
+
+    bool retry = true;
+    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
+    {
+        currentPlayerId = currentPlayerId % countries.size() + 1;
+        retry = false;
+        for(uint8 id : leaderboard)
+        {
+            if(currentPlayerId == id) retry = true;
+        }
+    }
+
+    std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : castles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+        }
+        money += calculateIncome(province);
+    }
+
+    //game->getPlayer(currentPlayerId)->actStart();
+}
+
 
 Player::Player(Country* country, uint8 id, unsigned int maxMoveTime) : country(country), id(id), maxMoveTime(maxMoveTime)
 {
@@ -313,12 +399,17 @@ BotPlayer::BotPlayer(Country* country, uint8 id, int receiveSock, unsigned int m
     std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
 }
 
+/*void BotPlayer::actStart()
+{
+    sendTurnChange(id);
+}*/
+
 void BotPlayer::act()
 {
     
 }
 
-NetworkPlayer::NetworkPlayer(Country* country, uint8 id, int receiveSock, bool route, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock), route(route)
+NetworkPlayer::NetworkPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock)
 {
     std::cout << "Network player created with max move time " << maxMoveTime << "\n";
 }

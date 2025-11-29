@@ -215,45 +215,6 @@ restart:
 }
 
 
-void Board::nextTurn()
-{
-    //std::cout << "Changing turn from " << (int)currentPlayerId << "\n";
-    std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
-    for (auto& [caslteHex, money] : oldCastles)
-    {
-        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
-        for(Hexagon* h : province)
-        {
-            if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
-        }
-    }
-
-    bool retry = true;
-    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
-    {
-        currentPlayerId = currentPlayerId % countries.size() + 1;
-        retry = false;
-        for(uint8 id : leaderboard)
-        {
-            if(currentPlayerId == id) retry = true;
-        }
-    }
-    //std::cout << "Changing turn to " << (int)currentPlayerId << "\n";
-
-    std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
-    for (auto& [caslteHex, money] : castles)
-    {
-        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
-        for(Hexagon* h : province)
-        {
-            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-        }
-        money += calculateIncome(province);
-    }
-
-    sendTurnChange(currentPlayerId);
-}
-
 
 void Board::sendBoard(int receivingSocket)
 {

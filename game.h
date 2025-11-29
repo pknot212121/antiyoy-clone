@@ -30,15 +30,17 @@ inline std::map<int,Resident> keysToResidents {
 
 class GameConfigData
 {
+public:
     coord x, y;
     int seed;
     std::string playerMarkers;
 
+    GameConfigData() = default;
     GameConfigData(coord x, coord y, int seed, std::string playerMarkers);
-    GameConfigData(char* data);
 
     inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + 1 + playerMarkers.length(); };
     void sendGameConfigData(int receivingSocket = -1);
+    bool GameConfigData::receiveFromSocket(int deliveringSocket);
 };
 
 // Game holds all game-related state and functionality.
@@ -59,7 +61,7 @@ public:
     bool                    isHexSelected = false;
     Hexagon                 *selectedHex = nullptr;
     Hexagon                 *provinceSelector = nullptr;
-    std::vector<Player*>     players;
+    std::vector<Player*>    players;
 
     inline Player* getPlayer(uint8 id) noexcept { return (id == 0) ? nullptr : players[id-1]; }
 
@@ -96,6 +98,7 @@ protected:
 public:
     Player(Country* country, uint8 id, unsigned int maxMoveTime = 60);
 
+    //virtual void actStart();
     virtual void act() = 0; // udawaj że to funkcja abstrakcyjna
 };
 
@@ -115,15 +118,15 @@ class BotPlayer : public Player
     int receiveSock;
 public:
     BotPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime = 10);
+    //virtual void actStart();
     virtual void act();
 };
 
 class NetworkPlayer : Player // Easter egg
 {
     int receiveSock;
-    bool route;
 public:
-    NetworkPlayer(Country* country, uint8 id, int receiveSock, bool route, unsigned int maxMoveTime = 60);
+    NetworkPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime = 60);
     virtual void act();
 };
 

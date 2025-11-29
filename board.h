@@ -100,10 +100,7 @@ class Game; // kosmita 👽👽👽
 void markAll(std::vector<Hexagon*> hexagons);
 void unmarkAll(std::vector<Hexagon*> hexagons);
 
-void sendMagicNumbers(int receivingSocket = -1);
-void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
-void sendTurnChange(uint8 player, int receivingSocket = -1);
-int getSocketError();
+int calculateIncome(std::vector<Hexagon*> hexagons);
 
 class Hexagon
 {
@@ -160,7 +157,7 @@ private:
     std::vector<Country> countries;
     std::vector<uint8> leaderboard;
 
-    const Game* game;
+    Game* game;
 
 public:
     // inicjalizatory
@@ -184,7 +181,7 @@ public:
     inline const Game* getGame() const noexcept { return game; }
     inline int getCurrentPlayerId() const noexcept { return currentPlayerId; }
 
-    void nextTurn();
+    void nextTurn(); // Definicja w game.cpp
 
     void sendBoard(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);

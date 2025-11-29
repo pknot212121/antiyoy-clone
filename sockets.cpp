@@ -221,6 +221,70 @@ void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
     }
 }
 
+bool connectToServer(std::string& ip, int port)
+{
+#ifdef _WIN32
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+    {
+        std::cout << "WSAStartup failed\n";
+        return false;
+    }
+#endif
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0)
+    {
+        std::cout << "Failed to create TCP socket\n";
+        sock = -1;
+        return false;
+    }
+
+    sockaddr_in server{};
+    server.sin_family = AF_INET;
+    server.sin_port = htons(port);
+
+#ifdef _WIN32
+    if (InetPtonA(AF_INET, ip.c_str(), &server.sin_addr) != 1)
+    {
+        std::cout << "Invalid IP address format\n";
+        closeSocket(sock);
+        sock = -1;
+        return false;
+    }
+#else
+    if (inet_pton(AF_INET, ip.c_str(), &server.sin_addr) != 1)
+    {
+        std::cout << "Invalid IP address format\n";
+        closeSocket(sock);
+        sock = -1;
+        return false;
+    }
+#endif
+
+    if (connect(sock, (sockaddr*)&server, sizeof(server)) < 0)
+    {
+        std::cout << "Failed to connect to server! Error: " << getSocketError() << "\n";
+        closeSocket(sock);
+        sock = -1;
+        return false;
+    }
+
+#ifdef _WIN32
+    u_long mode = defaultSocketMode;
+    ioctlsocket(sock, FIONBIO, &mode);
+#else
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (defaultSocketMode == 1)
+        fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+    else
+        fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
+#endif
+
+    return true;
+}
+
+
 void clearSocket(int sock)
 {
     switchSocketMode(sock, 1);
@@ -284,4 +348,44 @@ void sendTurnChange(uint8 player, int receivingSocket)
     content[0] = TURN_CHANGE_SOCKET_TAG;
     content[1] = player;
     sendData(receivingSocket, content, sizeof(content));
+}
+
+
+bool receiveMagicNumbers(int deliveringSocket, bool tag)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot receive magic numbers data\n";
+        return false;
+    }
+    if (deliveringSocket < 0) return false;
+
+    char expectedMagic[] = SOCKET_MAGIC_NUMBERS;
+    const int magicLen = sizeof(expectedMagic);
+
+    int expectedSize = tag ? (1 + magicLen) : magicLen;
+    char buffer[1 + magicLen];
+
+    int total = 0;
+
+    while (total < expectedSize)
+    {
+        int r = recv(deliveringSocket, buffer + total, expectedSize - total, 0);
+        if (r <= 0) return false;
+        total += r;
+    }
+
+    if (tag)
+    {
+        if (buffer[0] != MAGIC_SOCKET_TAG)
+        {
+            std::cout << "Magic numbers tag mismatch!\n";
+            return false;
+        }
+        return memcmp(buffer + 1, expectedMagic, magicLen) == 0;
+    }
+    else
+    {
+        return memcmp(buffer, expectedMagic, magicLen) == 0;
+    }
 }

@@ -39,14 +39,16 @@ inline std::vector<int> clientSocks;
 
 inline u_long defaultSocketMode = 0;
 
+int getSocketError();
 void switchSocketMode(int sock, u_long mode);
 void sendData(int receivingSocket, char* data, int size);
 void initializeSocket(int port);
 void acceptSocketClient(u_long mode = 0);
 void searchForSocketClient(int discoveryPort);
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort);
+bool connectToServer(std::string& ip, int port);
 void clearSocket(int sock);
-inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
+inline bool invalidSocks() { return sock == -1; }
 inline void closeSocket(int s)
 {
 #ifdef _WIN32
@@ -56,3 +58,9 @@ inline void closeSocket(int s)
 #endif
 }
 void closeSockets();
+
+void sendMagicNumbers(int receivingSocket = -1);
+void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
+void sendTurnChange(uint8 player, int receivingSocket = -1);
+
+bool receiveMagicNumbers(int deliveringSocket, bool tag = false);

@@ -49,14 +49,14 @@ int main(int argc, char *argv[])
     int discoveryPort;
 
     bool shouldRunAI = false;
-    bool shouldNetwork = false;
+    uint8 networkPlayers = 0;
 
     if(!(file >> x >> y >> seed >> playerMarkers))
     {
         std::string net;
         file.clear();
         file.seekg(0, std::ios::beg);
-        if(!(file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
+        if((file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
         {
             if(!(file >> discoveryPort))
             {
@@ -64,9 +64,40 @@ int main(int argc, char *argv[])
                 getchar();
                 return 1;
             }
-            std::cout << "Searching for a match...\n";
+            std::cout << "Searching for a server...\n";
             searchForServer(discoveryPort, &ipAddress, &port);
-            std::cout << "Match found, awaiting configuration data...\n";
+
+            std::cout << "Server found, connecting...\n";
+            if(!connectToServer(ipAddress, port))
+            {
+                std::cout << "Failed to connect to the server\n";
+                getchar();
+                return 1;
+            }
+
+            std::cout << "Connected, awaiting connection confirmation...\n";
+            if(!receiveMagicNumbers(sock, true))
+            {
+                std::cout << "Confirmation failed\n";
+                getchar();
+                closeSockets();
+                return 1;
+            }
+
+            std::cout << "Confirmation received, awaiting configuration data...\n";
+            GameConfigData gcd;
+            if(!gcd.receiveFromSocket(sock))
+            {
+                std::cout << "Configuration failed\n";
+                getchar();
+                closeSockets();
+                return 1;
+            }
+            x = gcd.x;
+            y = gcd.y;
+            seed = gcd.seed;
+            playerMarkers = gcd.playerMarkers;
+            std::cout << "Successfully configured!\n";
 
             goto skipFileConfiguration;
         }
@@ -82,7 +113,8 @@ int main(int argc, char *argv[])
     for(int i = 0; i < playerMarkers.length(); i++)
     {
         if(playerMarkers[i] == 'B') shouldRunAI = true;
-        else if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B')
+        if(playerMarkers[i] == 'N') networkPlayers++;
+        else if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B' && playerMarkers[i] != 'N')
         {
             std::cout << "Unidentified player markers in config.txt\n";
             getchar();
@@ -106,7 +138,7 @@ int main(int argc, char *argv[])
     }
 
     // SOCKETY
-    if(shouldRunAI || shouldNetwork)
+    if(shouldRunAI || networkPlayers)
     {
         initializeSocket(port);
         if(sock == -1)
@@ -137,9 +169,15 @@ int main(int argc, char *argv[])
             std::cout << "Python client connected!\n";
         }
 
-        if(shouldNetwork)
+        if(networkPlayers)
         {
-            
+            std::cout << "Searching for players...\n";
+            for(int i = 0; i < networkPlayers; i++)
+            {
+                searchForSocketClient(discoveryPort);
+                std::cout << "Player found!\n";
+            }
+            std::cout << "All players found!\n";
         }
 
         sendMagicNumbers();
