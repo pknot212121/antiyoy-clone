@@ -284,10 +284,12 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-    Anti->Resize(width, height);
+    if (width!=Anti->Width || height!=Anti->Height)
+    {
+        glViewport(0, 0, width, height);
+        Anti->Resize(width, height);
+    }
+
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
