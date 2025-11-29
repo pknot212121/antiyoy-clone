@@ -12,6 +12,49 @@ int getSocketError()
 
 }
 
+void sleep(int time)
+{
+    #ifdef _WIN32
+        Sleep(time);
+    #else
+        usleep(time*1000);
+    #endif
+}
+
+void switchSocketMode(int sock, u_long mode)
+{
+#ifdef _WIN32
+    ioctlsocket(sock, FIONBIO, &mode);
+#else
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (mode)
+        fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+    else
+        fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
+#endif
+}
+
+void sendData(int receivingSocket, char* data, int size)
+{
+    for(int s : clientSocks)
+    {
+        if(receivingSocket == -1 || s == receivingSocket)
+        {
+            int sentBytes = 0;
+            while (sentBytes < size)
+            {
+                int r = send(s, data + sentBytes, size - sentBytes, 0);
+                if (r <= 0)
+                {
+                    std::cout << "Failed to send data\n";
+                    break;
+                }
+                sentBytes += r;
+            }
+        }
+    }
+}
+
 void initializeSocket(int port)
 {
 #ifdef _WIN32
@@ -58,16 +101,15 @@ void initializeSocket(int port)
     }
 
     #ifdef _WIN32
-        u_long mode = 1;
-        if (ioctlsocket(sock, FIONBIO, &mode) != 0)
+        if (ioctlsocket(sock, FIONBIO, &defaultSocketMode) != 0)
         {
-            std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
+            std::cout << "Failed to set default socket mode! Error: " << getSocketError() << "\n";
         }
     #else
         int flags = fcntl(sock, F_GETFL, 0);
         if (flags == -1 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1)
         {
-            std::cout << "Failed to set non-blocking mode! Error: " << getSocketError() << "\n";
+            std::cout << "Failed to set default socket mode! Error: " << getSocketError() << "\n";
         }
     #endif
 }
@@ -75,15 +117,7 @@ void initializeSocket(int port)
 // 0 = blokujący (czeka na klienta), 1 = nieblokujący (jeśli nie ma klienta to kończy)
 void acceptSocketClient(u_long mode)
 {
-    #ifdef _WIN32
-        ioctlsocket(sock, FIONBIO, &mode);
-    #else
-        int flags = fcntl(sock, F_GETFL, 0);
-        if (mode == 1)
-            fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-        else
-            fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
-    #endif
+    switchSocketMode(sock, mode);
 
     sockaddr_in client{};
 #ifdef _WIN32
@@ -94,9 +128,10 @@ void acceptSocketClient(u_long mode)
 
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
-    if (mode == 0 && (clientSock == INVALID_SOCKET || clientSock < 0))
+    switchSocketMode(sock, defaultSocketMode);
+    if(clientSock == INVALID_SOCKET || clientSock < 0)
     {
-        std::cout << "Accept failed, error: " << getSocketError() << "\n";
+        if (mode == 0) std::cout << "Accept failed, error: " << getSocketError() << "\n";
         return;
     }
     clientSocks.push_back(clientSock);
@@ -117,16 +152,21 @@ void searchForSocketClient(int discoveryPort)
     std::string msg = "ANTIYOY " + std::to_string(discoveryPort);
 
     int requiredClients = clientSocks.size() + 1;
+    int warnCounter = 0;
     while (requiredClients > clientSocks.size()) // Jeśli liczba klientów się zmniejszy czekamy aż się nadrobi i wciąż na jednego więcej
     {
-        sendto(udpSock, msg.c_str(), msg.length(), 0, (sockaddr*)&bc, sizeof(bc));
+        if(sendto(udpSock, msg.c_str(), msg.length(), 0, (sockaddr*)&bc, sizeof(bc)) < 0)
+        {
+            if(++warnCounter % 10 == 0) std::cout << "Multiple sendto fails, will keep trying\n";
+        }
+        else warnCounter = 0;
 
         acceptSocketClient(1);
 
-        Sleep(300);
+        sleep(300);
     }
 
-    closesocket(udpSock);
+    closeSocket(udpSock);
 }
 
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
@@ -138,17 +178,28 @@ void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
     local.sin_port = htons(discoveryPort);
     local.sin_addr.s_addr = INADDR_ANY;
 
-    bind(udpSock, (sockaddr*)&local, sizeof(local));
+    if(bind(udpSock, (sockaddr*)&local, sizeof(local)) < 0)
+    {
+        std::cout << "bind error in searchForServer(), error: " << getSocketError() << '\n';
+        closeSocket(udpSock);
+        return;
+    }
 
     char buffer[32];
     sockaddr_in sender;
     socklen_t senderLen = sizeof(sender);
 
+    switchSocketMode(udpSock, 1);
+
     while(true)
     {
         int bytes = recvfrom(udpSock, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&sender, &senderLen);
 
-        if (bytes <= 0) continue;
+        if (bytes <= 0)
+        {
+            sleep(200);
+            continue;
+        }
 
         buffer[bytes] = '\0';
 
@@ -163,7 +214,7 @@ void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
                 *returnIp = inet_ntoa(sender.sin_addr);
                 *returnPort = port;
 
-                closesocket(udpSock);
+                closeSocket(udpSock);
                 return;
             }
         }
@@ -172,21 +223,14 @@ void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
 
 void closeSockets()
 {
+    for(int s : clientSocks)
+    {
+        closeSocket(s);
+    }
+    clientSocks.clear();
+    closeSocket(sock);
 #ifdef _WIN32
-    for(int s : clientSocks)
-    {
-        closesocket(s);
-    }
-    clientSocks.clear();
-    closesocket(sock);
     WSACleanup();
-#else
-    for(int s : clientSocks)
-    {
-        close(s);
-    }
-    clientSocks.clear();
-    close(sock);
 #endif
     sock = -1;
 }
@@ -204,23 +248,7 @@ void sendMagicNumbers(int receivingSocket)
     char content[1 + sizeof(magicNumbers)];
     content[0] = MAGIC_SOCKET_TAG;
     memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < sizeof(content))
-            {
-                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send magic numbers data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, content, sizeof(content));
 }
 
 void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
@@ -234,23 +262,7 @@ void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
     content[0] = CONFIRMATION_SOCKET_TAG;
     content[1] = approved;
     content[2] = awaiting;
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < sizeof(content))
-            {
-                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send confirmation data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, content, sizeof(content));
 }
 
 void sendTurnChange(uint8 player, int receivingSocket)
@@ -263,21 +275,5 @@ void sendTurnChange(uint8 player, int receivingSocket)
     char content[2];
     content[0] = TURN_CHANGE_SOCKET_TAG;
     content[1] = player;
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < sizeof(content))
-            {
-                int r = send(s, content + sentBytes, sizeof(content) - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send turn change data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, content, sizeof(content));
 }

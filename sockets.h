@@ -37,9 +37,21 @@ typedef unsigned char uint8;
 inline int sock = -1;
 inline std::vector<int> clientSocks;
 
+inline u_long defaultSocketMode = 0;
+
+void switchSocketMode(int sock, u_long mode);
+void sendData(int receivingSocket, char* data, int size);
 void initializeSocket(int port);
 void acceptSocketClient(u_long mode = 0);
 void searchForSocketClient(int discoveryPort);
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort);
 inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
+inline void closeSocket(int s)
+{
+#ifdef _WIN32
+    closesocket(s);
+#else
+    close(s);
+#endif
+}
 void closeSockets();

@@ -217,7 +217,7 @@ restart:
 
 void Board::nextTurn()
 {
-    std::cout << "Changing turn from " << (int)currentPlayerId << "\n";
+    //std::cout << "Changing turn from " << (int)currentPlayerId << "\n";
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
     {
@@ -238,7 +238,7 @@ void Board::nextTurn()
             if(currentPlayerId == id) retry = true;
         }
     }
-    std::cout << "Changing turn to " << (int)currentPlayerId << "\n";
+    //std::cout << "Changing turn to " << (int)currentPlayerId << "\n";
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : castles)
@@ -279,23 +279,7 @@ void Board::sendBoard(int receivingSocket)
         position[i * 2 + 1] = static_cast<uint8>(board[i].getResident());
     }
 
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < total)
-            {
-                int r = send(s, reinterpret_cast<char*>(result) + sentBytes, total - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send board data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, reinterpret_cast<char*>(result), total);
     
     delete[] result;
 }
@@ -314,23 +298,7 @@ void Board::sendGameOver(int receivingSocket)
     lb[1] = lbSize;
     memcpy(lb + 2, leaderboard.data(), lbSize);
 
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < total)
-            {
-                int r = send(s, reinterpret_cast<char*>(lb) + sentBytes, total - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send game over data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, reinterpret_cast<char*>(lb), total);
     
     delete[] lb;
 }

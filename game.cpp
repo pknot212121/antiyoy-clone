@@ -36,23 +36,7 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
     position++;
     memcpy(position, playerMarkers.data(), playerMarkers.length());
 
-    for(int s : clientSocks)
-    {
-        if(receivingSocket == -1 || s == receivingSocket)
-        {
-            int sentBytes = 0;
-            while (sentBytes < total)
-            {
-                int r = send(s, content + sentBytes, total - sentBytes, 0);
-                if (r <= 0)
-                {
-                    std::cout << "Failed to send game config data\n";
-                    break;
-                }
-                sentBytes += r;
-            }
-        }
-    }
+    sendData(receivingSocket, content, total);
     
     delete[] content;
 }
