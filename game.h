@@ -88,11 +88,13 @@ public:
 
 class Player
 {
+protected:
     Country* country;
+    uint8 id;
     unsigned int maxMoveTime;
 
 public:
-    Player(Country* country, unsigned int maxMoveTime = 60);
+    Player(Country* country, uint8 id, unsigned int maxMoveTime = 60);
 
     virtual void act() = 0; // udawaj że to funkcja abstrakcyjna
 };
@@ -101,8 +103,7 @@ class LocalPlayer : public Player
 {
 public:
     Game *game;
-    int myIndex;
-    LocalPlayer(Country* country,Game *game,int myIndex, unsigned int maxMoveTime = 60);
+    LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime = 60);
     virtual void act();
     void moveAction(Hexagon* hex, Point p);
     void spawnAction(Hexagon* hex, Point p);
@@ -111,15 +112,18 @@ public:
 
 class BotPlayer : public Player
 {
+    int receiveSock;
 public:
-    BotPlayer(Country* country, unsigned int maxMoveTime = 10);
+    BotPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime = 10);
     virtual void act();
 };
 
 class NetworkPlayer : Player // Easter egg
 {
+    int receiveSock;
+    bool route;
 public:
-    NetworkPlayer(Country* country, unsigned int maxMoveTime = 10);
+    NetworkPlayer(Country* country, uint8 id, int receiveSock, bool route, unsigned int maxMoveTime = 60);
     virtual void act();
 };
 

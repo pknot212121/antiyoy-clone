@@ -348,12 +348,12 @@ int Hexagon::removeCastle(Board* board)
     return 0;
 }
 
-std::unordered_set<Hexagon*> Board::getHexesOfCountry(int countryID)
+std::unordered_set<Hexagon*> Board::getHexesOfCountry(uint8 id)
 {
     std::unordered_set<Hexagon*> hexes;
     for (Hexagon &hex : board)
     {
-        if (static_cast<int>(hex.getOwnerId())==countryID)
+        if (hex.getOwnerId() == id)
         {
             hexes.insert(&hex);
         }

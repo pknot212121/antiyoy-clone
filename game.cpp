@@ -89,10 +89,10 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     if(countries.size() == playerMarkers.length())
     {
         players.reserve(playerMarkers.length());
-        for(int i = 0; i < playerMarkers.length(); i++)
+        for(uint8 i = 0; i < playerMarkers.length(); i++)
         {
-            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i],this,i+1, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
-            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], maxMoveTimes[i]));
+            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, maxMoveTimes[i]));
             else
             {
                 std::cout << "Unidentified player markers\n";
@@ -201,15 +201,13 @@ void Game::Render()
 
 
 
-Player::Player(Country* country, unsigned int maxMoveTime) : country(country), maxMoveTime(maxMoveTime)
+Player::Player(Country* country, uint8 id, unsigned int maxMoveTime) : country(country), id(id), maxMoveTime(maxMoveTime)
 {
     country->setPlayer(this);
 }
 
-LocalPlayer::LocalPlayer(Country* country,Game *game,int myIndex, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), game(game)
 {
-    this->game = game;
-    this->myIndex = myIndex;
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
 
@@ -218,11 +216,11 @@ void LocalPlayer::act()
 
     if (game->State == GameState::GAME_ACTIVE)
     {
-        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
         this->game->provinceSelector = *hexes.begin();
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
-            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
             std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
             Renderer -> setBrightenedHexes(neigh);
         }
@@ -268,7 +266,7 @@ void LocalPlayer::act()
 
 void LocalPlayer::moveAction(Hexagon* hex,Point p)
 {
-    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
     Resident res = game->board->getHexagon(p.x,p.y)->getResident();
     if (game->isHexSelected){
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
@@ -303,23 +301,24 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
 
 void LocalPlayer::SelectAction(Hexagon *hex,Point p)
 {
-    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(myIndex);
+    std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
     if (hexes.contains(hex))
     {
         game->provinceSelector = hex;
     }
 }
 
-BotPlayer::BotPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+BotPlayer::BotPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock)
 {
     std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
 }
 
 void BotPlayer::act()
 {
+    
 }
 
-NetworkPlayer::NetworkPlayer(Country* country, unsigned int maxMoveTime) : Player(country, maxMoveTime)
+NetworkPlayer::NetworkPlayer(Country* country, uint8 id, int receiveSock, bool route, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock), route(route)
 {
     std::cout << "Network player created with max move time " << maxMoveTime << "\n";
 }

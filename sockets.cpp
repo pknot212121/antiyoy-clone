@@ -221,6 +221,14 @@ void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
     }
 }
 
+void clearSocket(int sock)
+{
+    switchSocketMode(sock, 1);
+    char buffer[512];
+    while (recv(sock, buffer, sizeof(buffer), 0) > 0);
+    switchSocketMode(sock, defaultSocketMode);
+}
+
 void closeSockets()
 {
     for(int s : clientSocks)

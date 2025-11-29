@@ -45,6 +45,7 @@ void initializeSocket(int port);
 void acceptSocketClient(u_long mode = 0);
 void searchForSocketClient(int discoveryPort);
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort);
+void clearSocket(int sock);
 inline bool invalidSocks() { return sock == -1 || clientSocks.empty(); }
 inline void closeSocket(int s)
 {

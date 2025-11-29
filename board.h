@@ -175,7 +175,7 @@ public:
     inline coord getHeight() const noexcept { return height; }
     inline Hexagon* getHexagon(coord x, coord y) { return (x < 0 || y < 0 || x >= width || y >= height) ? nullptr : &(board[y * width + x]); }
     inline Hexagon* getHexagon(int i) { return (i < 0 || i >= width * height) ? nullptr : &(board[i]); }
-    std::unordered_set<Hexagon*> getHexesOfCountry(int countryID); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
+    std::unordered_set<Hexagon*> getHexesOfCountry(uint8 id); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
 
     inline Country* getCountry(uint8 id) noexcept { return (id == 0) ? nullptr : &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
