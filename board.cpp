@@ -228,6 +228,21 @@ bool Hexagon::bordersPineAndOtherTree(Board *board)
     return bordersPine && bodrdersTwoTrees;
 }
 
+void Board::spawnTrees(double treeRatio)
+{
+    int count = board.size();
+    std::vector<int> range(count);
+    std::iota(range.begin(), range.end(), 0);
+    std::erase_if(range,[this](int i){return this->board[i].getResident()!=Resident::Empty;});
+
+    std::shuffle(range.begin(),range.end(),gen);
+    for (int i=0;i<range.size()*treeRatio;i++)
+    {
+        if (board[range[i]].isNearWater(this)) board[range[i]].setResident(Resident::PalmTree);
+        else board[range[i]].setResident(Resident::PineTree);
+
+    }
+}
 
 void Board::propagateTrees()
 {

@@ -169,6 +169,7 @@ public:
     void InitializeRandom(int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
     void InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize);
+    void spawnTrees(double treeRatio);
     //void InitializeFromFile();
 
     // gettery/settery
