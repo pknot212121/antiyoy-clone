@@ -379,7 +379,11 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-            if (gravestone(h->getResident())) h->setResident(Resident::PalmTree);
+            if (gravestone(h->getResident()))
+            {
+                if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
+                else h->setResident(Resident::PineTree);
+            }
         }
         money += calculateIncome(province);
 
