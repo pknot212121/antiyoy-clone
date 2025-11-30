@@ -33,8 +33,8 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::Tower,"placeholder"},
     {Resident::StrongTower,"placeholder"},
     {Resident::Gravestone,"placeholder"},
-    {Resident::PalmTree,"tree_placeholder"},
-    {Resident::PineTree,"tree_placeholder"}
+    {Resident::PalmTree,"palm_placeholder"},
+    {Resident::PineTree,"palm_placeholder"},
 };
 
 inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warrior2,Resident::Warrior3,Resident::Warrior4};
