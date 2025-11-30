@@ -249,6 +249,53 @@ def receive_all():
 
     return result
 
+
+# Klasa do budowy odpowiedzi wysyłanej przez AI
+class MoveType:
+    END_TURN = 0
+    PLACE = 1
+    MOVE = 2
+
+class MoveBuilder:
+    def __init__(self):
+        self.buffer = bytearray()
+
+    def add_place(self, unit_id: int, x: int, y: int):
+        """
+        Postawienie jednostki na polu o pozycji
+        """
+        self.buffer.append(MoveType.PLACE)
+        self.buffer.append(unit_id)
+        self.buffer.extend(struct.pack("!HH", x, y))
+
+    def add_move(self, x_from: int, y_from: int, x_to: int, y_to: int):
+        """
+        Przesunięcie jednostki z pozycji na pozycję
+        """
+        self.buffer.append(MoveType.MOVE)
+        self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
+
+    def add_end_turn(self):
+        """
+        Zakończenie tury, wstawienie tego od razu wywołuje send() (bo już nic dalej nie można zrobić)
+        """
+        self.buffer.append(MoveType.END_TURN)
+        return self.send()
+
+    def send(self):
+        """
+        Wysyła wszystkie ruchy jako jeden pakiet
+        """
+        if not self.buffer:
+            return
+
+        sock.sendall(bytes([MOVE_SOCKET_TAG]))
+        sock.sendall(self.buffer)
+
+        self.buffer.clear()
+
+
+
 print("Started!")
 
 # Program odpalany przez std::system("start python receiver.py 127.0.0.1 2137"); (nazwa, adres i port pochodzą z config.txt)
@@ -288,9 +335,8 @@ try:
                 print("Confirmation:", approved, awaiting)
 
             elif tag == BOARD_SOCKET_TAG:
-                board = payload
                 print("New board:")
-                print(board)
+                print(payload)
 
 except:
     print("Connection error")
