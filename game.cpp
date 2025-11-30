@@ -302,8 +302,14 @@ void LocalPlayer::act()
 
     if (game->State == GameState::GAME_ACTIVE)
     {
-        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
-        this->game->provinceSelector = *hexes.begin();
+        if (!game->isFirstProvinceSet)
+        {
+            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
+            this->game->provinceSelector = *hexes.begin();
+            game->isFirstProvinceSet = true;
+        }
+
+
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
@@ -343,6 +349,8 @@ void LocalPlayer::act()
         }
         if(game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed)
         {
+            game->enterPressed = false;
+            game->isFirstProvinceSet = false;
             game->board->nextTurn();
 
         }

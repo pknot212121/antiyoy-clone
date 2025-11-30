@@ -40,7 +40,7 @@ public:
 
     inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + 1 + playerMarkers.length(); };
     void sendGameConfigData(int receivingSocket = -1);
-    bool GameConfigData::receiveFromSocket(int deliveringSocket);
+    bool receiveFromSocket(int deliveringSocket);
 };
 
 // Game holds all game-related state and functionality.
@@ -59,6 +59,7 @@ public:
     unsigned int            Width, Height;
     bool                    enterPressed = false;
     bool                    isHexSelected = false;
+    bool                    isFirstProvinceSet = false;
     Hexagon                 *selectedHex = nullptr;
     Hexagon                 *provinceSelector = nullptr;
     std::vector<Player*>    players;
