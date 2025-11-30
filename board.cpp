@@ -727,6 +727,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     return true;
 }
 
+
 // Używać dla żołnierzy (przesuwanych, nie kładzionych)
 std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 {
