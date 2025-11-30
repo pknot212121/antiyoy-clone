@@ -177,6 +177,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
     ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
+    ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
@@ -378,7 +379,8 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-            h->rotOnlyTrees(this);
+            if (gravestone(h->getResident()) && h->isNearWater(this)) h->setResident(Resident::PalmTree);
+            if (gravestone(h->getResident()) && !h->isNearWater(this)) h->setResident(Resident::PineTree);
         }
         money += calculateIncome(province);
 

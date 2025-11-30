@@ -216,9 +216,15 @@ restart:
     lastPlayerId = countriesCount;
 }
 
+bool Hexagon::isNearWater(Board *board)
+{
+    if((neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size()) return true;;
+}
+
+
+
 void Board::propagateTrees()
 {
-    std::cout <<"PROPAGATE" << std::endl;
     std::uniform_real_distribution<double> chanceDist(0.0,1.0);
     std::set<Hexagon*> palms;
     std::set<Hexagon*> pines;
