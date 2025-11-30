@@ -282,7 +282,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     else if (key == GLFW_KEY_F && action == GLFW_RELEASE && fullScreen && fPressed){fullScreen=false;fPressed=false;}
     // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;
-    if (key >= 0 && key < 1024)
+    if (key > 0 && key < 1024)
     {
         if (action == GLFW_PRESS)
         {
