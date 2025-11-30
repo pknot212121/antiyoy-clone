@@ -12,7 +12,8 @@
 SpriteRenderer* Renderer;
 
 
-GameConfigData::GameConfigData(coord x, coord y, int seed, std::string playerMarkers) : x(x), y(y), seed(seed), playerMarkers(playerMarkers)
+GameConfigData::GameConfigData(coord x, coord y, int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes)
+: x(x), y(y), seed(seed), minProvinceSize(minProvinceSize), maxProvinceSize(maxProvinceSize), playerMarkers(playerMarkers), maxMoveTimes(maxMoveTimes)
 {
 
 }
@@ -24,35 +25,65 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
         std::cout << "Socket not initialized, cannot send game config data\n";
         return;
     }
+
     int total = 1 + estimateSize();
     char* content = new char[total];
-    content[0] = CONFIGURATION_SOCKET_TAG;
-    char* position = content + 1;
+    char* position = content;
+
+    // Tag
+    *position++ = CONFIGURATION_SOCKET_TAG;
+
+    // x, y
     ucoord xNet = htons(x);
     memcpy(position, &xNet, sizeof(xNet));
     position += sizeof(xNet);
+
     ucoord yNet = htons(y);
     memcpy(position, &yNet, sizeof(yNet));
     position += sizeof(yNet);
-    unsigned int seedNet = htonl(seed);
+
+    // seed
+    uint32_t seedNet = htonl(seed);
     memcpy(position, &seedNet, sizeof(seedNet));
     position += sizeof(seedNet);
-    *((uint8*)position) = playerMarkers.length();
-    position++;
-    memcpy(position, playerMarkers.data(), playerMarkers.length());
+
+    // minProvinceSize, maxProvinceSize
+    uint32_t minNet = htonl(minProvinceSize);
+    memcpy(position, &minNet, sizeof(minNet));
+    position += sizeof(minNet);
+
+    uint32_t maxNet = htonl(maxProvinceSize);
+    memcpy(position, &maxNet, sizeof(maxNet));
+    position += sizeof(maxNet);
+
+    // playerMarkers
+    *position++ = (uint8_t)playerMarkers.size();
+    memcpy(position, playerMarkers.data(), playerMarkers.size());
+    position += playerMarkers.size();
+
+    // maxMoveTimes
+    *position++ = (uint8_t)maxMoveTimes.size();
+    for (int v : maxMoveTimes)
+    {
+        uint32_t vNet = htonl(v);
+        memcpy(position, &vNet, sizeof(vNet));
+        position += sizeof(vNet);
+    }
 
     sendData(receivingSocket, content, total);
-    
+
     delete[] content;
 }
 
-bool GameConfigData::receiveFromSocket(int deliveringSocket)
+bool GameConfigData::receiveFromSocket(int deliveringSocket, bool tag)
 {
     if (deliveringSocket < 0) return false;
 
-    char tag;
-    int r = recv(deliveringSocket, &tag, 1, 0);
-    if (r <= 0 || tag != CONFIGURATION_SOCKET_TAG) return false;
+    if(tag)
+    {
+        char tag;
+        if (recv(deliveringSocket, &tag, 1, 0) <= 0 || tag != CONFIGURATION_SOCKET_TAG) return false;
+    }
 
     auto recvAll = [&](char* buf, int size)
     {
@@ -68,25 +99,45 @@ bool GameConfigData::receiveFromSocket(int deliveringSocket)
 
     ucoord xNet, yNet;
     uint32_t seedNet;
+    uint32_t minNet, maxNet;
+
     uint8_t markerLen;
+    uint8_t moveTimesLen;
 
     if (!recvAll((char*)&xNet, sizeof(xNet))) return false;
     if (!recvAll((char*)&yNet, sizeof(yNet))) return false;
     if (!recvAll((char*)&seedNet, sizeof(seedNet))) return false;
+    if (!recvAll((char*)&minNet, sizeof(minNet))) return false;
+    if (!recvAll((char*)&maxNet, sizeof(maxNet))) return false;
+
     if (!recvAll((char*)&markerLen, sizeof(markerLen))) return false;
 
     playerMarkers.resize(markerLen);
     if (markerLen > 0)
     {
-        if (!recvAll(playerMarkers.data(), markerLen)) return false;
+        if (!recvAll(playerMarkers.data(), markerLen))
+            return false;
+    }
+
+    if (!recvAll((char*)&moveTimesLen, sizeof(moveTimesLen))) return false;
+
+    maxMoveTimes.resize(moveTimesLen);
+    for (int i = 0; i < moveTimesLen; i++)
+    {
+        uint32_t vNet;
+        if (!recvAll((char*)&vNet, sizeof(vNet))) return false;
+        maxMoveTimes[i] = ntohl(vNet);
     }
 
     x = ntohs(xNet);
     y = ntohs(yNet);
     seed = ntohl(seedNet);
+    minProvinceSize = ntohl(minNet);
+    maxProvinceSize = ntohl(maxNet);
 
     return true;
 }
+
 
 
 Game::Game(unsigned int width, unsigned int height)
@@ -102,7 +153,7 @@ Game::~Game()
     delete Renderer;
 }
 
-void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes)
+void Game::Init(GameConfigData& gcd)
 {
     // load shaders
     ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
@@ -124,23 +175,50 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
-    gen = std::mt19937(seed == 0 ? std::random_device{}() : seed);
+    gen = std::mt19937(gcd.seed == 0 ? std::random_device{}() : gcd.seed);
 
-    //coord x = 10;
-    //coord y = 10;
-    board = new Board(x, y, this);
-    int total = x * y;
-    board->InitializeRandomA(total * 0.5, total * 0.9);
-    board->InitializeCountriesA(playerMarkers.length(), 6, 8);
+    std::string markers = gcd.playerMarkers;
+    uint8 playersNumber = markers.length();
+
+    bool isHost = clientSocks.size() > 0;
+    board = new Board(gcd.x, gcd.y, this);
+    int total = gcd.x * gcd.y;
+    board->InitializeRandom(total * 0.5, total * 0.9);
+    board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
 
     auto countries = board->getCountries();
-    if(countries.size() == playerMarkers.length())
+    if(countries.size() == playersNumber)
     {
-        players.reserve(playerMarkers.length());
-        for(uint8 i = 0; i < playerMarkers.length(); i++)
+        players.reserve(playersNumber);
+        uint8 networkSockIndex = 0;
+        for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
         {
-            if(playerMarkers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
-            else if(playerMarkers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, maxMoveTimes[i]));
+            if(markers[i] == 'B')
+            {
+                gcd.sendGameConfigData(clientSocks[0]);
+                networkSockIndex = 1;
+                break;
+            }
+        }
+
+        gcd.playerMarkers.assign(playersNumber, 'N');
+
+        for(uint8 i = 0; i < playersNumber; i++)
+        {
+            if(markers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, gcd.maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            else if(markers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, clientSocks[0], gcd.maxMoveTimes[i]));
+            else if(markers[i] == 'N')
+            {
+                if(isHost)
+                {
+                    players.push_back(new NetworkPlayer(&countries[i], i+1, clientSocks[networkSockIndex], gcd.maxMoveTimes[i]));
+                    gcd.playerMarkers[i] = 'L';
+                    gcd.sendGameConfigData(clientSocks[networkSockIndex]);
+                    gcd.playerMarkers[i] = 'N';
+                    networkSockIndex++;
+                }
+                else players.push_back(new NetworkPlayer(&countries[i], i+1, sock, gcd.maxMoveTimes[i]));
+            }
             else
             {
                 std::cout << "Unidentified player markers\n";
@@ -148,10 +226,7 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
                 std::exit(1);
             }
         }
-        /*for(Country& country : countries)
-        {
-            players.emplace_back(&country);
-        }*/
+        gcd.playerMarkers = markers;
     }
     else
     {

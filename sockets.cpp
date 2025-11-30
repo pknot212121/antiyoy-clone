@@ -389,3 +389,17 @@ bool receiveMagicNumbers(int deliveringSocket, bool tag)
         return memcmp(buffer, expectedMagic, magicLen) == 0;
     }
 }
+
+
+void runAi(std::string& pythonProgram, std::string& ipAddress, int port)
+{
+#ifdef _WIN32
+    std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
+#else
+    std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
+#endif
+
+    std::system(cmd.c_str());
+
+    acceptSocketClient();
+}

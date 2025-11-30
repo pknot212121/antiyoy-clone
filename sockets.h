@@ -64,3 +64,5 @@ void sendConfirmation(bool approved, bool awaiting, int receivingSocket = -1);
 void sendTurnChange(uint8 player, int receivingSocket = -1);
 
 bool receiveMagicNumbers(int deliveringSocket, bool tag = false);
+
+void runAi(std::string& pythonProgram, std::string& ipAddress, int port);

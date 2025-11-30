@@ -162,9 +162,9 @@ private:
 public:
     // inicjalizatory
     Board(coord width, coord height, Game* game);
-    void InitializeRandomA(int min, int max);
+    void InitializeRandom(int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
-    void InitializeCountriesA(uint8 countriesCount, int minCountrySize, int maxCountrySize);
+    void InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize);
     //void InitializeFromFile();
 
     // gettery/settery

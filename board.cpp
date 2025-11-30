@@ -93,7 +93,7 @@ void Board::InitializeNeighbour(int recursion, bool includeMiddle)
 }
 
 
-void Board::InitializeRandomA(int min, int max)
+void Board::InitializeRandom(int min, int max)
 {
     std::uniform_int_distribution<int> randN(min, max);
     int n = randN(gen);
@@ -126,7 +126,7 @@ void Board::InitializeRandomA(int min, int max)
     }
 }
 
-void Board::InitializeCountriesA(uint8 countriesCount, int minCountrySize, int maxCountrySize)
+void Board::InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize)
 {
     if(minCountrySize > maxCountrySize)
     {

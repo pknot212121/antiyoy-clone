@@ -33,14 +33,16 @@ class GameConfigData
 public:
     coord x, y;
     int seed;
+    int minProvinceSize, maxProvinceSize;
     std::string playerMarkers;
+    std::vector<int> maxMoveTimes;
 
     GameConfigData() = default;
-    GameConfigData(coord x, coord y, int seed, std::string playerMarkers);
+    GameConfigData(coord x, coord y, int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes);
 
-    inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + 1 + playerMarkers.length(); };
+    inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + sizeof(minProvinceSize) + sizeof(maxProvinceSize) + 1 + playerMarkers.length() + 1 + maxMoveTimes.size() * sizeof(int); };
     void sendGameConfigData(int receivingSocket = -1);
-    bool receiveFromSocket(int deliveringSocket);
+    bool receiveFromSocket(int deliveringSocket, bool tag = false);
 };
 
 // Game holds all game-related state and functionality.
@@ -72,7 +74,7 @@ public:
     Game(unsigned int width, unsigned int height);
     ~Game();
     // initialize game state (load all shaders/textures/levels)
-    void Init(coord x, coord y, int seed, std::string playerMarkers, std::vector<int> maxMoveTimes);
+    void Init(GameConfigData& gcd);
     // game loop
     void ProcessInput(float dt);
     int GetSelectedCastleReserves();
@@ -123,7 +125,7 @@ public:
     virtual void act();
 };
 
-class NetworkPlayer : Player // Easter egg
+class NetworkPlayer : public Player // Easter egg
 {
     int receiveSock;
 public:
