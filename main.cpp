@@ -39,19 +39,17 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    coord x, y;
-    int seed;
-    std::string playerMarkers;
+    GameConfigData gcd;
     std::vector<int> maxMoveTimes;
     std::string pythonProgram;
     std::string ipAddress;
     int port;
     int discoveryPort;
 
-    bool shouldRunAI = false;
+    bool shouldRunAi = false;
     uint8 networkPlayers = 0;
 
-    if(!(file >> x >> y >> seed >> playerMarkers))
+    if(!(file >> gcd.x >> gcd.y >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.seed >> gcd.playerMarkers))
     {
         std::string net;
         file.clear();
@@ -85,18 +83,13 @@ int main(int argc, char *argv[])
             }
 
             std::cout << "Confirmation received, awaiting configuration data...\n";
-            GameConfigData gcd;
-            if(!gcd.receiveFromSocket(sock))
+            if(!gcd.receiveFromSocket(sock, true))
             {
                 std::cout << "Configuration failed\n";
                 getchar();
                 closeSockets();
                 return 1;
             }
-            x = gcd.x;
-            y = gcd.y;
-            seed = gcd.seed;
-            playerMarkers = gcd.playerMarkers;
             std::cout << "Successfully configured!\n";
 
             goto skipFileConfiguration;
@@ -109,12 +102,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    maxMoveTimes.reserve(playerMarkers.length());
-    for(int i = 0; i < playerMarkers.length(); i++)
+    maxMoveTimes.reserve(gcd.playerMarkers.length());
+    for(int i = 0; i < gcd.playerMarkers.length(); i++)
     {
-        if(playerMarkers[i] == 'B') shouldRunAI = true;
-        if(playerMarkers[i] == 'N') networkPlayers++;
-        else if(playerMarkers[i] != 'L' && playerMarkers[i] != 'B' && playerMarkers[i] != 'N')
+        if(gcd.playerMarkers[i] == 'B') shouldRunAi = true;
+        if(gcd.playerMarkers[i] == 'N') networkPlayers++;
+        else if(gcd.playerMarkers[i] != 'L' && gcd.playerMarkers[i] != 'B' && gcd.playerMarkers[i] != 'N')
         {
             std::cout << "Unidentified player markers in config.txt\n";
             getchar();
@@ -130,7 +123,7 @@ int main(int argc, char *argv[])
         maxMoveTimes.push_back(maxMoveTime);
     }
 
-    if(!(file >> pythonProgram >> ipAddress >> port >> discoveryPort))
+    if(!(file >> port >> pythonProgram >> ipAddress >> discoveryPort))
     {
         std::cout << "Invalid content of config.txt\n";
         getchar();
@@ -138,7 +131,7 @@ int main(int argc, char *argv[])
     }
 
     // SOCKETY
-    if(shouldRunAI || networkPlayers)
+    if(shouldRunAi || networkPlayers)
     {
         initializeSocket(port);
         if(sock == -1)
@@ -148,23 +141,16 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        if(shouldRunAI)
+        if(shouldRunAi)
         {
-        #ifdef _WIN32
-            std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
-        #else
-            std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
-        #endif
-
-            std::system(cmd.c_str());
-
+            int oldSize = clientSocks.size();
             std::cout << "Awaiting Python client...\n";
-            acceptSocketClient();
-            if(invalidSocks())
+            runAi(pythonProgram, ipAddress, port);
+            if(clientSocks.size() <= oldSize)
             {
                 std::cout << "Socket client initialization failed, communication impossible\n";
                 getchar();
-                return 1;
+                return false;
             }
             std::cout << "Python client connected!\n";
         }
@@ -222,7 +208,7 @@ skipFileConfiguration: // Dla gracza sieciowego
 
     // initialize game
     // ---------------
-    Anti->Init(x, y, seed, playerMarkers, maxMoveTimes);
+    Anti->Init(gcd);
 
     // deltaTime variables
     // -------------------
