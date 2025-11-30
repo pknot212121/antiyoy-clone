@@ -229,6 +229,7 @@ bool Hexagon::isNearWater(Board *board)
 
 
 
+
 void Board::propagateTrees()
 {
     std::uniform_real_distribution<double> chanceDist(0.0,1.0);
@@ -244,14 +245,21 @@ void Board::propagateTrees()
             if (neigh.size()>0)
             {
                 double chance = chanceDist(gen);
-                std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
-                int choice = round(neighborDist(gen));
+
                 if (h.getResident()==Resident::PalmTree && chance<=0.3)
                 {
-                    palms.insert(neigh[choice]);
+                    std::erase_if(neigh, [this](Hexagon* hex){return !hex->isNearWater(this);});
+                    if (neigh.size()>0)
+                    {
+                        std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
+                        int choice = round(neighborDist(gen));
+                        palms.insert(neigh[choice]);
+                    }
                 }
                 else if (h.getResident()==Resident::PineTree && chance<=0.2)
                 {
+                    std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
+                    int choice = round(neighborDist(gen));
                     pines.insert(neigh[choice]);
                 }
             }
