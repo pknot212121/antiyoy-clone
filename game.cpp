@@ -398,7 +398,6 @@ void LocalPlayer::act()
             game->isFirstProvinceSet = true;
         }
 
-
         if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
         {
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);

@@ -53,7 +53,7 @@ class Game
 public:
     // game state
     GameState               State;	
-    int                     pressedKey;
+    int                     pressedKey = -1;
     bool                    mousePressed;
     float                   cursorPosX;
     float                   cursorPosY;
