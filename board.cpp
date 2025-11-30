@@ -218,13 +218,14 @@ restart:
 
 bool Hexagon::isNearWater(Board *board)
 {
-    std::vector<Hexagon*> neigh = neighbours(board, 0, false);
+    return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0;
+    /*std::vector<Hexagon*> neigh = neighbours(board, 0, false);
     std::erase_if(neigh, [](Hexagon* hex){return hex->getResident()!=Resident::Water;});
     if (neigh.size()>0)
     {
         return true;
     }
-    return false;
+    return false;*/
 }
 
 
