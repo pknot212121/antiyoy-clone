@@ -15,14 +15,19 @@ class Resident(IntEnum):
     Warrior3 = 4
     Warrior4 = 5
 
-    Farm = 6
-    Castle = 7
-    Tower = 8
-    StrongTower = 9
+    Warrior1Moved = 6
+    Warrior2Moved = 7
+    Warrior3Moved = 8
+    Warrior4Moved = 9
 
-    PalmTree = 10
-    PineTree = 11
-    Gravestone = 12
+    Farm = 10
+    Castle = 11
+    Tower = 12
+    StrongTower = 13
+
+    PalmTree = 14
+    PineTree = 15
+    Gravestone = 16
 
 class Hex:
     def __init__(self, x, y, owner_id, resident):
@@ -47,14 +52,6 @@ class Board:
         return f"Board({self.width}x{self.height}, {len(self.hexes)} hexes)"
 
 
-#define MAGIC_SOCKET_TAG 0
-#define CONFIGURATION_SOCKET_TAG 1
-#define BOARD_SOCKET_TAG 2
-#define MOVE_SOCKET_TAG 3
-#define CONFIRMATION_SOCKET_TAG 4
-#define TURN_CHANGE_SOCKET_TAG 5
-#define GAME_OVER_SOCKET_TAG 6
-
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 BOARD_SOCKET_TAG = 2 # Plansza (spłaszczona dwuwymiarowa tablica heksagonów)
@@ -66,6 +63,18 @@ GAME_OVER_SOCKET_TAG = 6 # Numery graczy w kolejności od wygranego do pierwszeg
 SOCKET_MAGIC_NUMBERS = b'ANTIYOY'
 
 sock = None # Socket
+
+
+
+def recv_all(sock, size):
+    """Odbiera size bajtów lub rzuca wyjątek"""
+    data = bytearray()
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            raise RuntimeError("Socket disconnected during recv_all()")
+        data.extend(chunk)
+    return bytes(data)
 
 
 def receive_magic() -> bool:
@@ -82,6 +91,44 @@ def receive_magic() -> bool:
         data.extend(chunk)
 
     return data == SOCKET_MAGIC_NUMBERS
+
+def receive_config():
+    """
+    Odbiera GameConfigData.
+    Zakłada że tag został już odebrany
+    """
+
+    # 1) x, y (uint16)
+    header = recv_all(sock, 2 + 2)
+    x, y = struct.unpack("!HH", header)
+
+    # 2) seed, minProvinceSize, maxProvinceSize (uint32)
+    numbers = recv_all(sock, 4 * 3)
+    seed, minProv, maxProv = struct.unpack("!III", numbers)
+
+    # 3) Rozmiar playerMarkers (bajt)
+    size_player_markers = recv_all(sock, 1)[0]
+
+    # 4) Zawartość playerMarkers
+    markers_raw = recv_all(sock, size_player_markers)
+    playerMarkers = markers_raw.decode("ascii")
+
+    # 5) Rozmiar maxMoveTimes (bajt)
+    size_move_times = recv_all(sock, 1)[0]
+
+    # 6) Zawartość maxMoveTimes
+    move_times_raw = recv_all(sock, 4 * size_move_times)
+    maxMoveTimes = list(struct.unpack("!" + "I" * size_move_times, move_times_raw))
+
+    return {
+        "x": x,
+        "y": y,
+        "seed": seed,
+        "minProvinceSize": minProv,
+        "maxProvinceSize": maxProv,
+        "playerMarkers": playerMarkers,
+        "maxMoveTimes": maxMoveTimes,
+    }
 
 def receive_board() -> Board:
     """
@@ -135,7 +182,7 @@ def receive_confirmation() -> tuple[bool, bool]:
 def receive_turn_change() -> int:
     """
     Odbiera numer gracza zaczynającego turę.
-    Zakłada, że tag został już odebrany.
+    Zakłada że tag został już odebrany
     """
     data = sock.recv(1)
     if len(data) < 1:
@@ -145,7 +192,7 @@ def receive_turn_change() -> int:
 def receive_game_over() -> list[int]:
     """
     Odbiera listę wyników (kolejność graczy od wygranego do ostatniego).
-    Zakłada, że tag został już odebrany.
+    Zakłada że tag został już odebrany
     """
     size_data = sock.recv(1)
     if len(size_data) < 1:
@@ -175,11 +222,14 @@ def receive_all():
         if tag == MAGIC_SOCKET_TAG:
             result.append((MAGIC_SOCKET_TAG, receive_magic()))
 
-        elif tag == CONFIRMATION_SOCKET_TAG:
-            result.append((CONFIRMATION_SOCKET_TAG, receive_confirmation()))
+        elif tag == CONFIGURATION_SOCKET_TAG:
+            result.append((CONFIGURATION_SOCKET_TAG, receive_config()))
 
         elif tag == BOARD_SOCKET_TAG:
             result.append((BOARD_SOCKET_TAG, receive_board()))
+
+        elif tag == CONFIRMATION_SOCKET_TAG:
+            result.append((CONFIRMATION_SOCKET_TAG, receive_confirmation()))
 
         elif tag == TURN_CHANGE_SOCKET_TAG:
             result.append((TURN_CHANGE_SOCKET_TAG, receive_turn_change()))
@@ -225,9 +275,13 @@ try:
         for tag, payload in received:
             if tag == MAGIC_SOCKET_TAG:
                 if payload:
-                    print("Working!")
+                    print("Correct magic numbers!")
                 else:
                     print("Wrong magic numbers!")
+            
+            elif tag == CONFIGURATION_SOCKET_TAG:
+                print("Configuration received:")
+                print(payload)
 
             elif tag == CONFIRMATION_SOCKET_TAG:
                 approved, awaiting = payload

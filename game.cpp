@@ -12,7 +12,7 @@
 SpriteRenderer* Renderer;
 
 
-GameConfigData::GameConfigData(coord x, coord y, int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes)
+GameConfigData::GameConfigData(coord x, coord y, unsigned int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes)
 : x(x), y(y), seed(seed), minProvinceSize(minProvinceSize), maxProvinceSize(maxProvinceSize), playerMarkers(playerMarkers), maxMoveTimes(maxMoveTimes)
 {
 
@@ -77,6 +77,11 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
 
 bool GameConfigData::receiveFromSocket(int deliveringSocket, bool tag)
 {
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot receive magic numbers data\n";
+        return false;
+    }
     if (deliveringSocket < 0) return false;
 
     if(tag)
@@ -175,7 +180,8 @@ void Game::Init(GameConfigData& gcd)
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
-    gen = std::mt19937(gcd.seed == 0 ? std::random_device{}() : gcd.seed);
+    if(gcd.seed == 0) gcd.seed = std::random_device{}();
+    gen = std::mt19937(gcd.seed);
 
     std::string markers = gcd.playerMarkers;
     uint8 playersNumber = markers.length();
@@ -187,6 +193,7 @@ void Game::Init(GameConfigData& gcd)
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
 
     auto countries = board->getCountries();
+    //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
     if(countries.size() == playersNumber)
     {
         players.reserve(playersNumber);

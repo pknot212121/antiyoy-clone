@@ -360,14 +360,17 @@ bool receiveMagicNumbers(int deliveringSocket, bool tag)
     }
     if (deliveringSocket < 0) return false;
 
-    char expectedMagic[] = SOCKET_MAGIC_NUMBERS;
-    const int magicLen = sizeof(expectedMagic);
+    if(tag)
+    {
+        char tag;
+        if (recv(deliveringSocket, &tag, 1, 0) <= 0 || tag != MAGIC_SOCKET_TAG) return false;
+    }
 
-    int expectedSize = tag ? (1 + magicLen) : magicLen;
-    char buffer[1 + magicLen];
+    char expectedMagic[] = SOCKET_MAGIC_NUMBERS;
+    int expectedSize = sizeof(expectedMagic);
+    char buffer[expectedSize];
 
     int total = 0;
-
     while (total < expectedSize)
     {
         int r = recv(deliveringSocket, buffer + total, expectedSize - total, 0);
@@ -375,19 +378,7 @@ bool receiveMagicNumbers(int deliveringSocket, bool tag)
         total += r;
     }
 
-    if (tag)
-    {
-        if (buffer[0] != MAGIC_SOCKET_TAG)
-        {
-            std::cout << "Magic numbers tag mismatch!\n";
-            return false;
-        }
-        return memcmp(buffer + 1, expectedMagic, magicLen) == 0;
-    }
-    else
-    {
-        return memcmp(buffer, expectedMagic, magicLen) == 0;
-    }
+    return memcmp(buffer, expectedMagic, expectedSize) == 0;
 }
 
 

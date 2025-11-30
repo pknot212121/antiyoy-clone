@@ -32,13 +32,13 @@ class GameConfigData
 {
 public:
     coord x, y;
-    int seed;
+    unsigned int seed;
     int minProvinceSize, maxProvinceSize;
     std::string playerMarkers;
     std::vector<int> maxMoveTimes;
 
     GameConfigData() = default;
-    GameConfigData(coord x, coord y, int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes);
+    GameConfigData(coord x, coord y, unsigned int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes);
 
     inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + sizeof(minProvinceSize) + sizeof(maxProvinceSize) + 1 + playerMarkers.length() + 1 + maxMoveTimes.size() * sizeof(int); };
     void sendGameConfigData(int receivingSocket = -1);

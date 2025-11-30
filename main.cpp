@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
     }
 
     GameConfigData gcd;
-    std::vector<int> maxMoveTimes;
     std::string pythonProgram;
     std::string ipAddress;
     int port;
@@ -49,7 +48,7 @@ int main(int argc, char *argv[])
     bool shouldRunAi = false;
     uint8 networkPlayers = 0;
 
-    if(!(file >> gcd.x >> gcd.y >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.seed >> gcd.playerMarkers))
+    if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.playerMarkers))
     {
         std::string net;
         file.clear();
@@ -102,7 +101,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    maxMoveTimes.reserve(gcd.playerMarkers.length());
+    gcd.maxMoveTimes.reserve(gcd.playerMarkers.length());
     for(int i = 0; i < gcd.playerMarkers.length(); i++)
     {
         if(gcd.playerMarkers[i] == 'B') shouldRunAi = true;
@@ -120,7 +119,7 @@ int main(int argc, char *argv[])
             getchar();
             return 1;
         }
-        maxMoveTimes.push_back(maxMoveTime);
+        gcd.maxMoveTimes.push_back(maxMoveTime);
     }
 
     if(!(file >> port >> pythonProgram >> ipAddress >> discoveryPort))
