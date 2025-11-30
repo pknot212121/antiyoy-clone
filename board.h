@@ -125,6 +125,7 @@ public:
 
     int price(Board* board, Resident resident);
     bool isNearWater(Board* board);
+    bool bordersPineAndOtherTree(Board* board);
     void rot(Board* board);
     void rotOnlyTrees(Board* board);
     int countFarms(Board* board);

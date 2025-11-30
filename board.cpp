@@ -219,16 +219,14 @@ restart:
 bool Hexagon::isNearWater(Board *board)
 {
     return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0;
-    /*std::vector<Hexagon*> neigh = neighbours(board, 0, false);
-    std::erase_if(neigh, [](Hexagon* hex){return hex->getResident()!=Resident::Water;});
-    if (neigh.size()>0)
-    {
-        return true;
-    }
-    return false;*/
 }
 
-
+bool Hexagon::bordersPineAndOtherTree(Board *board)
+{
+    bool bordersPine = (neighbours(board, 0, false, [](Hexagon* h) { return h->getResident()==Resident::PineTree; })).size()>=1;
+    bool bodrdersTwoTrees = (neighbours(board, 0, false, [](Hexagon* h) { return tree(h->getResident()); })).size()>=2;
+    return bordersPine && bodrdersTwoTrees;
+}
 
 
 void Board::propagateTrees()
@@ -259,9 +257,13 @@ void Board::propagateTrees()
                 }
                 else if (h.getResident()==Resident::PineTree && chance<=0.2)
                 {
-                    std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
-                    int choice = round(neighborDist(gen));
-                    pines.insert(neigh[choice]);
+                    std::erase_if(neigh, [this](Hexagon* hex){return !hex->bordersPineAndOtherTree(this);});
+                    if (neigh.size()>0)
+                    {
+                        std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
+                        int choice = round(neighborDist(gen));
+                        pines.insert(neigh[choice]);
+                    }
                 }
             }
 
