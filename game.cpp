@@ -257,19 +257,8 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
-            if (h->getResident()==Resident::Gravestone) h->setResident(Resident::PineTree);
         }
-        money += calculateIncome(province);
-        if (money<0)
-        {
-            for (Hexagon *h : province)
-            {
-                if (h->getResident()==Resident::Warrior1Moved || h->getResident()==Resident::Warrior2Moved || h->getResident()==Resident::Warrior3Moved || h->getResident()==Resident::Warrior4Moved)
-                {
-                    h->setResident(Resident::Gravestone);
-                }
-            }
-        }
+
     }
 
     uint8 oldId = currentPlayerId;
@@ -292,8 +281,21 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+            if (h->getResident()==Resident::Gravestone) h->setResident(Resident::PineTree);
         }
+        money += calculateIncome(province);
 
+        // Kill them if money is low, probably at your turn's end
+        if (money<0)
+        {
+            for (Hexagon *h : province)
+            {
+                if (h->getResident()==Resident::Warrior1 || h->getResident()==Resident::Warrior2 || h->getResident()==Resident::Warrior3 || h->getResident()==Resident::Warrior4)
+                {
+                    h->setResident(Resident::Gravestone);
+                }
+            }
+        }
 
     }
 
