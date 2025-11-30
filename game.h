@@ -61,6 +61,7 @@ public:
     unsigned int            Width, Height;
     bool                    enterPressed = false;
     bool                    isHexSelected = false;
+    bool                    isFirstProvinceSet = false;
     Hexagon                 *selectedHex = nullptr;
     Hexagon                 *provinceSelector = nullptr;
     std::vector<Player*>    players;

@@ -92,12 +92,10 @@ void TextRenderer::Load(std::string font, unsigned int fontSize)
 
         FT_Load_Char(face, c, FT_LOAD_NO_BITMAP);
         FT_Glyph glyph;
-        FT_Get_Glyph(face->glyph, &glyph); // Pobierz glif
+        FT_Get_Glyph(face->glyph, &glyph);
 
-        // To jest kluczowa funkcja - zamienia glif w pogrubiony kontur
         FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
 
-        // Zamień wektorowy kontur na bitmapę
         FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
         FT_BitmapGlyph bitmapGlyph = (FT_BitmapGlyph)glyph;
 
