@@ -120,6 +120,7 @@ void Game::Init(coord x, coord y, int seed, std::string playerMarkers, std::vect
     ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
+    ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
@@ -256,6 +257,7 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+            if (h->getResident()==Resident::Gravestone) h->setResident(Resident::PineTree);
         }
         money += calculateIncome(province);
         if (money<0)
