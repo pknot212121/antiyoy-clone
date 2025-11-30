@@ -192,7 +192,7 @@ void Game::Init(GameConfigData& gcd)
     int total = gcd.x * gcd.y;
     board->InitializeRandom(total * 0.5, total * 0.9);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
-
+    board->spawnTrees(0.2);
     auto countries = board->getCountries();
     //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
     if(countries.size() == playersNumber)
