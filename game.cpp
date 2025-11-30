@@ -332,11 +332,11 @@ void Game::Render()
 
 void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getPlayer()
 {
-    if (getCountry(lastPlayerId)->getCastles().size()<=0)
+    if (getCountry(lastPlayerId)->getCastles().size() <= 0)
     {
-        for (int i=lastPlayerId-1;i>=1;i--)
+        for (int i = lastPlayerId - 1; i >= 1; i--)
         {
-            if (getCountry(i)->getCastles().size()<=0)
+            if (getCountry(i)->getCastles().size() > 0)
             {
                 lastPlayerId = i;
                 break;
