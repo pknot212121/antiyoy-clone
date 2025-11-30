@@ -1,6 +1,7 @@
 #include "board.h"
 #include <unordered_set>
 #include <cstring>
+#include <set>
 
 
 void markAll(std::vector<Hexagon *> hexagons)
@@ -212,9 +213,42 @@ restart:
     {
         countries.emplace_back(std::vector{ o });
     }
+    lastPlayerId = countriesCount;
 }
 
+void Board::propagateTrees()
+{
+    std::cout <<"PROPAGATE" << std::endl;
+    std::uniform_real_distribution<double> chanceDist(0.0,1.0);
+    std::set<Hexagon*> palms;
+    std::set<Hexagon*> pines;
+    for (Hexagon& h : board)
+    {
+        if (tree(h.getResident()))
+        {
+            std::vector<Hexagon*> neigh = h.neighbours(this,0,false);
+            std::erase_if(neigh, [](Hexagon* hex){return hex->getResident()!=Resident::Empty;});
 
+            if (neigh.size()>0)
+            {
+                double chance = chanceDist(gen);
+                std::uniform_int_distribution<size_t> neighborDist(0, neigh.size() - 1);
+                int choice = round(neighborDist(gen));
+                if (h.getResident()==Resident::PalmTree && chance<=0.3)
+                {
+                    palms.insert(neigh[choice]);
+                }
+                else if (h.getResident()==Resident::PineTree && chance<=0.2)
+                {
+                    pines.insert(neigh[choice]);
+                }
+            }
+
+        }
+    }
+    for (Hexagon* h : pines) h->setResident(Resident::PineTree);
+    for (Hexagon* h : palms) h->setResident(Resident::PalmTree);
+}
 
 void Board::sendBoard(int receivingSocket)
 {
@@ -270,6 +304,15 @@ void Hexagon::rot(Board* board)
 {
     if(warrior(resident)) setResident(Resident::Gravestone);
     else if((resident >= Resident::Castle && resident <= Resident::StrongTower) || gravestone(resident))
+    {
+        if((neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size()) setResident(Resident::PalmTree);
+        else setResident(Resident::PineTree);
+    }
+}
+
+void Hexagon::rotOnlyTrees(Board* board)
+{
+    if(gravestone(resident))
     {
         if((neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size()) setResident(Resident::PalmTree);
         else setResident(Resident::PineTree);

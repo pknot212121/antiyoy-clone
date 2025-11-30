@@ -125,6 +125,7 @@ public:
 
     int price(Board* board, Resident resident);
     void rot(Board* board);
+    void rotOnlyTrees(Board* board);
     int countFarms(Board* board);
     void setCastle(Board* board, int money);
     int removeCastle(Board* board);
@@ -152,6 +153,7 @@ private:
     const coord height;
     std::vector<Hexagon> board;
 
+    uint8 lastPlayerId = 1;
     uint8 currentPlayerId = 1;
 
     std::vector<Country> countries;
@@ -182,7 +184,7 @@ public:
     inline int getCurrentPlayerId() const noexcept { return currentPlayerId; }
 
     void nextTurn(); // Definicja w game.cpp
-
+    void propagateTrees();
     void sendBoard(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);
 };

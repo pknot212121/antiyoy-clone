@@ -332,6 +332,18 @@ void Game::Render()
 
 void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getPlayer()
 {
+    if (getCountry(lastPlayerId)->getCastles().size()<=0)
+    {
+        for (int i=lastPlayerId-1;i>=1;i--)
+        {
+            if (getCountry(i)->getCastles().size()<=0)
+            {
+                lastPlayerId = i;
+                break;
+            }
+        }
+    }
+
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
     {
@@ -339,7 +351,9 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+
         }
+        if (currentPlayerId == lastPlayerId) propagateTrees();
 
     }
 
@@ -354,6 +368,7 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         {
             if(currentPlayerId == id) retry = true;
         }
+
     }
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
@@ -363,19 +378,15 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-            if (h->getResident()==Resident::Gravestone) h->setResident(Resident::PineTree);
+            h->rotOnlyTrees(this);
         }
         money += calculateIncome(province);
 
-        // Kill them if money is low, probably at your turn's end
         if (money<0)
         {
             for (Hexagon *h : province)
             {
-                if (h->getResident()==Resident::Warrior1 || h->getResident()==Resident::Warrior2 || h->getResident()==Resident::Warrior3 || h->getResident()==Resident::Warrior4)
-                {
-                    h->setResident(Resident::Gravestone);
-                }
+                if (unmovedWarrior(h->getResident())) h->setResident(Resident::Gravestone);
             }
         }
 
