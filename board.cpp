@@ -565,10 +565,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
             std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
             newCastle = secondLine[rand(gen)];
         }
-        if (board->getCountry(ownerId)->tempMoneyStorage==0)
-        {
-            newCastle->setCastle(board, 0);
-        }
+        if (board->getCountry(ownerId)->tempMoneyStorage==0) newCastle->setCastle(board, 0);
         else
         {
             newCastle->setCastle(board,board->getCountry(ownerId)->tempMoneyStorage);
@@ -800,10 +797,8 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
         else
         {
             uint8 oldOwnerId = placement->getOwnerId();
-            if(castle(placement->getResident()))
-            {
-                board->getCountry(oldOwnerId)->tempMoneyStorage+=placement->removeCastle(board);
-            }
+            if(castle(placement->getResident())) board->getCountry(oldOwnerId)->tempMoneyStorage+=placement->removeCastle(board);
+
             placement->setResident(::move(resident));
             placement->setOwnerId(castleHex->getOwnerId());
 

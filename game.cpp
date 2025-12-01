@@ -479,7 +479,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             if (game->selectedHex!=hex)
-                game->selectedHex->move(game->board,hex);
+                game->selectedHex->move(game->board,hex,true);
         }
         Renderer -> ClearBrightenedHexes();
         game->isHexSelected=false;
@@ -499,7 +499,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
     {
         std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-            game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex);
+            game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex,true);
         }
         Renderer -> ClearBrightenedHexes();
     }
