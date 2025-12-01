@@ -142,6 +142,7 @@ public:
     int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
+    void removeTree(Board* board);
     bool place(Board* board, Resident resident, Hexagon* placement, bool send);
     std::vector<Hexagon *> possibleMovements(Board *board);
     bool move(Board *board, Hexagon *destination, bool send);

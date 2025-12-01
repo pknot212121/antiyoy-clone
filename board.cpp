@@ -773,6 +773,19 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     return std::vector<Hexagon*>();
 }
 
+void Hexagon::removeTree(Board *board)
+{
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
+    for (auto& it : castlesMap)
+    {
+        if (std::find(it.first->province(board).begin(),it.first->province(board).end(),this) != it.first->province(board).end())
+        {
+            it.second+=3;
+            break;
+        }
+    }
+}
+
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
 bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool send)
 {
@@ -796,9 +809,15 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
                 if(!warrior(merged)) return false;
                 placement->setResident(merged);
             }
-            else if(tree(placement->getResident()) || gravestone(placement->getResident()))
+            else if(gravestone(placement->getResident()))
             {
                 placement->setResident(::move(resident));
+            }
+            else if(tree(placement->getResident()))
+            {
+                placement->removeTree(board);
+                placement->setResident(::move(resident));
+
             }
             else
             {
@@ -885,6 +904,7 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
     else
     {
         if(castle(destination->getResident())) destination->removeCastle(board);
+        if (tree(destination->getResident())) destination->removeTree(board);
         destination->setResident(::move(resident));
     }
     setResident(Resident::Empty);
