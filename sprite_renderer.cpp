@@ -214,7 +214,7 @@ std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
 void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int index,float width,float rotation)
 {
     size*=resizeMultiplier;
-    width*=resizeMultiplier;
+    width = size * 0.07;
     float a = size/2;
     std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
     for (auto& center : centers) center-=glm::vec2(a/2,width/2);
