@@ -344,6 +344,8 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
             }
         }
     }
+    // NEED TO DO THIS BECAUSE IF YOU CAPTURE LAST CASTLE AND THEY GENERATE MORE THEY GET PUT ON THE LEADERBOARD
+    std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
 
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
@@ -352,11 +354,9 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
-
         }
-        if (currentPlayerId == lastPlayerId) propagateTrees();
-
     }
+    if (currentPlayerId == lastPlayerId) propagateTrees();
 
     uint8 oldId = currentPlayerId;
 
@@ -512,6 +512,10 @@ void LocalPlayer::SelectAction(Hexagon *hex,Point p)
     if (hexes.contains(hex))
     {
         game->provinceSelector = hex;
+    }
+    else
+    {
+        game->provinceSelector = nullptr;
     }
 }
 
