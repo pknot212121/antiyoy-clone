@@ -9,6 +9,10 @@
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
 
 
 SpriteRenderer::SpriteRenderer(Shader &shader)
@@ -170,6 +174,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY)
 
 const float SQRT_3 = 1.7320508f;
 
+
 glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)
 {
     float height = size * SQRT_3 / 2.0f;
@@ -188,6 +193,71 @@ glm::vec2 Jump(float size)
     float speed = 3.0f;
     float pulse = (std::sin(time * speed) + 1.0f) / 2.0f * size / 5;
     return glm::vec2(0.0f,pulse);
+}
+
+std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
+{
+    return std::vector<glm::vec2>{
+        {glm::vec2(a,0.0f)+start},
+        {glm::vec2(0.25*a,0.433*a)+start},
+        {glm::vec2(0.25*a,1.299*a)+start},
+        {glm::vec2(a,1.732*a)+start},
+        {glm::vec2(1.75 *a,1.299*a)+start},
+        {glm::vec2(1.75 * a,0.433*a)+start},
+
+
+
+
+    };
+}
+
+void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int index,float width,float rotation)
+{
+    size*=resizeMultiplier;
+    width*=resizeMultiplier;
+    float a = size/2;
+    std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
+    for (auto& center : centers) center-=glm::vec2(a/2,width/2);
+    this->DrawSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
+}
+std::vector<std::pair<coord, coord>> evenD =
+{
+    { 0, -1}, // górny
+    {-1, -1}, // lewy górny
+    {-1,  0}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  0}, // prawy dolny
+    { 1, -1}  // prawy górny
+};
+
+std::vector<std::pair<coord, coord>> oddD =
+{
+    { 0, -1}, // górny
+    {-1,  0}, // lewy górny
+    {-1,  1}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  1}, // prawy dolny
+    { 1,  0}  // prawy górny
+};
+
+void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
+{
+    std::vector<Hexagon*> hexes = h->province(board);
+    std::vector<float> rotations = {0.0f,120.0f,60.0f,0.0f,120.0f,60.0f};
+    for (auto& hex : hexes)
+    {
+        auto& directions = (hex->getX() % 2 == 0) ? evenD : oddD;
+        int i=0;
+        for (auto [dx, dy] : directions)
+        {
+            Hexagon* n = board->getHexagon(hex->getX() + dx, hex->getY() + dy);
+            if(n == nullptr || n->getOwnerId()!=id)
+            {
+                this->DrawBorder(size,glm::vec3(1.0f),hex,i,10.0f, rotations[i]);
+            }
+            i++;
+        }
+    }
 }
 
 void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float size, glm::vec3 color)
@@ -245,14 +315,17 @@ void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float si
     }
 }
 
-
+float SpriteRenderer::getSize(Board *board,int width,int height)
+{
+    return width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+}
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
     // std::cout << "Width: " << width << " " << "Height: " << height << std::endl;
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(playerIndex,board->getHexagon(j,i), width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth());
+            this->DrawHexagon(playerIndex,board->getHexagon(j,i), getSize(board,width,height));
         }
     }
 

@@ -179,6 +179,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
     ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
     ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield_placeholder");
+    ResourceManager::LoadTexture("textures/border_placeholder.png",true,"border_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
@@ -326,7 +327,10 @@ int Game::GetSelectedCastleIncome()
 void Game::Render()
 {
     Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
-
+    if (provinceSelector!=nullptr)
+    {
+        Renderer->DrawOutline(board,Renderer->getSize(board,this->Width,this->Height),board->getCurrentPlayerId(),provinceSelector);
+    }
     Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
     Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
 }
