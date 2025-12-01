@@ -138,14 +138,18 @@ public:
     int countFarms(Board* board);
     void setCastle(Board* board, int money);
     int removeCastle(Board* board);
+    int removeCastleAndCalculate(Board* board, uint oldownerId);
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(Hexagon*)> filter = nullptr);
     std::vector<Hexagon*> doubleFilterNeighbours(Board* board, int recursion, bool includeSelf, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter);
     std::vector<Hexagon*> province(Board* board);
     std::vector<Hexagon*> calculateProvince(Board *board);
+    bool isNextToTowerOrCastle(Board* board, uint8 id);
+    std::unordered_set<Hexagon*> getAllProtectedAreas(Board* board);
     int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
+    void removeTree(Board* board);
     bool place(Board* board, Resident resident, Hexagon* placement, bool send);
     std::vector<Hexagon *> possibleMovements(Board *board);
     bool move(Board *board, Hexagon *destination, bool send);
@@ -207,7 +211,7 @@ class Country
 
 public:
     Country(std::vector<Hexagon*> castles);
-
+    int tempMoneyStorage = 0;
     inline std::unordered_map<Hexagon*, int>& getCastles() noexcept { return castles; }
     inline void setPlayer(Player* player) noexcept { this->player = player; }
 };

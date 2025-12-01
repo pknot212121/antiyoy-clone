@@ -178,6 +178,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
     ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
     ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
+    ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
@@ -344,6 +345,8 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
             }
         }
     }
+    // NEED TO DO THIS BECAUSE IF YOU CAPTURE LAST CASTLE AND THEY GENERATE MORE THEY GET PUT ON THE LEADERBOARD
+    std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
 
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
@@ -352,11 +355,9 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
         for(Hexagon* h : province)
         {
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
-
         }
-        if (currentPlayerId == lastPlayerId) propagateTrees();
-
     }
+    if (currentPlayerId == lastPlayerId) propagateTrees();
 
     uint8 oldId = currentPlayerId;
 
@@ -445,6 +446,9 @@ void LocalPlayer::act()
                     moveAction(hex,p);
                     SelectAction(hex,p);
                 }
+                if (tower(hex->getResident()) || castle(hex->getResident())) Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
+                else Renderer->shieldHexes.clear();
+
                 game-> mousePressed = false;
             }
 
@@ -464,6 +468,7 @@ void LocalPlayer::act()
         {
             game->enterPressed = false;
             game->isFirstProvinceSet = false;
+            Renderer->shieldHexes.clear();
             game->board->nextTurn();
 
         }
@@ -479,7 +484,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
         if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
             if (game->selectedHex!=hex)
-                game->selectedHex->move(game->board,hex);
+                game->selectedHex->move(game->board,hex,true);
         }
         Renderer -> ClearBrightenedHexes();
         game->isHexSelected=false;
@@ -499,7 +504,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
     {
         std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
-            game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex);
+            game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex,true);
         }
         Renderer -> ClearBrightenedHexes();
     }
@@ -512,6 +517,10 @@ void LocalPlayer::SelectAction(Hexagon *hex,Point p)
     if (hexes.contains(hex))
     {
         game->provinceSelector = hex;
+    }
+    else
+    {
+        game->provinceSelector = nullptr;
     }
 }
 

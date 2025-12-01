@@ -5,6 +5,10 @@
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
 
 
 SpriteRenderer::SpriteRenderer(Shader &shader)
@@ -186,7 +190,7 @@ glm::vec2 Jump(float size)
     return glm::vec2(0.0f,pulse);
 }
 
-void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size, glm::vec3 color)
+void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float size, glm::vec3 color)
 {
     size *= resizeMultiplier;
     float smallSize = size * 0.8;
@@ -232,6 +236,11 @@ void SpriteRenderer::DrawHexagon(int playerIndex,const Hexagon* hex, float size,
             {
                 this->DrawSprite(ResourceManager::GetTexture("exclamation"), unitPos, smallSizeVec);
             }
+
+        }
+        if (hex->getOwnerId() == playerIndex && shieldHexes.contains(hex))
+        {
+            this->DrawSprite(ResourceManager::GetTexture("shield_placeholder"),unitPos,smallSizeVec);
         }
     }
 }

@@ -376,20 +376,7 @@ void Hexagon::setCastle(Board* board, int money)
     castlesMap[this] = money;
 }
 
-// Zwraca ilość pieniędzy zamku przed usunięciem
-int Hexagon::removeCastle(Board* board)
-{
-    if(castle(resident)) resident = Resident::Empty;
-    auto& castlesMap = board->getCountry(ownerId)->getCastles();
-    if(castlesMap.count(this))
-    {
-        int money = castlesMap[this];
-        castlesMap.erase(this);
-        if(!castlesMap.size()) board->leaderboardInsert(getOwnerId());
-        return money;
-    }
-    return 0;
-}
+
 
 std::unordered_set<Hexagon*> Board::getHexesOfCountry(uint8 id)
 {
@@ -578,9 +565,27 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
             std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
             newCastle = secondLine[rand(gen)];
         }
-        newCastle->setCastle(board, 0);
+        if (board->getCountry(ownerId)->tempMoneyStorage==0) newCastle->setCastle(board, 0);
+        else
+        {
+            newCastle->setCastle(board,board->getCountry(ownerId)->tempMoneyStorage);
+            board->getCountry(ownerId)->tempMoneyStorage=0;
+        }
+
     }
     return province;
+}
+
+bool Hexagon::isNextToTowerOrCastle(Board *board,uint8 id)
+{
+    return (neighbours(board, 0, false, [id](Hexagon* h) { return (tower(h->resident) || castle(h->resident)) && h->getOwnerId()==id; })).size() > 0 && !tower(resident) && !castle(resident);
+}
+
+std::unordered_set<Hexagon*> Hexagon::getAllProtectedAreas(Board* board)
+{
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(getOwnerId());
+    std::erase_if(hexes,[board,this](Hexagon *h){return !h->isNextToTowerOrCastle(board,getOwnerId());});
+    return hexes;
 }
 
 int Hexagon::calculateProvinceIncome(Board* board)
@@ -702,6 +707,21 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
     center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
 }
 
+// Zwraca ilość pieniędzy zamku przed usunięciem
+int Hexagon::removeCastle(Board* board)
+{
+    if(castle(resident)) resident = Resident::Empty;
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
+    if(castlesMap.count(this))
+    {
+        int money = castlesMap[this];
+        castlesMap.erase(this);
+        if(!castlesMap.size()) board->leaderboardInsert(getOwnerId());
+        return money;
+    }
+    return 0;
+}
+
 // Używać dla żołnierzy (kładzionych, nie przesuwanych), farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
@@ -753,6 +773,19 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     return std::vector<Hexagon*>();
 }
 
+void Hexagon::removeTree(Board *board)
+{
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
+    for (auto& it : castlesMap)
+    {
+        if (std::find(it.first->province(board).begin(),it.first->province(board).end(),this) != it.first->province(board).end())
+        {
+            it.second+=3;
+            break;
+        }
+    }
+}
+
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
 bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool send)
 {
@@ -776,9 +809,15 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
                 if(!warrior(merged)) return false;
                 placement->setResident(merged);
             }
-            else if(tree(placement->getResident()) || gravestone(placement->getResident()))
+            else if(gravestone(placement->getResident()))
             {
                 placement->setResident(::move(resident));
+            }
+            else if(tree(placement->getResident()))
+            {
+                placement->removeTree(board);
+                placement->setResident(::move(resident));
+
             }
             else
             {
@@ -789,7 +828,8 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
         else
         {
             uint8 oldOwnerId = placement->getOwnerId();
-            if(castle(placement->getResident())) placement->removeCastle(board);
+            if(castle(placement->getResident())) board->getCountry(oldOwnerId)->tempMoneyStorage+=placement->removeCastle(board);
+
             placement->setResident(::move(resident));
             placement->setOwnerId(castleHex->getOwnerId());
 
@@ -841,7 +881,7 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
         std::unordered_set<Hexagon*> border;
         std::vector<Hexagon*> newHexagons = { this };
         addNeighboursLayerWithBorder(board, visited, border, newHexagons, 3, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
-        
+
         valid.reserve(visited.size() + border.size());
         for (Hexagon* h : visited) if(h->allows(board, resident, ownerId)) valid.push_back(h);
         for (Hexagon* h : border) if(h->allows(board, resident, ownerId)) valid.push_back(h);
@@ -864,6 +904,7 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
     else
     {
         if(castle(destination->getResident())) destination->removeCastle(board);
+        if (tree(destination->getResident())) destination->removeTree(board);
         destination->setResident(::move(resident));
     }
     setResident(Resident::Empty);
@@ -902,3 +943,4 @@ Country::Country(std::vector<Hexagon*> castles)
         this->castles[h] = 100;
     }
 }
+
