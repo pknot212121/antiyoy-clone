@@ -101,6 +101,25 @@ int main(int argc, char *argv[])
         }
     }
 
+    if(gcd.x < 1 || gcd.y < 1)
+    {
+        std::cout << "X and Y need to be greater than 0\n";
+        getchar();
+        return 1;
+    }
+    if(gcd.minProvinceSize < 2 || gcd.maxProvinceSize < 2)
+    {
+        std::cout << "Min and Max province size need to be at least 2\n";
+        getchar();
+        return 1;
+    }
+    if(gcd.playerMarkers.length() < 2)
+    {
+        std::cout << "At least 2 players required\n";
+        getchar();
+        return 1;
+    }
+
     gcd.maxMoveTimes.reserve(gcd.playerMarkers.length());
     for(int i = 0; i < gcd.playerMarkers.length(); i++)
     {

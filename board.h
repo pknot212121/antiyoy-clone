@@ -140,9 +140,9 @@ public:
     int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
-    bool place(Board* board, Resident resident, Hexagon* placement);
+    bool place(Board* board, Resident resident, Hexagon* placement, bool send);
     std::vector<Hexagon *> possibleMovements(Board *board);
-    bool move(Board *board, Hexagon *destination);
+    bool move(Board *board, Hexagon *destination, bool send);
 
     inline void mark() noexcept { isMarked = true; }
     inline void unmark() noexcept { isMarked = false; }

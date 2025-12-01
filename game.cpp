@@ -70,7 +70,7 @@ void GameConfigData::sendGameConfigData(int receivingSocket)
         position += sizeof(vNet);
     }
 
-    sendData(receivingSocket, content, total);
+    sendData(content, total, receivingSocket);
 
     delete[] content;
 }
