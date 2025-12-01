@@ -137,6 +137,8 @@ public:
     std::vector<Hexagon*> doubleFilterNeighbours(Board* board, int recursion, bool includeSelf, std::function<bool(Hexagon*)> expansionFilter, std::function<bool(Hexagon*)> resultFilter);
     std::vector<Hexagon*> province(Board* board);
     std::vector<Hexagon*> calculateProvince(Board *board);
+    bool isNextToTowerOrCastle(Board* board, uint8 id);
+    std::unordered_set<Hexagon*> getAllProtectedAreas(Board* board);
     int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
     std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);

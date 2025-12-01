@@ -178,6 +178,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
     ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
     ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
+    ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
@@ -445,6 +446,9 @@ void LocalPlayer::act()
                     moveAction(hex,p);
                     SelectAction(hex,p);
                 }
+                if (tower(hex->getResident()) || castle(hex->getResident())) Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
+                else Renderer->shieldHexes.clear();
+
                 game-> mousePressed = false;
             }
 
@@ -464,6 +468,7 @@ void LocalPlayer::act()
         {
             game->enterPressed = false;
             game->isFirstProvinceSet = false;
+            Renderer->shieldHexes.clear();
             game->board->nextTurn();
 
         }

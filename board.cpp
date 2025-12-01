@@ -576,6 +576,18 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     return province;
 }
 
+bool Hexagon::isNextToTowerOrCastle(Board *board,uint8 id)
+{
+    return (neighbours(board, 0, false, [id](Hexagon* h) { return (tower(h->resident) || castle(h->resident)) && h->getOwnerId()==id; })).size() > 0 && !tower(resident) && !castle(resident);
+}
+
+std::unordered_set<Hexagon*> Hexagon::getAllProtectedAreas(Board* board)
+{
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(getOwnerId());
+    std::erase_if(hexes,[board,this](Hexagon *h){return !h->isNextToTowerOrCastle(board,getOwnerId());});
+    return hexes;
+}
+
 int Hexagon::calculateProvinceIncome(Board* board)
 {
     if(ownerId == 0) return 0;
@@ -911,3 +923,4 @@ Country::Country(std::vector<Hexagon*> castles)
         this->castles[h] = 100;
     }
 }
+

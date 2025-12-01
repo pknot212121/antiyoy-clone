@@ -111,6 +111,7 @@ public:
     Game *game;
     LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime = 60);
     virtual void act();
+
     void moveAction(Hexagon* hex, Point p);
     void spawnAction(Hexagon* hex, Point p);
     void SelectAction(Hexagon* hex, Point p);
