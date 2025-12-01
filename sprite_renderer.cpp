@@ -218,6 +218,8 @@ void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int in
     float a = size/2;
     std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
     for (auto& center : centers) center-=glm::vec2(a/2,width/2);
+    color = palette[hex->getOwnerId()%10];
+    color -= glm::vec3(0.25,0.25,0.25);
     this->DrawSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
 }
 std::vector<std::pair<coord, coord>> evenD =
@@ -253,7 +255,7 @@ void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
             Hexagon* n = board->getHexagon(hex->getX() + dx, hex->getY() + dy);
             if(n == nullptr || n->getOwnerId()!=id)
             {
-                this->DrawBorder(size,glm::vec3(1.0f),hex,i,10.0f, rotations[i]);
+                this->DrawBorder(size,glm::vec3(1.0f,1.0f,1.0f),hex,i,5.0f, rotations[i]);
             }
             i++;
         }

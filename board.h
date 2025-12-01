@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include <iostream>
 #include <vector>
 #include <unordered_map>

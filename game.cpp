@@ -179,7 +179,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
     ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
     ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield_placeholder");
-    ResourceManager::LoadTexture("textures/border_placeholder.png",true,"border_placeholder");
+    ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load("Roboto-Black.ttf", 24);
