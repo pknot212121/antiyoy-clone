@@ -776,14 +776,16 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
 void Hexagon::removeTree(Board *board)
 {
     auto& castlesMap = board->getCountry(ownerId)->getCastles();
-    for (auto& it : castlesMap)
+    std::vector<Hexagon*> province = this->province(board);
+    if(castle(province[0]->resident)) castlesMap[province[0]] += 3;
+    /*for (auto& it : castlesMap)
     {
         if (std::find(it.first->province(board).begin(),it.first->province(board).end(),this) != it.first->province(board).end())
         {
             it.second+=3;
             break;
         }
-    }
+    }*/
 }
 
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
@@ -849,7 +851,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
 
     if(send)
     {
-        char content[8]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy (2+2)
+        char content[12]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy z (2+2) + kordy do (2+2)
         char* position = content;
 
         *position++ = ACTION_SOCKET_TAG; // tag
@@ -857,7 +859,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
         *position++ = 1; // tag akcji (1 - położenie)
         *position++ = static_cast<char>(resident); // rezydent
 
-        for(coord c : { x, y })
+        for(coord c : { x, y, placement->getX(), placement->getY() })
         {
             ucoord net = htons(c);
             memcpy(position, &net, sizeof(net));
