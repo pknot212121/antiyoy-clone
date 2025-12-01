@@ -809,7 +809,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
 
     if(send)
     {
-        char content[8]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy (2+2)
+        char content[12]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy z (2+2) + kordy do (2+2)
         char* position = content;
 
         *position++ = ACTION_SOCKET_TAG; // tag
@@ -817,7 +817,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
         *position++ = 1; // tag akcji (1 - położenie)
         *position++ = static_cast<char>(resident); // rezydent
 
-        for(coord c : { x, y })
+        for(coord c : { x, y, placement->getX(), placement->getY() })
         {
             ucoord net = htons(c);
             memcpy(position, &net, sizeof(net));

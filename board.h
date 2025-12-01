@@ -15,6 +15,13 @@
 typedef int16_t coord;
 typedef uint16_t ucoord;
 
+inline coord decodeCoord(const char* ptr)
+{
+    uint16_t net;
+    memcpy(&net, ptr, 2);
+    return ntohs(net);
+}
+
 // NIE ZMIENIAĆ KOLEJNOŚCI WARTOŚCI ANI NIE DODAWAĆ NOWYCH BEZ ZGODY
 enum class Resident : uint8
 {

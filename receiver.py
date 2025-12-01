@@ -295,13 +295,13 @@ class ActionBuilder:
         self.buffer = bytearray()
         self.num = 0
 
-    def add_place(self, unit_id: int, x: int, y: int):
+    def add_place(self, unit_id: int, x_from: int, y_from: int, x_to: int, y_to: int):
         """
         Postawienie jednostki na polu o pozycji
         """
         self.buffer.append(ActionType.PLACE)
         self.buffer.append(unit_id)
-        self.buffer.extend(struct.pack("!HH", x, y))
+        self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
         num += 1
         if num == 255:
             self.send()
@@ -321,7 +321,7 @@ class ActionBuilder:
         Zakończenie tury, wstawienie tego od razu wywołuje send() (bo już nic dalej nie można zrobić)
         """
         self.buffer.append(ActionType.END_TURN)
-        return self.send()
+        self.send()
 
     def send(self):
         """
@@ -334,6 +334,7 @@ class ActionBuilder:
         sock.sendall(bytes([self.num]))
         sock.sendall(self.buffer)
 
+        self.num = 0
         self.buffer.clear()
 
 

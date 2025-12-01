@@ -214,18 +214,18 @@ void Game::Init(GameConfigData& gcd)
         for(uint8 i = 0; i < playersNumber; i++)
         {
             if(markers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, gcd.maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
-            else if(markers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, clientSocks[0], gcd.maxMoveTimes[i]));
+            else if(markers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, this, clientSocks[0], gcd.maxMoveTimes[i]));
             else if(markers[i] == 'N')
             {
                 if(isHost)
                 {
-                    players.push_back(new NetworkPlayer(&countries[i], i+1, clientSocks[networkSockIndex], gcd.maxMoveTimes[i]));
+                    players.push_back(new NetworkPlayer(&countries[i], i+1, this, clientSocks[networkSockIndex], gcd.maxMoveTimes[i]));
                     gcd.playerMarkers[i] = 'L';
                     gcd.sendGameConfigData(clientSocks[networkSockIndex]);
                     gcd.playerMarkers[i] = 'N';
                     networkSockIndex++;
                 }
-                else players.push_back(new NetworkPlayer(&countries[i], i+1, sock, gcd.maxMoveTimes[i]));
+                else players.push_back(new NetworkPlayer(&countries[i], i+1, this, sock, gcd.maxMoveTimes[i]));
             }
             else
             {
@@ -401,12 +401,12 @@ void Board::nextTurn() // Definicja przeniesiona tutaj ze względu na game->getP
 }
 
 
-Player::Player(Country* country, uint8 id, unsigned int maxMoveTime) : country(country), id(id), maxMoveTime(maxMoveTime)
+Player::Player(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : country(country), id(id), game(game), maxMoveTime(maxMoveTime)
 {
     country->setPlayer(this);
 }
 
-LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), game(game)
+LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime)
 {
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
 }
@@ -515,7 +515,7 @@ void LocalPlayer::SelectAction(Hexagon *hex,Point p)
     }
 }
 
-BotPlayer::BotPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock)
+BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
 {
     std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
 }
@@ -530,11 +530,121 @@ void BotPlayer::act()
     
 }
 
-NetworkPlayer::NetworkPlayer(Country* country, uint8 id, int receiveSock, unsigned int maxMoveTime) : Player(country, id, maxMoveTime), receiveSock(receiveSock)
+NetworkPlayer::NetworkPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
 {
     std::cout << "Network player created with max move time " << maxMoveTime << "\n";
 }
 
+void executeActions(Board* board, char* actions, uint8 actionsNumber)
+{
+    for(int i = 0; i < actionsNumber; i++)
+    {
+        if(*actions == 0)
+        {
+            actions++;
+            board->nextTurn();
+            break;
+        }
+        else if(*actions == 1)
+        {
+            actions++;
+            Resident resident = (Resident)(*actions);
+            coord xF = decodeCoord(actions + 1);
+            coord yF = decodeCoord(actions + 3);
+            coord xT = decodeCoord(actions + 5);
+            coord yT = decodeCoord(actions + 7);
+            Hexagon* hex = board->getHexagon(xF, yF);
+            hex->place(board, resident, board->getHexagon(xT, yT), false);
+            actions += 9;
+        }
+        else if(*actions == 2)
+        {
+            actions++;
+            coord xF = decodeCoord(actions);
+            coord yF = decodeCoord(actions + 2);
+            coord xT = decodeCoord(actions + 4);
+            coord yT = decodeCoord(actions + 6);
+            Hexagon* hex = board->getHexagon(xF, yF);
+            hex->move(board, board->getHexagon(xT, yT), false);
+            actions += 8;
+        }
+        else return;
+    }
+}
+
 void NetworkPlayer::act()
 {
+    switchSocketMode(receiveSock, 1);
+
+    char tag;
+    if(recv(receiveSock, &tag, 1, 0) > 0)
+    {
+        if(tag == ACTION_SOCKET_TAG)
+        {
+            switchSocketMode(receiveSock, 0);
+            uint8 actionsNumber;
+            if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
+            {
+                std::vector<char> data = {tag, static_cast<char>(actionsNumber)};
+                for(int i = 0; i < actionsNumber; i++)
+                {
+                    char action;
+                    if(recv(receiveSock, &action, 1, 0) > 0)
+                    {
+                        data.push_back(action);
+                        if(action == 0)
+                        {
+                            game->board->nextTurn();
+                            break;
+                        }
+                        else if(action == 1)
+                        {
+                            char content[9];
+                            int total = 0;
+                            while (total < sizeof(content))
+                            {
+                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                                if (r <= 0) goto error;
+                                total += r;
+                            }
+                            data.insert(data.end(), content, content + sizeof(content));
+                        }
+                        else if(action == 2)
+                        {
+                            char content[8];
+                            int total = 0;
+                            while (total < sizeof(content))
+                            {
+                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                                if (r <= 0) goto error;
+                                total += r;
+                            }
+                            data.insert(data.end(), content, content + sizeof(content));
+                        }
+                        else goto invalidContent;
+                    }
+                    else goto error;
+                }
+
+                executeActions(game->board, data.data() + 2, actionsNumber);
+
+                sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
+            }
+            else goto error;
+        }
+    }
+    else switchSocketMode(receiveSock, defaultSocketMode);
+
+    return;
+error:
+    switchSocketMode(receiveSock, defaultSocketMode);
+    // Coś wymyślę
+    std::cout << "Read error\n";
+    return;
+
+invalidContent:
+    switchSocketMode(receiveSock, defaultSocketMode);
+    // Tu też
+    std::cout << "Invalid content\n";
+    return;
 }
