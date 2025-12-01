@@ -536,7 +536,79 @@ BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, un
 
 void BotPlayer::act()
 {
-    
+    switchSocketMode(receiveSock, 1);
+
+    char tag;
+    if(recv(receiveSock, &tag, 1, 0) > 0)
+    {
+        if(tag == ACTION_SOCKET_TAG)
+        {
+            switchSocketMode(receiveSock, 0);
+            uint8 actionsNumber;
+            if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
+            {
+                std::vector<char> data = {tag, static_cast<char>(actionsNumber)};
+                for(int i = 0; i < actionsNumber; i++)
+                {
+                    char action;
+                    if(recv(receiveSock, &action, 1, 0) > 0)
+                    {
+                        data.push_back(action);
+                        if(action == 0)
+                        {
+                            game->board->nextTurn();
+                            break;
+                        }
+                        else if(action == 1)
+                        {
+                            char content[9];
+                            int total = 0;
+                            while (total < sizeof(content))
+                            {
+                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                                if (r <= 0) goto error;
+                                total += r;
+                            }
+                            data.insert(data.end(), content, content + sizeof(content));
+                        }
+                        else if(action == 2)
+                        {
+                            char content[8];
+                            int total = 0;
+                            while (total < sizeof(content))
+                            {
+                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                                if (r <= 0) goto error;
+                                total += r;
+                            }
+                            data.insert(data.end(), content, content + sizeof(content));
+                        }
+                        else goto invalidContent;
+                    }
+                    else goto error;
+                }
+
+                executeActions(game->board, data.data() + 2, actionsNumber);
+
+                sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
+            }
+            else goto error;
+        }
+    }
+    else switchSocketMode(receiveSock, defaultSocketMode);
+
+    return;
+error:
+    switchSocketMode(receiveSock, defaultSocketMode);
+    // Coś wymyślę
+    std::cout << "Read error\n";
+    return;
+
+invalidContent:
+    switchSocketMode(receiveSock, defaultSocketMode);
+    // Tu też
+    std::cout << "Invalid content\n";
+    return;
 }
 
 NetworkPlayer::NetworkPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
