@@ -37,6 +37,8 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::PineTree,"tree_placeholder"},
 };
 
+
+
 inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warrior2,Resident::Warrior3,Resident::Warrior4};
 
 class SpriteRenderer
@@ -50,10 +52,13 @@ public:
     void DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
     // void DrawHexagon(float x, float y, float a, glm::vec3 col);
     void DrawHexagon(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.0f));
+    float getSize(Board* board, int width, int height);
     Point CheckWhichHexagon(int x, int y, float size);
     void Zoom(float zoomFactor, float pivotX, float pivotY);
     // void DrawWarrior(Hexagon hex,Warrior war);
     void DrawBoard(Board* board, int width, int height, int playerIndex);
+    void DrawBorder(float size, glm::vec3 color, Hexagon* hex, int index, float width, float rotation);
+    void DrawOutline(Board* board, float size, uint8 id, Hexagon* h);
     void InitPalette();
     void addToDisplacementX(int dx);
     void addToDisplacementY(int dy);
