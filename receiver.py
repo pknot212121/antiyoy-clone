@@ -55,7 +55,7 @@ class Board:
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 BOARD_SOCKET_TAG = 2 # Plansza (spłaszczona dwuwymiarowa tablica heksagonów)
-MOVE_SOCKET_TAG = 3 # Ruchy (wysyłane przez AI do gry)
+ACTION_SOCKET_TAG = 3 # Ruchy (wysyłane przez AI do gry)
 CONFIRMATION_SOCKET_TAG = 4 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
 TURN_CHANGE_SOCKET_TAG = 5 # Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
 GAME_OVER_SOCKET_TAG = 6 # Numery graczy w kolejności od wygranego do pierwszego który odpadł
@@ -66,7 +66,7 @@ sock = None # Socket
 
 
 
-def recv_all(sock, size):
+def recv_size(sock, size):
     """Odbiera size bajtów lub rzuca wyjątek"""
     data = bytearray()
     while len(data) < size:
@@ -99,25 +99,25 @@ def receive_config():
     """
 
     # 1) x, y (uint16)
-    header = recv_all(sock, 2 + 2)
+    header = recv_size(sock, 2 + 2)
     x, y = struct.unpack("!HH", header)
 
     # 2) seed, minProvinceSize, maxProvinceSize (uint32)
-    numbers = recv_all(sock, 4 * 3)
+    numbers = recv_size(sock, 4 * 3)
     seed, minProv, maxProv = struct.unpack("!III", numbers)
 
     # 3) Rozmiar playerMarkers (bajt)
-    size_player_markers = recv_all(sock, 1)[0]
+    size_player_markers = recv_size(sock, 1)[0]
 
     # 4) Zawartość playerMarkers
-    markers_raw = recv_all(sock, size_player_markers)
+    markers_raw = recv_size(sock, size_player_markers)
     playerMarkers = markers_raw.decode("ascii")
 
     # 5) Rozmiar maxMoveTimes (bajt)
-    size_move_times = recv_all(sock, 1)[0]
+    size_move_times = recv_size(sock, 1)[0]
 
     # 6) Zawartość maxMoveTimes
-    move_times_raw = recv_all(sock, 4 * size_move_times)
+    move_times_raw = recv_size(sock, 4 * size_move_times)
     maxMoveTimes = list(struct.unpack("!" + "I" * size_move_times, move_times_raw))
 
     return {
@@ -249,37 +249,78 @@ def receive_all():
 
     return result
 
+def receive_next():
+    """
+    Odbiera jedną rzecz z socketa
+    """
+    result = (None, None)
+    tag = sock.recv(1)
+    if not tag:
+        return result
+    tag = struct.unpack('B', tag)[0]
+
+    if tag == MAGIC_SOCKET_TAG:
+        result = (MAGIC_SOCKET_TAG, receive_magic())
+
+    elif tag == CONFIGURATION_SOCKET_TAG:
+        result = (CONFIGURATION_SOCKET_TAG, receive_config())
+
+    elif tag == BOARD_SOCKET_TAG:
+        result = (BOARD_SOCKET_TAG, receive_board())
+
+    elif tag == CONFIRMATION_SOCKET_TAG:
+        result = (CONFIRMATION_SOCKET_TAG, receive_confirmation())
+
+    elif tag == TURN_CHANGE_SOCKET_TAG:
+        result = (TURN_CHANGE_SOCKET_TAG, receive_turn_change())
+
+    elif tag == GAME_OVER_SOCKET_TAG:
+        result = (GAME_OVER_SOCKET_TAG, receive_game_over())
+    
+    else: # Odebrano nieznany tag, socket najpewniej jest zawalony śmieciami z którymi nie wiemy co zrobić, nie możemy wydedukować stanu gry, trzeba zakończyć
+        sock.close()
+        raise RuntimeError("Received incorrect data")
+
+    return result
+
 
 # Klasa do budowy odpowiedzi wysyłanej przez AI
-class MoveType:
+class ActionType:
     END_TURN = 0
     PLACE = 1
     MOVE = 2
 
-class MoveBuilder:
+class ActionBuilder:
     def __init__(self):
         self.buffer = bytearray()
+        self.num = 0
 
     def add_place(self, unit_id: int, x: int, y: int):
         """
         Postawienie jednostki na polu o pozycji
         """
-        self.buffer.append(MoveType.PLACE)
+        self.buffer.append(ActionType.PLACE)
         self.buffer.append(unit_id)
         self.buffer.extend(struct.pack("!HH", x, y))
+        num += 1
+        if num == 255:
+            self.send()
 
     def add_move(self, x_from: int, y_from: int, x_to: int, y_to: int):
         """
         Przesunięcie jednostki z pozycji na pozycję
         """
-        self.buffer.append(MoveType.MOVE)
+        self.buffer.append(ActionType.MOVE)
         self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
+        num += 1
+        if num == 255:
+            self.send()
 
     def add_end_turn(self):
         """
         Zakończenie tury, wstawienie tego od razu wywołuje send() (bo już nic dalej nie można zrobić)
         """
-        self.buffer.append(MoveType.END_TURN)
+        self.buffer.append(ActionType.END_TURN)
         return self.send()
 
     def send(self):
@@ -289,7 +330,8 @@ class MoveBuilder:
         if not self.buffer:
             return
 
-        sock.sendall(bytes([MOVE_SOCKET_TAG]))
+        sock.sendall(bytes([ACTION_SOCKET_TAG]))
+        sock.sendall(bytes([self.num]))
         sock.sendall(self.buffer)
 
         self.buffer.clear()
@@ -312,31 +354,30 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     sock.connect((HOST, PORT))
     while True:
-        received = receive_all() # Czeka na dane
+        tag, payload = receive_next() # Czeka na dane
 
-        if not received: # Jeśli nie otrzymamy danych
+        if not tag: # Jeśli nie otrzymamy danych
             print("Server disconnected")
             input()
             break
 
-        for tag, payload in received:
-            if tag == MAGIC_SOCKET_TAG:
-                if payload:
-                    print("Correct magic numbers!")
-                else:
-                    print("Wrong magic numbers!")
-            
-            elif tag == CONFIGURATION_SOCKET_TAG:
-                print("Configuration received:")
-                print(payload)
+        if tag == MAGIC_SOCKET_TAG:
+            if payload:
+                print("Correct magic numbers!")
+            else:
+                print("Wrong magic numbers!")
+        
+        elif tag == CONFIGURATION_SOCKET_TAG:
+            print("Configuration received:")
+            print(payload)
 
-            elif tag == CONFIRMATION_SOCKET_TAG:
-                approved, awaiting = payload
-                print("Confirmation:", approved, awaiting)
+        elif tag == CONFIRMATION_SOCKET_TAG:
+            approved, awaiting = payload
+            print("Confirmation:", approved, awaiting)
 
-            elif tag == BOARD_SOCKET_TAG:
-                print("New board:")
-                print(payload)
+        elif tag == BOARD_SOCKET_TAG:
+            print("New board:")
+            print(payload)
 
 except:
     print("Connection error")

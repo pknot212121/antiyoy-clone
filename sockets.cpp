@@ -34,16 +34,37 @@ void switchSocketMode(int sock, u_long mode)
 #endif
 }
 
-void sendData(int receivingSocket, char* data, int size)
+void sendData(char* data, int size, int receivingSocket, int exceptionSocket)
 {
-    for(int s : clientSocks)
+    if(invalidSocks()) return;
+    if(clientSocks.size())
     {
-        if(receivingSocket == -1 || s == receivingSocket)
+        for(int s : clientSocks)
+        {
+            if((receivingSocket == -1 || s == receivingSocket) && s != exceptionSocket)
+            {
+                int sentBytes = 0;
+                while (sentBytes < size)
+                {
+                    int r = send(s, data + sentBytes, size - sentBytes, 0);
+                    if (r <= 0)
+                    {
+                        std::cout << "Failed to send data\n";
+                        break;
+                    }
+                    sentBytes += r;
+                }
+            }
+        }
+    }
+    else
+    {
+        if((receivingSocket == -1 || sock == receivingSocket) && sock != exceptionSocket)
         {
             int sentBytes = 0;
             while (sentBytes < size)
             {
-                int r = send(s, data + sentBytes, size - sentBytes, 0);
+                int r = send(sock, data + sentBytes, size - sentBytes, 0);
                 if (r <= 0)
                 {
                     std::cout << "Failed to send data\n";
@@ -320,7 +341,7 @@ void sendMagicNumbers(int receivingSocket)
     char content[1 + sizeof(magicNumbers)];
     content[0] = MAGIC_SOCKET_TAG;
     memcpy(content + 1, magicNumbers, sizeof(magicNumbers));
-    sendData(receivingSocket, content, sizeof(content));
+    sendData(content, sizeof(content), receivingSocket);
 }
 
 void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
@@ -334,7 +355,7 @@ void sendConfirmation(bool approved, bool awaiting, int receivingSocket)
     content[0] = CONFIRMATION_SOCKET_TAG;
     content[1] = approved;
     content[2] = awaiting;
-    sendData(receivingSocket, content, sizeof(content));
+    sendData(content, sizeof(content), receivingSocket);
 }
 
 void sendTurnChange(uint8 player, int receivingSocket)
@@ -347,7 +368,7 @@ void sendTurnChange(uint8 player, int receivingSocket)
     char content[2];
     content[0] = TURN_CHANGE_SOCKET_TAG;
     content[1] = player;
-    sendData(receivingSocket, content, sizeof(content));
+    sendData(content, sizeof(content), receivingSocket);
 }
 
 

@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <cstring>
 #include <set>
+#include <algorithm>
 
 
 void markAll(std::vector<Hexagon *> hexagons)
@@ -312,7 +313,7 @@ void Board::sendBoard(int receivingSocket)
         position[i * 2 + 1] = static_cast<uint8>(board[i].getResident());
     }
 
-    sendData(receivingSocket, reinterpret_cast<char*>(result), total);
+    sendData(reinterpret_cast<char*>(result), total, receivingSocket);
     
     delete[] result;
 }
@@ -331,7 +332,7 @@ void Board::sendGameOver(int receivingSocket)
     lb[1] = lbSize;
     memcpy(lb + 2, leaderboard.data(), lbSize);
 
-    sendData(receivingSocket, reinterpret_cast<char*>(lb), total);
+    sendData(reinterpret_cast<char*>(lb), total, receivingSocket);
     
     delete[] lb;
 }
@@ -753,7 +754,7 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
 }
 
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
-bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
+bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool send)
 {
     Hexagon* castleHex;
     if(castle(getResident())) castleHex = this;
@@ -805,6 +806,26 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement)
     }
     else return false;
     castles[castleHex] -= price;
+
+    if(send)
+    {
+        char content[8]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy (2+2)
+        char* position = content;
+
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 1; // tag akcji (1 - położenie)
+        *position++ = static_cast<char>(resident); // rezydent
+
+        for(coord c : { x, y })
+        {
+            ucoord net = htons(c);
+            memcpy(position, &net, sizeof(net));
+            position += sizeof(net);
+        }
+        sendData(content, sizeof(content), -1);
+    }
+
     return true;
 }
 
@@ -829,7 +850,7 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 }
 
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
-bool Hexagon::move(Board* board, Hexagon* destination)
+bool Hexagon::move(Board* board, Hexagon* destination, bool send)
 {
     if(!unmovedWarrior(resident)) return false;
     if(!destination->allows(board, resident, ownerId)) return false;
@@ -851,6 +872,24 @@ bool Hexagon::move(Board* board, Hexagon* destination)
     {
         destination->setOwnerId(ownerId);
         calculateEnvironment(board, destination, oldOwnerId);
+    }
+
+    if(send)
+    {
+        char content[11]; // tag (1) + liczba akcji (1) + tag akcji (1) + kordy z (2+2) + kordy do (2+2)
+        char* position = content;
+
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 2; // tag akcji (2 - położenie)
+
+        for(coord c : { x, y, destination->getX(), destination->getY() })
+        {
+            ucoord net = htons(c);
+            memcpy(position, &net, sizeof(net));
+            position += sizeof(net);
+        }
+        sendData(content, sizeof(content), -1);
     }
     return true;
 }
