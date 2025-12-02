@@ -332,9 +332,9 @@ void Game::Render()
     if (provinceSelector!=nullptr)
     {
         Renderer->DrawOutline(board,Renderer->getSize(board,this->Width,this->Height),board->getCurrentPlayerId(),provinceSelector);
+        Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
+        Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
     }
-    Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
-    Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
 }
 
 
