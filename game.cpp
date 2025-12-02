@@ -161,7 +161,7 @@ Game::~Game()
 void Game::Init(GameConfigData& gcd)
 {
     // load shaders
-    ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
+    ResourceManager::LoadShader("sprite");
     // configure shaders
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), 
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
@@ -184,7 +184,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
-    Text->Load("Roboto-Black.ttf", 24);
+    Text->Load(24);
     if(gcd.seed == 0) gcd.seed = std::random_device{}();
     gen = std::mt19937(gcd.seed);
 
@@ -332,9 +332,9 @@ void Game::Render()
     if (provinceSelector!=nullptr)
     {
         Renderer->DrawOutline(board,Renderer->getSize(board,this->Width,this->Height),board->getCurrentPlayerId(),provinceSelector);
+        Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
+        Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
     }
-    Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
-    Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
 }
 
 
@@ -404,6 +404,7 @@ void LocalPlayer::act()
         {
             game->enterPressed = false;
             game->isFirstProvinceSet = false;
+            game->provinceSelector=nullptr;
             Renderer->shieldHexes.clear();
             game->board->nextTurn(true);
 

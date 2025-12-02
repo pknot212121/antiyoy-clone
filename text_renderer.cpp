@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include "font.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -11,7 +11,7 @@
 TextRenderer::TextRenderer(unsigned int width, unsigned int height)
 {
     // load and configure shader
-    this->TextShader = ResourceManager::LoadShader("shaders/text.vs", "shaders/text.fs", nullptr, "text");
+    this->TextShader = ResourceManager::LoadShaderText("text");
     this->TextShader.SetMatrix4("projection", glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f), true);
     this->TextShader.SetInteger("text", 0);
     // configure VAO/VBO for texture quads
@@ -26,7 +26,7 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height)
     glBindVertexArray(0);
 }
 
-void TextRenderer::Load(std::string font, unsigned int fontSize)
+void TextRenderer::Load(unsigned int fontSize)
 {
     // first clear the previously loaded Characters
     this->Characters.clear();
@@ -36,7 +36,7 @@ void TextRenderer::Load(std::string font, unsigned int fontSize)
         std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
     // load font as face
     FT_Face face;
-    if (FT_New_Face(ft, font.c_str(), 0, &face))
+    if (FT_New_Memory_Face(ft, Roboto_Black_ttf,Roboto_Black_ttf_len ,0, &face))
         std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
     // set size to load glyphs as
     FT_Set_Pixel_Sizes(face, 0, fontSize);
@@ -86,7 +86,6 @@ void TextRenderer::Load(std::string font, unsigned int fontSize)
             static_cast<unsigned int>(face->glyph->advance.x)
         };
         Characters.insert(std::pair<char, Character>(c, character));
-
 
 
 

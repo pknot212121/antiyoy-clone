@@ -5,7 +5,10 @@
 #include <map>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+#include "shaders-arr/sprite_vs.h"
+#include "shaders-arr/sprite_fs.h"
+#include "shaders-arr/text_vs.h"
+#include "shaders-arr/text_fs.h"
 // Instantiate static variables
 std::map<std::string, Texture2D>    ResourceManager::Textures;
 std::map<std::string, Shader>       ResourceManager::Shaders;
@@ -14,6 +17,18 @@ std::map<std::string, Shader>       ResourceManager::Shaders;
 Shader& ResourceManager::LoadShader(const char *vShaderFile, const char *fShaderFile, const char *gShaderFile, std::string name)
 {
     Shaders[name] = loadShaderFromFile(vShaderFile, fShaderFile, gShaderFile);
+    return Shaders[name];
+}
+
+Shader& ResourceManager::LoadShader(std::string name)
+{
+    Shaders[name] = loadDefaultShader();
+    return Shaders[name];
+}
+
+Shader& ResourceManager::LoadShaderText(std::string name)
+{
+    Shaders[name] = loadTextShader();
     return Shaders[name];
 }
 
@@ -86,6 +101,21 @@ Shader ResourceManager::loadShaderFromFile(const char *vShaderFile, const char *
     shader.Compile(vShaderCode, fShaderCode, gShaderFile != nullptr ? gShaderCode : nullptr);
     return shader;
 }
+
+Shader ResourceManager::loadDefaultShader()
+{
+    Shader shader;
+    shader.Compile(shaders_sprite_vs,shaders_sprite_fs,nullptr);
+    return shader;
+}
+
+Shader ResourceManager::loadTextShader()
+{
+    Shader shader;
+    shader.Compile(shaders_text_vs,shaders_text_fs,nullptr);
+    return shader;
+}
+
 
 Texture2D ResourceManager::loadTextureFromFile(const char *file, bool alpha)
 {

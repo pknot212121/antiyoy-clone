@@ -82,18 +82,17 @@ void SpriteRenderer::ClearBrightenedHexes()
 
 std::vector<int> rand_vect(std::vector<int> base_vector)
 {
-    srand(time(NULL));
     std::vector<int> temp_vector;
     int reps = base_vector.size();
 
-    //Pull a random element from base_vector, add it to temp_vector, then delete it from base_vector
     for (int i = 0; i < reps; i++)
     {
-        int random_number = rand() % base_vector.size();
+        std::uniform_int_distribution<> dis(0, base_vector.size() - 1);
+        int random_number = dis(gen);
+
         temp_vector.push_back(base_vector[random_number]);
         base_vector.erase(base_vector.begin() + random_number);
     }
-
     return temp_vector;
 }
 
