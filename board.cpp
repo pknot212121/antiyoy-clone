@@ -259,8 +259,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             }
         }
     }
-    // NEED TO DO THIS BECAUSE IF YOU CAPTURE LAST CASTLE AND THEY GENERATE MORE THEY GET PUT ON THE LEADERBOARD
-    std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
+    //std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
 
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
@@ -276,15 +275,10 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
     uint8 oldId = currentPlayerId;
 
     bool retry = true;
-    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
+    while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        retry = false;
-        for(uint8 id : leaderboard)
-        {
-            if(currentPlayerId == id) retry = true;
-        }
-
+        retry = getCountries()[currentPlayerId].getCastles().size() == 0; // Jeśli nie ma zamków to powtarzamy
     }
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
