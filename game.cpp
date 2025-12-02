@@ -404,6 +404,7 @@ void LocalPlayer::act()
         {
             game->enterPressed = false;
             game->isFirstProvinceSet = false;
+            game->provinceSelector=nullptr;
             Renderer->shieldHexes.clear();
             game->board->nextTurn(true);
 
