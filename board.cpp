@@ -321,7 +321,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
         *position++ = 1; // liczba akcji (jedna)
         *position++ = 0; // tag akcji (0 - koniec tury)
         sendData(content, sizeof(content), -1);
-        std::cout << "Sent next turn\n";
+        //std::cout << "Sent next turn\n";
     }
 
     //game->getPlayer(currentPlayerId)->actStart();

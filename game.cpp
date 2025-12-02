@@ -557,14 +557,14 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
     {
         if(*actions == 0)
         {
-            std::cout << "NP ended turn\n";
+            //std::cout << "NP ended turn\n";
             actions++;
             board->nextTurn(false);
             break;
         }
         else if(*actions == 1)
         {
-            std::cout << "NP placed\n";
+            //std::cout << "NP placed\n";
             actions++;
             Resident resident = (Resident)(*actions);
             coord xF = decodeCoord(actions + 1);
@@ -577,7 +577,7 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
         }
         else if(*actions == 2)
         {
-            std::cout << "NP moved\n";
+            //std::cout << "NP moved\n";
             actions++;
             coord xF = decodeCoord(actions);
             coord yF = decodeCoord(actions + 2);
