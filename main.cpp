@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
             std::cout << "Searching for a server...\n";
             searchForServer(discoveryPort, &ipAddress, &port);
 
+            std::cout << "IP: " << ipAddress << ", Port: " << port << '\n';
             std::cout << "Server found, connecting...\n";
             if(!connectToServer(ipAddress, port))
             {
