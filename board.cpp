@@ -245,6 +245,88 @@ void Board::spawnTrees(double treeRatio)
     }
 }
 
+
+void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na game->getPlayer()
+{
+    if (getCountry(lastPlayerId)->getCastles().size() <= 0)
+    {
+        for (int i = lastPlayerId - 1; i >= 1; i--)
+        {
+            if (getCountry(i)->getCastles().size() > 0)
+            {
+                lastPlayerId = i;
+                break;
+            }
+        }
+    }
+    // NEED TO DO THIS BECAUSE IF YOU CAPTURE LAST CASTLE AND THEY GENERATE MORE THEY GET PUT ON THE LEADERBOARD
+    std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
+
+    std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : oldCastles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+        }
+    }
+    if (currentPlayerId == lastPlayerId) propagateTrees();
+
+    uint8 oldId = currentPlayerId;
+
+    bool retry = true;
+    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
+    {
+        currentPlayerId = currentPlayerId % countries.size() + 1;
+        retry = false;
+        for(uint8 id : leaderboard)
+        {
+            if(currentPlayerId == id) retry = true;
+        }
+
+    }
+
+    std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
+    for (auto& [caslteHex, money] : castles)
+    {
+        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+        for(Hexagon* h : province)
+        {
+            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+            if (gravestone(h->getResident()))
+            {
+                if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
+                else h->setResident(Resident::PineTree);
+            }
+        }
+        money += calculateIncome(province);
+
+        if (money<0)
+        {
+            for (Hexagon *h : province)
+            {
+                if (unmovedWarrior(h->getResident())) h->setResident(Resident::Gravestone);
+            }
+        }
+
+    }
+
+    if(send)
+    {
+        char content[3]; // tag (1) + liczba akcji (1) + tag akcji (1)
+        char* position = content;
+
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 0; // tag akcji (0 - koniec tury)
+        sendData(content, sizeof(content), -1);
+    }
+
+    //game->getPlayer(currentPlayerId)->actStart();
+}
+
+
 void Board::propagateTrees()
 {
     std::uniform_real_distribution<double> chanceDist(0.0,1.0);

@@ -198,7 +198,7 @@ public:
     inline const Game* getGame() const noexcept { return game; }
     inline int getCurrentPlayerId() const noexcept { return currentPlayerId; }
 
-    void nextTurn(); // Definicja w game.cpp
+    void nextTurn(bool send); // Definicja w game.cpp
     void propagateTrees();
     void sendBoard(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);

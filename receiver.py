@@ -295,12 +295,12 @@ class ActionBuilder:
         self.buffer = bytearray()
         self.num = 0
 
-    def add_place(self, unit_id: int, x_from: int, y_from: int, x_to: int, y_to: int):
+    def add_place(self, resident: int, x_from: int, y_from: int, x_to: int, y_to: int):
         """
         Postawienie jednostki na polu o pozycji
         """
         self.buffer.append(ActionType.PLACE)
-        self.buffer.append(unit_id)
+        self.buffer.append(resident)
         self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
         num += 1
         if num == 255:
