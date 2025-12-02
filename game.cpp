@@ -161,7 +161,7 @@ Game::~Game()
 void Game::Init(GameConfigData& gcd)
 {
     // load shaders
-    ResourceManager::LoadShader("shaders/sprite.vs", "shaders/sprite.fs", nullptr, "sprite");
+    ResourceManager::LoadShader("sprite");
     // configure shaders
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), 
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
