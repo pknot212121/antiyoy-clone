@@ -278,7 +278,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
     while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        retry = getCountries()[currentPlayerId].getCastles().size() == 0; // Jeśli nie ma zamków to powtarzamy
+        retry = getCountry(currentPlayerId)->getCastles().size() == 0; // Jeśli nie ma zamków to powtarzamy
     }
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
@@ -780,7 +780,7 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
             h->calculateProvince(board);
         }
 
-        if(board->getCountries()[oldOwnerId].getCastles().size() == 0) board->eliminateCountry(oldOwnerId);
+        if(board->getCountry(oldOwnerId)->getCastles().size() == 0) board->eliminateCountry(oldOwnerId);
     }
 
     center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
