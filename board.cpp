@@ -780,7 +780,10 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
             h->calculateProvince(board);
         }
 
-        if(board->getCountry(oldOwnerId)->getCastles().size() == 0) board->eliminateCountry(oldOwnerId);
+        if(board->getCountry(oldOwnerId)->getCastles().size() == 0)
+        {
+            if(!board->leaderboardContains(oldOwnerId)) board->eliminateCountry(oldOwnerId);
+        }
     }
 
     center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
@@ -790,6 +793,7 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
 void Board::eliminateCountry(uint8 id)
 {
     leaderboardInsert(id);
+    std::cout << "Country " << (int)id << " eliminated!\n";
     if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
     {
         for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego

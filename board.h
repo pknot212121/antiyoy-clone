@@ -194,6 +194,7 @@ public:
     inline Country* getCountry(uint8 id) noexcept { return (id == 0) ? nullptr : &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
     inline void leaderboardInsert(uint8 id) { leaderboard.insert(leaderboard.begin(), id); }
+    inline bool leaderboardContains(uint8 id) { for(int i = 0; i < leaderboard.size(); i++) { if(id == leaderboard[i]) return true; } return false; }
     void eliminateCountry(uint8 id);
 
     inline const Game* getGame() const noexcept { return game; }
