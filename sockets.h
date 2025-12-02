@@ -44,7 +44,7 @@ void switchSocketMode(int sock, u_long mode);
 void sendData(char* data, int size, int receivingSocket, int exceptionSocket = -1);
 void initializeSocket(int port);
 void acceptSocketClient(u_long mode = 0);
-void searchForSocketClient(int discoveryPort);
+void searchForSocketClient(int discoveryPort, int tcpPort);
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort);
 bool connectToServer(std::string& ip, int port);
 void clearSocket(int sock);

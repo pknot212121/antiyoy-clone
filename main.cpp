@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
             std::cout << "Searching for players...\n";
             for(int i = 0; i < networkPlayers; i++)
             {
-                searchForSocketClient(discoveryPort);
+                searchForSocketClient(discoveryPort, port);
                 std::cout << "Player found!\n";
             }
             std::cout << "All players found!\n";

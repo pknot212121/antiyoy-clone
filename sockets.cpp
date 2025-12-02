@@ -158,7 +158,7 @@ void acceptSocketClient(u_long mode)
     clientSocks.push_back(clientSock);
 }
 
-void searchForSocketClient(int discoveryPort)
+void searchForSocketClient(int discoveryPort, int tcpPort)
 {
     int udpSock = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -170,7 +170,7 @@ void searchForSocketClient(int discoveryPort)
     bc.sin_port = htons(discoveryPort);
     bc.sin_addr.s_addr = INADDR_BROADCAST;
 
-    std::string msg = "ANTIYOY " + std::to_string(discoveryPort);
+    std::string msg = "ANTIYOY " + std::to_string(tcpPort);
 
     int requiredClients = clientSocks.size() + 1;
     int warnCounter = 0;
