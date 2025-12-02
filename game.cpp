@@ -176,8 +176,10 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
-    ResourceManager::LoadTexture("textures/tree_placeholder.png",true,"tree_placeholder");
-    ResourceManager::LoadTexture("textures/palm_placeholder.png",true,"palm_placeholder");
+    ResourceManager::LoadTexture("textures/pineTree_512.png",true,"pine");
+    ResourceManager::LoadTexture("textures/palmTree_256.png",true,"palm");
+    ResourceManager::LoadTexture("textures/tower_512.png",true,"tower");
+    ResourceManager::LoadTexture("textures/gravestone_512.png",true,"gravestone");
     ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield_placeholder");
     ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
 

@@ -30,11 +30,11 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::Warrior4,"placeholder"},
     {Resident::Warrior4Moved,"placeholder"},
     {Resident::Farm,"placeholder"},
-    {Resident::Tower,"placeholder"},
+    {Resident::Tower,"tower"},
     {Resident::StrongTower,"placeholder"},
-    {Resident::Gravestone,"placeholder"},
-    {Resident::PalmTree,"palm_placeholder"},
-    {Resident::PineTree,"tree_placeholder"},
+    {Resident::Gravestone,"gravestone"},
+    {Resident::PalmTree,"palm"},
+    {Resident::PineTree,"pine"},
 };
 
 
