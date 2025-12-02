@@ -184,7 +184,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
 
     Text = new TextRenderer(this->Width, this->Height);
-    Text->Load("Roboto-Black.ttf", 24);
+    Text->Load(24);
     if(gcd.seed == 0) gcd.seed = std::random_device{}();
     gen = std::mt19937(gcd.seed);
 
