@@ -357,7 +357,7 @@ try:
     while True:
         tag, payload = receive_next() # Czeka na dane
 
-        if not tag: # Jeśli nie otrzymamy danych
+        if tag is None: # Jeśli nie otrzymamy danych
             print("Server disconnected")
             input()
             break
