@@ -16,6 +16,7 @@ SpriteRenderer::SpriteRenderer(Shader &shader)
 {
     this->shader = shader;
     this->initRenderData();
+    this->residentData.resize(20);
 }
 
 SpriteRenderer::~SpriteRenderer()
@@ -149,8 +150,8 @@ const float SQRT_3 = 1.7320508f;
 glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)
 {
     float height = size * SQRT_3 / 2.0f;
-    float posX = gridX * size * 0.75f + displacementX;
-    float posY = gridY * height + displacementY;
+    float posX = gridX * size * 0.75f + displacementX / resizeMultiplier;
+    float posY = gridY * height + displacementY / resizeMultiplier;
     if (gridX % 2 != 0)
     {
         posY += height / 2.0f;
@@ -166,47 +167,29 @@ glm::vec2 Jump(float size)
     return glm::vec2(0.0f,pulse);
 }
 
-std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
-{
-    return std::vector<glm::vec2>{
-        {glm::vec2(a,0.0f)+start},
-        {glm::vec2(0.25*a,0.433*a)+start},
-        {glm::vec2(0.25*a,1.299*a)+start},
-        {glm::vec2(a,1.732*a)+start},
-        {glm::vec2(1.75 *a,1.299*a)+start},
-        {glm::vec2(1.75 * a,0.433*a)+start},
-    };
-}
+// std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
+// {
+//     return std::vector<glm::vec2>{
+//         {glm::vec2(a,0.0f)+start},
+//         {glm::vec2(0.25*a,0.433*a)+start},
+//         {glm::vec2(0.25*a,1.299*a)+start},
+//         {glm::vec2(a,1.732*a)+start},
+//         {glm::vec2(1.75 *a,1.299*a)+start},
+//         {glm::vec2(1.75 * a,0.433*a)+start},
+//     };
+// }
 
-void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int index,float width,float rotation)
-{
-    width = size * 0.07;
-    float a = size/2;
-    std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
-    for (auto& center : centers) center-=glm::vec2(a/2,width/2);
-    color = palette[hex->getOwnerId()%10];
-    color -= glm::vec3(0.25,0.25,0.25);
-    this->DrawBoardSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
-}
-std::vector<std::pair<coord, coord>> evenD =
-{
-    { 0, -1}, // górny
-    {-1, -1}, // lewy górny
-    {-1,  0}, // lewy dolny
-    { 0,  1}, // dolny
-    { 1,  0}, // prawy dolny
-    { 1, -1}  // prawy górny
-};
+// void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int index,float width,float rotation)
+// {
+//     width = size * 0.07;
+//     float a = size/2;
+//     std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
+//     for (auto& center : centers) center-=glm::vec2(a/2,width/2);
+//     color = palette[hex->getOwnerId()%10];
+//     color -= glm::vec3(0.25,0.25,0.25);
+//     this->DrawBoardSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
+// }
 
-std::vector<std::pair<coord, coord>> oddD =
-{
-    { 0, -1}, // górny
-    {-1,  0}, // lewy górny
-    {-1,  1}, // lewy dolny
-    { 0,  1}, // dolny
-    { 1,  1}, // prawy dolny
-    { 1,  0}  // prawy górny
-};
 
 void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
 {
@@ -255,6 +238,7 @@ void SpriteRenderer::DrawBoardSprite(Texture2D &texture, glm::vec2 position, glm
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+
 void SpriteRenderer::DrawHexSprite(glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
 {
     glm::mat4 model = glm::mat4(1.0f);
@@ -272,25 +256,7 @@ void SpriteRenderer::DrawHexSprite(glm::vec2 position, glm::vec2 size, float rot
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
-{
-    std::vector<Hexagon*> hexes = h->province(board);
-    std::vector<float> rotations = {0.0f,120.0f,60.0f,0.0f,120.0f,60.0f};
-    for (auto& hex : hexes)
-    {
-        auto& directions = (hex->getX() % 2 == 0) ? evenD : oddD;
-        int i=0;
-        for (auto [dx, dy] : directions)
-        {
-            Hexagon* n = board->getHexagon(hex->getX() + dx, hex->getY() + dy);
-            if(n == nullptr || n->getOwnerId()!=id)
-            {
-                this->DrawBorder(size,glm::vec3(1.0f,1.0f,1.0f),hex,i,5.0f, rotations[i]);
-            }
-            i++;
-        }
-    }
-}
+
 
 bool SpriteRenderer::isHexOnScreen(glm::vec2 hexPos)
 {
@@ -347,53 +313,148 @@ void SpriteRenderer::DrawMarker(int playerIndex,::Hexagon* const hex, float size
 float SpriteRenderer::getSize(Board *board)
 {
     float boardWidth = static_cast<float>(board->getWidth());
-    float screenWidth = static_cast<float>(width);
-    return (screenWidth / boardWidth) / 0.75f * resizeMultiplier;
+    float screenWidth = static_cast<float>(width) * resizeMultiplier;
+    return (screenWidth / boardWidth) / 0.75f;
 }
+
+void SpriteRenderer::RenderBatch(const std::string &textureName, const std::vector<HexInstanceData> &data)
+{
+    if (data.empty()) return;
+
+    glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(HexInstanceData), data.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    ResourceManager::GetTexture(textureName).Bind();
+
+    glBindVertexArray(this->quadVAO);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, data.size());
+    glBindVertexArray(0);
+}
+
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
-    this->width = width;
-    this->height = height;
-    this->size = getSize(board);
+
     this->shader.Use();
-    glBindVertexArray(this->quadVAO);
-    glActiveTexture(GL_TEXTURE0);
-    ResourceManager::GetTexture("hexagon").Bind();
-    for (int i = 0; i < board->getWidth(); i++) {
-        for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(playerIndex, board->getHexagon(j,i), size);
-        }
-    }
-    glBindVertexArray(0);
+    // Ustaw projekcję
+    glm::mat4 projection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
+    this->shader.SetMatrix4("projection", projection);
 
-    if (board->getGame()->provinceSelector!=nullptr)
-    {
-        glBindVertexArray(this->quadVAO);
-        DrawOutline(board,size,board->getCurrentPlayerId(),board->getGame()->provinceSelector);
-        glBindVertexArray(0);
-    }
+    // Prześlij parametry kamery (zmieniają się co klatkę)
+    this->shader.SetVector2f("viewOffset", glm::vec2(displacementX, displacementY));
+    this->shader.SetFloat("zoom", resizeMultiplier);
 
-    glBindVertexArray(this->quadVAO);
+    // Rysuj (dane w buforze są stałe, GPU robi resztę)
+    RenderBatch("hexagon", hexData);
+
+    RenderBatch("border_placeholder",borderData);
     for (auto& r : warriorToTexture)
     {
-        glActiveTexture(GL_TEXTURE0);
-        ResourceManager::GetTexture(r.second).Bind();
-        for (int i = 0; i < board->getWidth(); i++) {
-            for (int j = 0; j < board->getHeight(); j++) {
-                if (board->getHexagon(j,i)->getResident()==r.first) this->DrawResident(board->getHexagon(j,i),size,r.first);
-            }
-        }
+        RenderBatch(r.second,residentData[(int)r.first]);
     }
-
-    glBindVertexArray(0);
-    glBindVertexArray(this->quadVAO);
-    for (int i = 0; i < board->getWidth(); i++) {
-        for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawMarker(playerIndex,board->getHexagon(j,i),size);
-        }
-    }
-    glBindVertexArray(0);
+    RenderBatch("exclamation",exclamationData);
+    // this->width = width;
+    // this->height = height;
+    // this->size = getSize(board);
+    // std::vector<HexInstanceData> instanceData;
+    // instanceData.reserve(board->getHeight()*board->getWidth());
+    //
+    // for (int i = 0; i < board->getWidth(); i++) {
+    //     for (int j = 0; j < board->getHeight(); j++) {
+    //         Hexagon* hex = board->getHexagon(j, i);
+    //
+    //         glm::vec2 pos = calculateHexPosition(hex->getX(), hex->getY(), size);
+    //
+    //         glm::vec3 color = palette[hex->getOwnerId() % 10];
+    //         if (hex->getOwnerId()==0){color = glm::vec3(1.0f);}
+    //         if (isHexOnScreen(pos) && !water(hex->getResident())) instanceData.push_back({pos, color,0.0f,glm::vec2(size,size * SQRT_3 / 2.0f)});
+    //     }
+    // }
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
+    // glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(HexInstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //
+    // this->shader.Use();
+    // glActiveTexture(GL_TEXTURE0);
+    // ResourceManager::GetTexture("hexagon").Bind();
+    //
+    // glBindVertexArray(this->quadVAO);
+    // glDrawArraysInstanced(GL_TRIANGLES, 0, 6,instanceData.size());
+    // glBindVertexArray(0);
+    //
+    // // if (board->getGame()->provinceSelector!=nullptr)
+    // // {
+    // //     glBindVertexArray(this->quadVAO);
+    // //     DrawOutline(board,size,board->getCurrentPlayerId(),board->getGame()->provinceSelector);
+    // //     glBindVertexArray(0);
+    // // }
+    // //
+    // // glBindVertexArray(this->quadVAO);
+    //
+    // instanceData.clear();
+    // for (int i = 0; i < board->getWidth(); i++) {
+    //     for (int j = 0; j < board->getHeight(); j++) {
+    //         Hexagon* hex = board->getHexagon(j, i);
+    //
+    //         glm::vec2 pos = calculateHexPosition(hex->getX(), hex->getY(), size);
+    //
+    //         glm::vec3 color = glm::vec3(1.0f);
+    //         if (hex->getOwnerId()==0){color = glm::vec3(1.0f);}
+    //         if (isHexOnScreen(pos) && hex->getResident()==Resident::PalmTree) instanceData.push_back({pos, color,0.0f,glm::vec2(size,size * SQRT_3 / 2.0f)});
+    //     }
+    // }
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
+    // glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(HexInstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //
+    // this->shader.Use();
+    // glActiveTexture(GL_TEXTURE0);
+    // ResourceManager::GetTexture("palm").Bind();
+    //
+    // glBindVertexArray(this->quadVAO);
+    // glDrawArraysInstanced(GL_TRIANGLES, 0, 6,instanceData.size());
+    // glBindVertexArray(0);
+    //
+    //
+    //
+    //
+    // instanceData.clear();
+    // for (int i = 0; i < board->getWidth(); i++) {
+    //     for (int j = 0; j < board->getHeight(); j++) {
+    //         Hexagon* hex = board->getHexagon(j, i);
+    //
+    //         glm::vec2 pos = calculateHexPosition(hex->getX(), hex->getY(), size);
+    //
+    //         glm::vec3 color = glm::vec3(1.0f);
+    //         if (hex->getOwnerId()==0){color = glm::vec3(1.0f);}
+    //         if (isHexOnScreen(pos) && hex->getResident()==Resident::PineTree) instanceData.push_back({pos, color,0.0f,glm::vec2(size,size * SQRT_3 / 2.0f)});
+    //     }
+    // }
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
+    // glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(HexInstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //
+    // this->shader.Use();
+    // glActiveTexture(GL_TEXTURE0);
+    // ResourceManager::GetTexture("pine").Bind();
+    //
+    // glBindVertexArray(this->quadVAO);
+    // glDrawArraysInstanced(GL_TRIANGLES, 0, 6,instanceData.size());
+    // glBindVertexArray(0);
+    //
+    // glBindVertexArray(0);
+    // glBindVertexArray(this->quadVAO);
+    // for (int i = 0; i < board->getWidth(); i++) {
+    //     for (int j = 0; j < board->getHeight(); j++) {
+    //         this->DrawMarker(playerIndex,board->getHexagon(j,i),size);
+    //     }
+    // }
+    // glBindVertexArray(0);
 }
 
 
@@ -402,28 +463,62 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
 
 void SpriteRenderer::initRenderData()
 {
-    // configure VAO/VBO
-    unsigned int VBO;
-    float vertices[] = { 
+    // 1. Definicja geometrii pojedynczego quada (tak jak miałeś w oryginale)
+    float vertices[] = {
         // pos      // tex
         0.0f, 1.0f, 0.0f, 1.0f,
         1.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f, 
+        0.0f, 0.0f, 0.0f, 0.0f,
 
         0.0f, 1.0f, 0.0f, 1.0f,
         1.0f, 1.0f, 1.0f, 1.0f,
         1.0f, 0.0f, 1.0f, 0.0f
     };
 
+    unsigned int VBO; // To VBO dla geometrii (lokalne, bo dane są statyczne)
+
     glGenVertexArrays(1, &this->quadVAO);
     glGenBuffers(1, &VBO);
 
+    // --- KONFIGURACJA 1: GEOMETRIA (Quad) ---
+    glBindVertexArray(this->quadVAO);
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    this -> InitPalette();
-    glBindVertexArray(this->quadVAO);
+
+    // Atrybut 0: vertex (vec4: x,y,u,v) - czytany z VBO
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    // Ważne: NIE ustawiamy tu Divisor, bo to są dane per-wierzchołek!
+
+
+    glGenBuffers(1, &this->instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(HexInstanceData) * 70000, nullptr, GL_DYNAMIC_DRAW);
+
+    // Atrybut 1: Position (vec2) - czytany z instanceVBO
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, position));
+    glVertexAttribDivisor(1, 1); // Dane zmieniają się co 1 instancję
+
+    // Atrybut 2: Color (vec3)
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, color));
+    glVertexAttribDivisor(2, 1);
+
+    // Atrybut 3: Rotation (float)
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, rotation));
+    glVertexAttribDivisor(3, 1);
+
+    // Atrybut 4: Size (vec2)
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, size));
+    glVertexAttribDivisor(4, 1);
+
+    // Sprzątanie
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
+    this->InitPalette();
 }
