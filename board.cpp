@@ -214,7 +214,6 @@ restart:
     {
         countries.emplace_back(std::vector{ o });
     }
-    lastPlayerId = countriesCount;
 }
 
 bool Hexagon::isNearWater(Board *board)
@@ -248,19 +247,6 @@ void Board::spawnTrees(double treeRatio)
 
 void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na game->getPlayer()
 {
-    if (getCountry(lastPlayerId)->getCastles().size() <= 0)
-    {
-        for (int i = lastPlayerId - 1; i >= 1; i--)
-        {
-            if (getCountry(i)->getCastles().size() > 0)
-            {
-                lastPlayerId = i;
-                break;
-            }
-        }
-    }
-    //std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
-
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
     {
@@ -270,7 +256,6 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
         }
     }
-    if (currentPlayerId == lastPlayerId) propagateTrees();
 
     uint8 oldId = currentPlayerId;
 
@@ -278,32 +263,45 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
     while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        retry = getCountry(currentPlayerId)->getCastles().size() == 0; // Jeśli nie ma zamków to powtarzamy
-    }
-
-    std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
-    for (auto& [caslteHex, money] : castles)
-    {
-        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
-        for(Hexagon* h : province)
+        if(currentPlayerId == 1) propagateTrees();
+        std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
+        if(!castles.size()) continue; // Jeśli nie ma zamków to powtarzamy
+        std::vector<Hexagon*> castlesToRemove;
+        for (auto& [castleHex, money] : castles)
         {
-            if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-            if (gravestone(h->getResident()))
+            std::vector<Hexagon*> province = castleHex->neighbours(this, BIG_NUMBER, true, [castleHex](Hexagon* h) { return h->getOwnerId() == castleHex->getOwnerId(); });
+            
+            if(province.size() == 1) // Jeśli został sam zamek to trzeba go usunąć
             {
-                if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
-                else h->setResident(Resident::PineTree);
+                castlesToRemove.push_back(province[0]);
+                continue;
+            }
+
+            for(Hexagon* h : province)
+            {
+                if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+                else if (gravestone(h->getResident()))
+                {
+                    if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
+                    else h->setResident(Resident::PineTree);
+                }
+            }
+            money += calculateIncome(province);
+
+            if (money < 0)
+            {
+                for (Hexagon* h : province)
+                {
+                    if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
+                }
             }
         }
-        money += calculateIncome(province);
-
-        if (money<0)
+        for(Hexagon* c : castlesToRemove)
         {
-            for (Hexagon *h : province)
-            {
-                if (unmovedWarrior(h->getResident())) h->setResident(Resident::Gravestone);
-            }
+            c->rot(this);
+            c->removeCastle(this, true);
         }
-
+        if(castles.size()) retry = false;
     }
 
     if(send)
@@ -317,8 +315,6 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
         sendData(content, sizeof(content), -1);
         //std::cout << "Sent next turn\n";
     }
-
-    //game->getPlayer(currentPlayerId)->actStart();
 }
 
 
