@@ -161,7 +161,7 @@ Game::~Game()
 void Game::Init(GameConfigData& gcd)
 {
     // load shaders
-    ResourceManager::LoadShader("sprite");
+    ResourceManager::LoadShader("shaders/sprite.vs","shaders/sprite.fs",nullptr,"sprite");
     // configure shaders
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), 
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
@@ -331,7 +331,6 @@ void Game::Render()
     Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
     if (provinceSelector!=nullptr)
     {
-        Renderer->DrawOutline(board,Renderer->getSize(board,this->Width,this->Height),board->getCurrentPlayerId(),provinceSelector);
         Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
     }
@@ -368,7 +367,7 @@ void LocalPlayer::act()
         }
         if (game->mousePressed)
         {
-            float size = game->Width / game->board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * game->board->getWidth();
+            float size = Renderer -> getSize(game->board,game->Width,game->Height);
             Point p = Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (p.x<game->board->getWidth() && p.x>=0 && p.y<game->board->getHeight() && p.y>=0)

@@ -1,18 +1,11 @@
 #include "sprite_renderer.h"
 
+#include "game.h"
 #include "GLFW/glfw3.h"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
-#include "glm/common.hpp"
+
 
 
 SpriteRenderer::SpriteRenderer(Shader &shader)
@@ -26,31 +19,7 @@ SpriteRenderer::~SpriteRenderer()
     glDeleteVertexArrays(1, &this->quadVAO);
 }
 
-void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
-{
-    // prepare transformations
-    this->shader.Use();
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(position, 0.0f));  // first translate (transformations are: scale happens first, then rotation, and then final translation happens; reversed order)
 
-    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // move origin of rotation to center of quad
-    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0f, 0.0f, 1.0f)); // then rotate
-    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // move origin back
-
-    model = glm::scale(model, glm::vec3(size, 1.0f)); // last scale
-
-    this->shader.SetMatrix4("model", model);
-
-    // render textured quad
-    this->shader.SetVector3f("spriteColor", color);
-
-    glActiveTexture(GL_TEXTURE0);
-    texture.Bind();
-
-    glBindVertexArray(this->quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
-}
 
 void SpriteRenderer::addToDisplacementX(int dx)
 {
@@ -203,10 +172,6 @@ std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
         {glm::vec2(a,1.732*a)+start},
         {glm::vec2(1.75 *a,1.299*a)+start},
         {glm::vec2(1.75 * a,0.433*a)+start},
-
-
-
-
     };
 }
 
@@ -219,7 +184,7 @@ void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int in
     for (auto& center : centers) center-=glm::vec2(a/2,width/2);
     color = palette[hex->getOwnerId()%10];
     color -= glm::vec3(0.25,0.25,0.25);
-    this->DrawSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
+    this->DrawBoardSprite(ResourceManager::GetTexture("border_placeholder"),centers[index],glm::vec2(a,width),rotation,color);
 }
 std::vector<std::pair<coord, coord>> evenD =
 {
@@ -240,6 +205,70 @@ std::vector<std::pair<coord, coord>> oddD =
     { 1,  1}, // prawy dolny
     { 1,  0}  // prawy górny
 };
+
+void SpriteRenderer::DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
+{
+    // prepare transformations
+    this->shader.Use();
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(position, 0.0f));  // first translate (transformations are: scale happens first, then rotation, and then final translation happens; reversed order)
+
+    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // move origin of rotation to center of quad
+    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0f, 0.0f, 1.0f)); // then rotate
+    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // move origin back
+
+    model = glm::scale(model, glm::vec3(size, 1.0f)); // last scale
+
+    this->shader.SetMatrix4("model", model);
+
+    // render textured quad
+    this->shader.SetVector3f("spriteColor", color);
+
+    glActiveTexture(GL_TEXTURE0);
+    texture.Bind();
+
+    glBindVertexArray(this->quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+void SpriteRenderer::DrawBoardSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
+{
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(position, 0.0f));  // first translate (transformations are: scale happens first, then rotation, and then final translation happens; reversed order)
+
+    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // move origin of rotation to center of quad
+    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0f, 0.0f, 1.0f)); // then rotate
+    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // move origin back
+
+    model = glm::scale(model, glm::vec3(size, 1.0f)); // last scale
+
+    this->shader.SetMatrix4("model", model);
+
+    // render textured quad
+    this->shader.SetVector3f("spriteColor", color);
+
+    glActiveTexture(GL_TEXTURE0);
+    texture.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void SpriteRenderer::DrawHexSprite(glm::vec2 position, glm::vec2 size, float rotate, glm::vec3 color)
+{
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(position, 0.0f));  // first translate (transformations are: scale happens first, then rotation, and then final translation happens; reversed order)
+
+    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // move origin of rotation to center of quad
+    model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0f, 0.0f, 1.0f)); // then rotate
+    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // move origin back
+
+    model = glm::scale(model, glm::vec3(size, 1.0f)); // last scale
+
+    this->shader.SetMatrix4("model", model);
+
+    this->shader.SetVector3f("spriteColor", color);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
 
 void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
 {
@@ -264,9 +293,7 @@ void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
 void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float size, glm::vec3 color)
 {
     size *= resizeMultiplier;
-    float smallSize = size * 0.8;
     glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
-    glm::vec2 smallSizeVec(smallSize, smallSize);
     color = glm::vec3(1.0f,1.0f,1.0f);
 
     if (hex->getOwnerId()!=0) {
@@ -279,58 +306,81 @@ void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float si
             color -= glm::vec3(0.2,0.2,0.2);
         }
     }
-
     glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
     if (hex->getResident() != Resident::Water)
     {
-        this->DrawSprite(ResourceManager::GetTexture("hexagon"), hexPos, hexSizeVec, 0.0f, color);
-        glm::vec2 unitPos = hexPos + (hexSizeVec * 0.5f) - (smallSizeVec * 0.5f);
-
-        std::string textureName = "";
-        if (warriorToTexture.contains(hex->getResident()))
-        {
-            textureName = warriorToTexture[hex->getResident()];
-
-        }
-        else if (hex->getResident() == Resident::Castle)
-        {
-            textureName = "castle";
-        }
-        if (active.contains(hex->getResident()))
-        {
-            unitPos-=Jump(size);
-        }
-        if (!textureName.empty())
-        {
-            this->DrawSprite(ResourceManager::GetTexture(textureName), unitPos, smallSizeVec);
-            if (hex->getResident() == Resident::Castle && hex->getOwnerId() == playerIndex)
-            {
-                this->DrawSprite(ResourceManager::GetTexture("exclamation"), unitPos, smallSizeVec);
-            }
-
-        }
-        if (hex->getOwnerId() == playerIndex && shieldHexes.contains(hex))
-        {
-            this->DrawSprite(ResourceManager::GetTexture("shield_placeholder"),unitPos,smallSizeVec);
-        }
+        // this->DrawBoardSprite( ResourceManager::GetTexture("hexagon"),hexPos, hexSizeVec, 0.0f, color);
+        this->DrawHexSprite(hexPos,hexSizeVec,0.0f,color);
     }
+}
+
+void SpriteRenderer::DrawResident(::Hexagon* const hex, float size, glm::vec3 color)
+{
+    size *= resizeMultiplier;
+    float smallSize = size * 0.8;
+    glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
+    glm::vec2 smallSizeVec(smallSize, smallSize);
+    glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
+    glm::vec2 unitPos = hexPos + (hexSizeVec * 0.5f) - (smallSizeVec * 0.5f);
+
+    if (active.contains(hex->getResident())) unitPos-=Jump(size);
+    if (warriorToTexture.contains(hex->getResident())) this->DrawBoardSprite(ResourceManager::GetTexture(warriorToTexture[hex->getResident()]),unitPos,smallSizeVec);
+}
+
+void SpriteRenderer::DrawMarker(int playerIndex,::Hexagon* const hex, float size, glm::vec3 color)
+{
+    size *= resizeMultiplier;
+    float smallSize = size * 0.8;
+    glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
+    glm::vec2 smallSizeVec(smallSize, smallSize);
+    glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
+    glm::vec2 unitPos = hexPos + (hexSizeVec * 0.5f) - (smallSizeVec * 0.5f);
+
+    if (hex->getResident() == Resident::Castle && hex->getOwnerId() == playerIndex) this->DrawBoardSprite(ResourceManager::GetTexture("exclamation"), unitPos, smallSizeVec);
+    if (hex->getOwnerId() == playerIndex && shieldHexes.contains(hex)) this->DrawBoardSprite(ResourceManager::GetTexture("shield_placeholder"),unitPos,smallSizeVec);
 }
 
 float SpriteRenderer::getSize(Board *board,int width,int height)
 {
-    return width / board->getWidth() * sqrt(3)/2 - sqrt(3) / 4 * board->getWidth();
+    float boardWidth = static_cast<float>(board->getWidth());
+    float screenWidth = static_cast<float>(width);
+    return (screenWidth / boardWidth) / 0.75f;
 }
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
-    // std::cout << "Width: " << width << " " << "Height: " << height << std::endl;
+    this->shader.Use();
+    glBindVertexArray(this->quadVAO);
+    glActiveTexture(GL_TEXTURE0);
+    ResourceManager::GetTexture("hexagon").Bind();
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
             this->DrawHexagon(playerIndex,board->getHexagon(j,i), getSize(board,width,height));
         }
     }
+    glBindVertexArray(0);
 
-    // this -> DrawHexagon(Hexagon(100,100), width / board->getWidth());
+    if (board->getGame()->provinceSelector!=nullptr)
+    {
+        glBindVertexArray(this->quadVAO);
+        DrawOutline(board,getSize(board,width,height),board->getCurrentPlayerId(),board->getGame()->provinceSelector);
+        glBindVertexArray(0);
+    }
+
+    glBindVertexArray(this->quadVAO);
+    for (int i = 0; i < board->getWidth(); i++) {
+        for (int j = 0; j < board->getHeight(); j++) {
+            this->DrawResident(board->getHexagon(j,i),getSize(board,width,height));
+        }
+    }
+    glBindVertexArray(0);
+    glBindVertexArray(this->quadVAO);
+    for (int i = 0; i < board->getWidth(); i++) {
+        for (int j = 0; j < board->getHeight(); j++) {
+            this->DrawMarker(playerIndex,board->getHexagon(j,i),getSize(board,width,height));
+        }
+    }
+    glBindVertexArray(0);
 }
 
 
