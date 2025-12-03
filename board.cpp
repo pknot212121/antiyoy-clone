@@ -757,7 +757,7 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
         std::vector<Hexagon*> neighboursRequiringCalculation;
         neighboursRequiringCalculation.reserve(6);
         bool add = true;
-        bool trimLast = false;
+        bool trimFirst = false;
         auto& directions = (center->getX() % 2 == 0) ? evenDirections : oddDirections;
         for(int i = 0; i < directions.size(); i++)
         {
@@ -769,9 +769,22 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
             }
             else if(add)
             {
-                if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
+                neighboursRequiringCalculation.push_back(hex);
                 add = false;
-                if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                if(i == 0) trimFirst = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                else if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1)
+                {
+                    neighboursRequiringCalculation[0] = neighboursRequiringCalculation.back();
+                    neighboursRequiringCalculation.pop_back();
+                }
+            }
+            else
+            {
+                if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1)
+                {
+                    neighboursRequiringCalculation[0] = neighboursRequiringCalculation.back();
+                    neighboursRequiringCalculation.pop_back();
+                }
             }
         }
 
