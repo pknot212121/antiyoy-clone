@@ -161,7 +161,7 @@ Game::~Game()
 void Game::Init(GameConfigData& gcd)
 {
     // load shaders
-    ResourceManager::LoadShader("shaders/sprite.vs","shaders/sprite.fs",nullptr,"sprite");
+    ResourceManager::LoadShader("shaders/instance.vs","shaders/instance.fs",nullptr,"sprite");
     // configure shaders
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), 
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
@@ -197,6 +197,11 @@ void Game::Init(GameConfigData& gcd)
     board->InitializeRandom(total * 0.5, total * 0.9);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
+    Renderer->width = Width;
+    Renderer->height = Height;
+    Renderer->size = Renderer->getSize(board);
+    RefreshSprites();
+
     auto countries = board->getCountries();
     //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
     if(countries.size() == playersNumber)
@@ -325,6 +330,124 @@ int Game::GetSelectedCastleIncome()
     return sum;
 }
 
+void Game::RefreshSprites()
+{
+
+    float savedDispX = Renderer->displacementX;
+    float savedDispY = Renderer->displacementY;
+    float savedResize = Renderer->resizeMultiplier; // Jeśli calculateHexPosition używa resizeMultiplier
+
+    // 2. Wyzeruj kamerę (ustaw stan "surowy")
+    Renderer->displacementX = 0.0f;
+    Renderer->displacementY = 0.0f;
+    Renderer->resizeMultiplier = 1.0f; // Ustawiamy zoom na 1.0, żeby zapisać bazowe odległości
+
+    // Przelicz bazowy rozmiar heksa dla zoomu 1.0
+    // Zakładam, że getSize korzysta z resizeMultiplier, więc musimy to zaktualizować
+    Renderer->size = Renderer->getSize(board);
+
+    Renderer->hexData.clear();
+    Renderer->exclamationData.clear();
+    for (auto& r : Renderer->residentData) r.clear();
+
+    for (int i = 0; i < board->getWidth(); i++)
+    {
+        for (int j = 0; j < board->getHeight(); j++)
+        {
+            Hexagon *hex = board->getHexagon(j,i);
+            glm::vec2 hexSizeVec(Renderer->size, Renderer->size * 1.73 / 2.0f);
+            float smallSize = Renderer->size * 0.8;
+            glm::vec2 smallSizeVec(smallSize, smallSize);
+            glm::vec3 color = glm::vec3(1.0f,1.0f,1.0f);
+
+            if (hex->getOwnerId()!=0) {
+                color = Renderer->palette[hex->getOwnerId()%10];
+            }
+            if (auto it = std::ranges::find(Renderer->brightenedHexes,hex);it!=Renderer->brightenedHexes.end())
+            {
+                color -= glm::vec3(0.2,0.2,0.2);
+            }
+            glm::vec2 hexPos = Renderer->calculateHexPosition(hex->getX(), hex->getY(), Renderer->size) +(hexSizeVec * 0.5f);
+            if (!water(hex->getResident())) Renderer -> hexData.push_back({hexPos,color,0.0f,hexSizeVec});
+            Renderer -> residentData[(int)hex->getResident()].push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
+            if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
+        }
+    }
+    RefreshOutline();
+    Renderer->displacementX = savedDispX;
+    Renderer->displacementY = savedDispY;
+    Renderer->resizeMultiplier = savedResize;
+
+    // Przywróć poprawny rozmiar dla reszty logiki gry
+    Renderer->size = Renderer->getSize(board);
+
+}
+
+std::vector<std::pair<coord, coord>> evenD =
+{
+    { 0, -1}, // górny
+    {-1, -1}, // lewy górny
+    {-1,  0}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  0}, // prawy dolny
+    { 1, -1}  // prawy górny
+};
+
+std::vector<std::pair<coord, coord>> oddD =
+{
+    { 0, -1}, // górny
+    {-1,  0}, // lewy górny
+    {-1,  1}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  1}, // prawy dolny
+    { 1,  0}  // prawy górny
+};
+
+std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
+{
+    return std::vector<glm::vec2>{
+            {glm::vec2(a,0.0f)+start},
+            {glm::vec2(0.25*a,0.433*a)+start},
+            {glm::vec2(0.25*a,1.299*a)+start},
+            {glm::vec2(a,1.732*a)+start},
+            {glm::vec2(1.75 *a,1.299*a)+start},
+            {glm::vec2(1.75 * a,0.433*a)+start},
+        };
+}
+
+void Game::RefreshOutline()
+{
+
+    Renderer->borderData.clear();
+    if (provinceSelector!=nullptr)
+    {
+        float size = Renderer->size;
+        std::vector<Hexagon*> hexes = provinceSelector->province(board);
+        std::vector<float> rotations = {0.0f,120.0f,60.0f,0.0f,120.0f,60.0f};
+        for (auto& hex : hexes)
+        {
+            auto& directions = (hex->getX() % 2 == 0) ? evenD : oddD;
+            int i=0;
+            for (auto [dx, dy] : directions)
+            {
+                Hexagon* n = board->getHexagon(hex->getX() + dx, hex->getY() + dy);
+                if(n == nullptr || n->getOwnerId()!=board->getCurrentPlayerId())
+                {
+                    float width = size * 0.07;
+                    float a = size/2;
+                    glm::vec2 hexSizeVec(Renderer->size, Renderer->size * 1.73 / 2.0f);
+                    std::vector<glm::vec2> centers = getCenters(a,Renderer->calculateHexPosition(hex->getX(),hex->getY(),size));
+                    // for (auto& center : centers) center-=glm::vec2(a/2,width/2);
+                    glm::vec3 color = Renderer->palette[hex->getOwnerId()%10];
+                    color -= glm::vec3(0.25,0.25,0.25);
+                    Renderer->borderData.push_back({centers[i],color,rotations[i],glm::vec2(a,width)});
+                }
+                i++;
+            }
+        }
+    }
+
+}
 
 void Game::Render()
 {
@@ -364,6 +487,7 @@ void LocalPlayer::act()
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
             std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
             Renderer -> setBrightenedHexes(neigh);
+            game->RefreshSprites();
         }
         if (game->mousePressed)
         {
@@ -392,6 +516,7 @@ void LocalPlayer::act()
         if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
         {
             Renderer->ClearBrightenedHexes();
+            game->RefreshSprites();
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)
@@ -406,6 +531,7 @@ void LocalPlayer::act()
             game->provinceSelector=nullptr;
             Renderer->shieldHexes.clear();
             game->board->nextTurn(true);
+            game->RefreshSprites();
 
         }
     }
@@ -423,6 +549,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
                 game->selectedHex->move(game->board,hex,true);
         }
         Renderer -> ClearBrightenedHexes();
+        game->RefreshSprites();
         game->isHexSelected=false;
     }
     else if ((res==Resident::Warrior1 || res==Resident::Warrior2 || res==Resident::Warrior3 || res==Resident::Warrior4) && hexes.contains(hex))
@@ -430,8 +557,8 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
         game->selectedHex=hex;game->isHexSelected=true;
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
         Renderer -> setBrightenedHexes(nearby);
+        game->RefreshSprites();
     }
-
 }
 
 void LocalPlayer::spawnAction(Hexagon* hex,Point p)
@@ -443,6 +570,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
             game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex,true);
         }
         Renderer -> ClearBrightenedHexes();
+        game->RefreshSprites();
     }
 
 }

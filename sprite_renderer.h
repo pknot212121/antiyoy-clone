@@ -20,6 +20,13 @@ struct Point
     int y;
 };
 
+struct HexInstanceData {
+    glm::vec2 position;
+    glm::vec3 color;
+    float rotation;
+    glm::vec2 size;
+};
+
 inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::Warrior1,"soilder1"},
     {Resident::Warrior1Moved,"soilder1"},
@@ -64,6 +71,7 @@ public:
 
     bool isHexOnScreen(glm::vec2 hexPos);
     float getSize(Board* board);
+    void RenderBatch(const std::string& textureName, const std::vector<HexInstanceData>& data);
     Point CheckWhichHexagon(int x, int y, float size);
     void Zoom(float zoomFactor, float pivotX, float pivotY);
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
@@ -77,18 +85,25 @@ public:
 
     std::unordered_set<Hexagon*> shieldHexes;
     float size;
-private:
-    // Render state
-    Shader       shader; 
-    unsigned int quadVAO;
+    std::vector<HexInstanceData> hexData;
+    std::vector<HexInstanceData> exclamationData;
+    std::vector<HexInstanceData> borderData;
+    std::vector<std::vector<HexInstanceData>> residentData;
     std::vector<glm::vec3> palette;
     int   displacementX = 0;
     int   displacementY = 0;
     double resizeMultiplier = 1.0f;
     int width;
     int height;
-
     std::vector<Hexagon*> brightenedHexes;
+private:
+    // Render state
+    Shader       shader; 
+    unsigned int quadVAO;
+    unsigned int instanceVBO;
+
+
+
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
 };

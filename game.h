@@ -79,6 +79,8 @@ public:
     void ProcessInput(float dt);
     int GetSelectedCastleReserves();
     int GetSelectedCastleIncome();
+    void RefreshSprites();
+    void RefreshOutline();
     void Update(float dt);
     void Resize(int width, int height);
     void Render();
