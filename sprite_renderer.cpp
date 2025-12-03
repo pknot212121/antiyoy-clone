@@ -5,6 +5,10 @@
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 #include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
+#include "glm/common.hpp"
 
 
 
@@ -107,9 +111,8 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
     float worldX = _x - this->displacementX;
     float worldY = _y - this->displacementY;
 
-    float currentSize = baseSize * this->resizeMultiplier;
-    float normalizedX = worldX / this->resizeMultiplier;
-    float normalizedY = worldY / this->resizeMultiplier;
+    float normalizedX = worldX;
+    float normalizedY = worldY;
 
     float a = baseSize;
 
@@ -131,7 +134,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY)
     float newZoom = oldZoom * zoomFactor;
 
     if (newZoom < 0.5f) newZoom = 0.5f;
-    if (newZoom > 3.0f) newZoom = 3.0f;
+    // if (newZoom > 3.0f) newZoom = 3.0f;
 
     float scaleRatio = newZoom / oldZoom;
     displacementX = pivotX - (pivotX - displacementX) * scaleRatio;
@@ -177,7 +180,6 @@ std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
 
 void SpriteRenderer::DrawBorder(float size,glm::vec3 color, Hexagon* hex, int index,float width,float rotation)
 {
-    size*=resizeMultiplier;
     width = size * 0.07;
     float a = size/2;
     std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
@@ -290,9 +292,13 @@ void SpriteRenderer::DrawOutline(Board *board,float size,uint8 id,Hexagon *h)
     }
 }
 
+bool SpriteRenderer::isHexOnScreen(glm::vec2 hexPos)
+{
+    return !(hexPos.x>width || hexPos.x<-size || hexPos.y > height || hexPos.y<-size);
+}
+
 void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float size, glm::vec3 color)
 {
-    size *= resizeMultiplier;
     glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
     color = glm::vec3(1.0f,1.0f,1.0f);
 
@@ -307,29 +313,27 @@ void SpriteRenderer::DrawHexagon(int playerIndex, ::Hexagon* const hex, float si
         }
     }
     glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
-    if (hex->getResident() != Resident::Water)
+    if (hex->getResident() != Resident::Water && isHexOnScreen(hexPos))
     {
         // this->DrawBoardSprite( ResourceManager::GetTexture("hexagon"),hexPos, hexSizeVec, 0.0f, color);
         this->DrawHexSprite(hexPos,hexSizeVec,0.0f,color);
     }
 }
 
-void SpriteRenderer::DrawResident(::Hexagon* const hex, float size, glm::vec3 color)
+void SpriteRenderer::DrawResident(::Hexagon* const hex, float size,Resident r, glm::vec3 color)
 {
-    size *= resizeMultiplier;
     float smallSize = size * 0.8;
     glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
     glm::vec2 smallSizeVec(smallSize, smallSize);
     glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
     glm::vec2 unitPos = hexPos + (hexSizeVec * 0.5f) - (smallSizeVec * 0.5f);
 
-    if (active.contains(hex->getResident())) unitPos-=Jump(size);
-    if (warriorToTexture.contains(hex->getResident())) this->DrawBoardSprite(ResourceManager::GetTexture(warriorToTexture[hex->getResident()]),unitPos,smallSizeVec);
+    if (active.contains(r)) unitPos-=Jump(size);
+    if (isHexOnScreen(hexPos)) this->DrawHexSprite(unitPos,smallSizeVec);
 }
 
 void SpriteRenderer::DrawMarker(int playerIndex,::Hexagon* const hex, float size, glm::vec3 color)
 {
-    size *= resizeMultiplier;
     float smallSize = size * 0.8;
     glm::vec2 hexSizeVec(size, size * SQRT_3 / 2.0f);
     glm::vec2 smallSizeVec(smallSize, smallSize);
@@ -340,22 +344,25 @@ void SpriteRenderer::DrawMarker(int playerIndex,::Hexagon* const hex, float size
     if (hex->getOwnerId() == playerIndex && shieldHexes.contains(hex)) this->DrawBoardSprite(ResourceManager::GetTexture("shield_placeholder"),unitPos,smallSizeVec);
 }
 
-float SpriteRenderer::getSize(Board *board,int width,int height)
+float SpriteRenderer::getSize(Board *board)
 {
     float boardWidth = static_cast<float>(board->getWidth());
     float screenWidth = static_cast<float>(width);
-    return (screenWidth / boardWidth) / 0.75f;
+    return (screenWidth / boardWidth) / 0.75f * resizeMultiplier;
 }
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
+    this->width = width;
+    this->height = height;
+    this->size = getSize(board);
     this->shader.Use();
     glBindVertexArray(this->quadVAO);
     glActiveTexture(GL_TEXTURE0);
     ResourceManager::GetTexture("hexagon").Bind();
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawHexagon(playerIndex,board->getHexagon(j,i), getSize(board,width,height));
+            this->DrawHexagon(playerIndex, board->getHexagon(j,i), size);
         }
     }
     glBindVertexArray(0);
@@ -363,21 +370,27 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
     if (board->getGame()->provinceSelector!=nullptr)
     {
         glBindVertexArray(this->quadVAO);
-        DrawOutline(board,getSize(board,width,height),board->getCurrentPlayerId(),board->getGame()->provinceSelector);
+        DrawOutline(board,size,board->getCurrentPlayerId(),board->getGame()->provinceSelector);
         glBindVertexArray(0);
     }
 
     glBindVertexArray(this->quadVAO);
-    for (int i = 0; i < board->getWidth(); i++) {
-        for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawResident(board->getHexagon(j,i),getSize(board,width,height));
+    for (auto& r : warriorToTexture)
+    {
+        glActiveTexture(GL_TEXTURE0);
+        ResourceManager::GetTexture(r.second).Bind();
+        for (int i = 0; i < board->getWidth(); i++) {
+            for (int j = 0; j < board->getHeight(); j++) {
+                if (board->getHexagon(j,i)->getResident()==r.first) this->DrawResident(board->getHexagon(j,i),size,r.first);
+            }
         }
     }
+
     glBindVertexArray(0);
     glBindVertexArray(this->quadVAO);
     for (int i = 0; i < board->getWidth(); i++) {
         for (int j = 0; j < board->getHeight(); j++) {
-            this->DrawMarker(playerIndex,board->getHexagon(j,i),getSize(board,width,height));
+            this->DrawMarker(playerIndex,board->getHexagon(j,i),size);
         }
     }
     glBindVertexArray(0);

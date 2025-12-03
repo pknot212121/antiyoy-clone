@@ -367,7 +367,7 @@ void LocalPlayer::act()
         }
         if (game->mousePressed)
         {
-            float size = Renderer -> getSize(game->board,game->Width,game->Height);
+            float size = Renderer -> getSize(game->board);
             Point p = Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (p.x<game->board->getWidth() && p.x>=0 && p.y<game->board->getHeight() && p.y>=0)
