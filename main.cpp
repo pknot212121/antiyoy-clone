@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.playerMarkers))
     {
         std::string net;
-        #ifdef _WIN32
+    #ifdef _WIN32
         file.close();
         file.open("config.txt");
         if (!file.is_open())
@@ -65,10 +65,10 @@ int main(int argc, char *argv[])
             getchar();
             return 1;
         }
-        #else
-            file.clear();
-            file.seekg(0, std::ios::beg);
-        #endif
+    #else
+        file.clear();
+        file.seekg(0, std::ios::beg);
+    #endif
         if((file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
         {
             if(!(file >> discoveryPort))
