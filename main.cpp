@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 
 // GLFW function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -51,8 +52,23 @@ int main(int argc, char *argv[])
     if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.playerMarkers))
     {
         std::string net;
-        file.clear();
-        file.seekg(0, std::ios::beg);
+        #ifdef _WIN32
+        file.close();
+        file.open("config.txt");
+        if (!file.is_open())
+        {
+            file.open("Antiyoy/config.txt");
+        }
+        if (!file.is_open())
+        {
+            std::cout << "Cannot open config.txt\n";
+            getchar();
+            return 1;
+        }
+        #else
+            file.clear();
+            file.seekg(0, std::ios::beg);
+        #endif
         if((file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
         {
             if(!(file >> discoveryPort))
@@ -61,6 +77,7 @@ int main(int argc, char *argv[])
                 getchar();
                 return 1;
             }
+            //std::cout << "Discovery port: " << discoveryPort << '\n';
             std::cout << "Searching for a server...\n";
             searchForServer(discoveryPort, &ipAddress, &port);
 

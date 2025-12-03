@@ -192,6 +192,14 @@ void searchForSocketClient(int discoveryPort, int tcpPort)
 
 void searchForServer(int discoveryPort, std::string* returnIp, int* returnPort)
 {
+#ifdef _WIN32
+    WSADATA wsa;
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+    {
+        std::cout << "WSAStartup failed\n";
+        return;
+    }
+#endif
     int udpSock = socket(AF_INET, SOCK_DGRAM, 0);
 
     sockaddr_in local{};
