@@ -767,20 +767,15 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
             {
                 add = true;
             }
-            else if(add)
-            {
-                neighboursRequiringCalculation.push_back(hex);
-                add = false;
-                if(i == 0) trimFirst = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
-                else if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1)
-                {
-                    neighboursRequiringCalculation[0] = neighboursRequiringCalculation.back();
-                    neighboursRequiringCalculation.pop_back();
-                }
-            }
             else
             {
-                if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1)
+                if(add)
+                {
+                    neighboursRequiringCalculation.push_back(hex);
+                    add = false;
+                    if(i == 0) trimFirst = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                }
+                if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1) // ostatni jest częścią jakiegoś segmentu
                 {
                     neighboursRequiringCalculation[0] = neighboursRequiringCalculation.back();
                     neighboursRequiringCalculation.pop_back();
