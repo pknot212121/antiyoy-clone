@@ -259,8 +259,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             }
         }
     }
-    // NEED TO DO THIS BECAUSE IF YOU CAPTURE LAST CASTLE AND THEY GENERATE MORE THEY GET PUT ON THE LEADERBOARD
-    std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
+    //std::erase_if(leaderboard,[this](uint8 index){return getCountry(index)->getCastles().size() >0;});
 
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
@@ -276,15 +275,10 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
     uint8 oldId = currentPlayerId;
 
     bool retry = true;
-    while(retry) // Szukamy gracza który jeszcze nie jest na tablicy wyników (jeszcze żyje)
+    while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        retry = false;
-        for(uint8 id : leaderboard)
-        {
-            if(currentPlayerId == id) retry = true;
-        }
-
+        retry = getCountry(currentPlayerId)->getCastles().size() == 0; // Jeśli nie ma zamków to powtarzamy
     }
 
     std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
@@ -621,7 +615,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
         }*/
         for(int i = 1; i < castlesNumber; i++)
         {
-            castlesMap[province[0]] += province[i]->removeCastle(board);
+            castlesMap[province[0]] += province[i]->removeCastle(board, false);
         }
         return province;
     }
@@ -763,7 +757,7 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
         std::vector<Hexagon*> neighboursRequiringCalculation;
         neighboursRequiringCalculation.reserve(6);
         bool add = true;
-        bool trimLast = false;
+        bool trimFirst = false;
         auto& directions = (center->getX() % 2 == 0) ? evenDirections : oddDirections;
         for(int i = 0; i < directions.size(); i++)
         {
@@ -773,11 +767,19 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
             {
                 add = true;
             }
-            else if(add)
+            else
             {
-                if(!(i == directions.size() - 1 && trimLast && neighboursRequiringCalculation.size() > 1)) neighboursRequiringCalculation.push_back(hex);
-                add = false;
-                if(i == 0) trimLast = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                if(add)
+                {
+                    neighboursRequiringCalculation.push_back(hex);
+                    add = false;
+                    if(i == 0) trimFirst = true; // jeśli pierwszy i ostatni dotykają się możemy jednego pominąć
+                }
+                if(i == 5 && trimFirst && neighboursRequiringCalculation.size() > 1) // ostatni jest częścią jakiegoś segmentu
+                {
+                    neighboursRequiringCalculation[0] = neighboursRequiringCalculation.back();
+                    neighboursRequiringCalculation.pop_back();
+                }
             }
         }
 
@@ -785,13 +787,46 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
         {
             h->calculateProvince(board);
         }
+
+        if(board->getCountry(oldOwnerId)->getCastles().size() == 0)
+        {
+            if(!board->leaderboardContains(oldOwnerId)) board->eliminateCountry(oldOwnerId);
+        }
     }
 
     center->calculateProvince(board); // kalkulacja dla siebie (cel dotyka wszystkich prowincji atakującego dla których terytorium mogłoby się zmienić więc wystarczy wywołać ją tylko dla niego)
 }
 
+
+void Board::eliminateCountry(uint8 id)
+{
+    leaderboardInsert(id);
+    std::cout << "Country " << (int)id << " eliminated!\n";
+    if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
+    {
+        for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
+        {
+            bool add = true;
+            for(int j = 0; j < leaderboard.size(); j++)
+            {
+                if(leaderboard[j] == playerId)
+                {
+                    add = false;
+                    break;
+                }
+            }
+            if(add) leaderboardInsert(playerId);
+        }
+        std::cout << "Game over!\nLeaderboard:\n";
+        for(int i = 0; i < leaderboard.size(); i++)
+        {
+            std::cout << i + 1 << ". Player " << (int)leaderboard[i] << '\n';
+        }
+    }
+}
+
 // Zwraca ilość pieniędzy zamku przed usunięciem
-int Hexagon::removeCastle(Board* board)
+int Hexagon::removeCastle(Board* board, bool eliminateCastleless)
 {
     if(castle(resident)) resident = Resident::Empty;
     auto& castlesMap = board->getCountry(ownerId)->getCastles();
@@ -799,7 +834,7 @@ int Hexagon::removeCastle(Board* board)
     {
         int money = castlesMap[this];
         castlesMap.erase(this);
-        if(!castlesMap.size()) board->leaderboardInsert(getOwnerId());
+        if(eliminateCastleless && !castlesMap.size()) board->eliminateCountry(getOwnerId());
         return money;
     }
     return 0;
@@ -906,14 +941,14 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
             }
             else
             {
-                if(castle(placement->getResident())) placement->removeCastle(board);
+                if(castle(placement->getResident())) placement->removeCastle(board, false);
                 placement->setResident(resident);
             }
         }
         else
         {
             uint8 oldOwnerId = placement->getOwnerId();
-            if(castle(placement->getResident())) board->getCountry(oldOwnerId)->tempMoneyStorage+=placement->removeCastle(board);
+            if(castle(placement->getResident())) board->getCountry(oldOwnerId)->tempMoneyStorage+=placement->removeCastle(board, false);
 
             placement->setResident(::move(resident));
             placement->setOwnerId(castleHex->getOwnerId());
@@ -988,7 +1023,7 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
     }
     else
     {
-        if(castle(destination->getResident())) destination->removeCastle(board);
+        if(castle(destination->getResident())) destination->removeCastle(board, false);
         if (tree(destination->getResident())) destination->removeTree(board);
         destination->setResident(::move(resident));
     }
