@@ -31,6 +31,7 @@ inline std::map<Resident,std::string> warriorToTexture = {
     {Resident::Warrior4Moved,"placeholder"},
     {Resident::Farm,"placeholder"},
     {Resident::Tower,"tower"},
+    {Resident::Castle,"castle"},
     {Resident::StrongTower,"placeholder"},
     {Resident::Gravestone,"gravestone"},
     {Resident::PalmTree,"palm"},
@@ -44,29 +45,38 @@ inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warri
 class SpriteRenderer
 {
 public:
-    // Constructor (inits shaders/shapes)
     SpriteRenderer(Shader &shader);
-    // Destructor
     ~SpriteRenderer();
-    // Renders a defined quad textured with given sprite
+
+
     void DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
-    // void DrawHexagon(float x, float y, float a, glm::vec3 col);
+    void DrawBoardSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
+    void DrawHexSprite(glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
+
     void DrawHexagon(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.0f));
-    float getSize(Board* board, int width, int height);
-    Point CheckWhichHexagon(int x, int y, float size);
-    void Zoom(float zoomFactor, float pivotX, float pivotY);
-    // void DrawWarrior(Hexagon hex,Warrior war);
+    void DrawResident(::Hexagon* const hex, float size,Resident r, glm::vec3 color = glm::vec3(1.0f));
+    void DrawMarker(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f));
+
     void DrawBoard(Board* board, int width, int height, int playerIndex);
     void DrawBorder(float size, glm::vec3 color, Hexagon* hex, int index, float width, float rotation);
     void DrawOutline(Board* board, float size, uint8 id, Hexagon* h);
+
+
+    bool isHexOnScreen(glm::vec2 hexPos);
+    float getSize(Board* board);
+    Point CheckWhichHexagon(int x, int y, float size);
+    void Zoom(float zoomFactor, float pivotX, float pivotY);
+    glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void InitPalette();
+
     void addToDisplacementX(int dx);
     void addToDisplacementY(int dy);
     void addToResizeMultiplier(double ds, Board* board, float width);
     void setBrightenedHexes(std::vector<Hexagon*> hexes);
     void ClearBrightenedHexes();
-    glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
+
     std::unordered_set<Hexagon*> shieldHexes;
+    float size;
 private:
     // Render state
     Shader       shader; 
@@ -75,8 +85,10 @@ private:
     int   displacementX = 0;
     int   displacementY = 0;
     double resizeMultiplier = 1.0f;
-    std::vector<Hexagon*> brightenedHexes;
+    int width;
+    int height;
 
+    std::vector<Hexagon*> brightenedHexes;
     // Initializes and configures the quad's buffer and vertex attributes
     void initRenderData();
 };
