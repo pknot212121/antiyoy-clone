@@ -108,7 +108,7 @@ private:
 
 
     // Initializes and configures the quad's buffer and vertex attributes
-    void initRenderData();
+    void initRenderData(int bWidth, int bHeight);
 };
 
 #endif

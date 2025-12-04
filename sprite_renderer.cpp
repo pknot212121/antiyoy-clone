@@ -15,7 +15,7 @@
 SpriteRenderer::SpriteRenderer(Shader &shader,int bWidth, int bHeight)
 {
     this->shader = shader;
-    this->initRenderData();
+    this->initRenderData(bWidth,bHeight);
     this->hexData.resize(bWidth*bHeight);
     this->residentData.resize(20);
     for (auto& r : residentData) r.resize(bWidth*bHeight);
@@ -235,7 +235,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
 
 
 
-void SpriteRenderer::initRenderData()
+void SpriteRenderer::initRenderData(int bWidth,int bHeight)
 {
     // 1. Definicja geometrii pojedynczego quada (tak jak miałeś w oryginale)
     float vertices[] = {
@@ -268,7 +268,7 @@ void SpriteRenderer::initRenderData()
 
     glGenBuffers(1, &this->instanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(HexInstanceData) * 70000, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(HexInstanceData) * bWidth * bHeight, nullptr, GL_DYNAMIC_DRAW);
 
     // Atrybut 1: Position (vec2) - czytany z instanceVBO
     glEnableVertexAttribArray(1);
