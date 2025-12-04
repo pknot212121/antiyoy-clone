@@ -182,6 +182,8 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/gravestone_512.png",true,"gravestone");
     ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield");
     ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
+    ResourceManager::LoadTexture("textures/farm1_256.png",true,"farm1");
+    ResourceManager::LoadTexture("textures/strongTower_256.png",true,"strongTower");
 
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load(24);

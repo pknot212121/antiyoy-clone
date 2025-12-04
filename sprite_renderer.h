@@ -38,10 +38,10 @@ inline std::string textures[] = {
     "soilder2",
     "placeholder",
     "placeholder",
-    "placeholder",
+    "farm1",
     "castle",
     "tower",
-    "placeholder",
+    "strongTower",
     "palm",
     "pine",
     "gravestone"
