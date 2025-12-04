@@ -87,6 +87,7 @@ public:
     float size;
     std::vector<HexInstanceData> hexData;
     std::vector<HexInstanceData> exclamationData;
+    std::vector<HexInstanceData> shieldData;
     std::vector<HexInstanceData> borderData;
     std::vector<std::vector<HexInstanceData>> residentData;
     std::vector<glm::vec3> palette;

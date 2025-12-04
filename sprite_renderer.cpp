@@ -362,6 +362,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
         RenderBatch(r.second,residentData[(int)r.first]);
     }
     RenderBatch("exclamation",exclamationData);
+    RenderBatch("shield",shieldData);
     // this->width = width;
     // this->height = height;
     // this->size = getSize(board);
