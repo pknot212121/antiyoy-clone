@@ -213,14 +213,18 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
     RenderBatch("hexagon", hexData);
 
     RenderBatch("border_placeholder",borderData);
-    for (auto& r : warriorToTexture)
+    for (int i=0;i<(int)Resident::Gravestone;i++)
     {
-        if (unmovedWarrior(r.first))
+        if (textures[i]!="nic" )
         {
-            glm::vec2 j = Jump(size/2/resizeMultiplier);
-            for (auto& d : residentData[(int)r.first]) d.position-=j;
+            if (i>=(int)Resident::Warrior1 && i<=(int)Resident::Warrior4)
+            {
+                glm::vec2 j = Jump(size/2/resizeMultiplier);
+                for (auto& d : residentData[i]) d.position-=j;
+            }
+            RenderBatch(textures[i],residentData[i]);
         }
-        RenderBatch(r.second,residentData[(int)r.first]);
+
     }
     RenderBatch("exclamation",exclamationData);
     RenderBatch("shield",shieldData);

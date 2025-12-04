@@ -27,22 +27,24 @@ struct HexInstanceData {
     glm::vec2 size;
 };
 
-inline std::map<Resident,std::string> warriorToTexture = {
-    {Resident::Warrior1,"soilder1"},
-    {Resident::Warrior1Moved,"soilder1"},
-    {Resident::Warrior2,"soilder2"},
-    {Resident::Warrior2Moved,"soilder2"},
-    {Resident::Warrior3,"placeholder"},
-    {Resident::Warrior3Moved,"placeholder"},
-    {Resident::Warrior4,"placeholder"},
-    {Resident::Warrior4Moved,"placeholder"},
-    {Resident::Farm,"placeholder"},
-    {Resident::Tower,"tower"},
-    {Resident::Castle,"castle"},
-    {Resident::StrongTower,"placeholder"},
-    {Resident::Gravestone,"gravestone"},
-    {Resident::PalmTree,"palm"},
-    {Resident::PineTree,"pine"},
+inline std::vector<std::string> textures = {
+    "nic",
+    "nic",
+    "soilder1",
+    "soilder2",
+    "placeholder",
+    "placeholder",
+    "soilder1",
+    "soilder2",
+    "placeholder",
+    "placeholder",
+    "placeholder",
+    "castle",
+    "tower",
+    "placeholder",
+    "palm",
+    "pine",
+    "gravestone"
 };
 
 
