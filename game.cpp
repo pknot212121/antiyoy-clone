@@ -290,19 +290,19 @@ void Game::ProcessInput(float dt)
     }
     if (clickedMovingKeys[GLFW_KEY_W])
     {
-        Renderer -> addToDisplacementY(10);
+        Renderer -> addToDisplacementY(board,10);
     }
     if (clickedMovingKeys[GLFW_KEY_A])
     {
-        Renderer ->addToDisplacementX(10);
+        Renderer ->addToDisplacementX(board,10);
     }
     if (clickedMovingKeys[GLFW_KEY_S])
     {
-        Renderer -> addToDisplacementY(-10);
+        Renderer -> addToDisplacementY(board,-10);
     }
     if (clickedMovingKeys[GLFW_KEY_D])
     {
-        Renderer -> addToDisplacementX(-10);
+        Renderer -> addToDisplacementX(board,-10);
     }
 }
 

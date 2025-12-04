@@ -28,13 +28,17 @@ SpriteRenderer::~SpriteRenderer()
 
 
 
-void SpriteRenderer::addToDisplacementX(int dx)
+void SpriteRenderer::addToDisplacementX(Board *board,int dx)
 {
     displacementX += dx;
+    if (calculateHexPosition(0,0,size).x>width/2) displacementX-=dx;
+    if (calculateHexPosition(board->getWidth()-1,0,size).x<width/2) displacementX-=dx;
 }
-void SpriteRenderer::addToDisplacementY(int dy)
+void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
     displacementY += dy;
+    if (calculateHexPosition(0,0,size).y>height/2) displacementY-=dy;
+    if (calculateHexPosition(board->getWidth()-1,board->getHeight()-1,size).y<height/2) displacementY-=dy;
 }
 
 void SpriteRenderer::addToResizeMultiplier(double ds,Board *board,float width)

@@ -82,8 +82,8 @@ public:
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void InitPalette();
 
-    void addToDisplacementX(int dx);
-    void addToDisplacementY(int dy);
+    void addToDisplacementX(Board *board,int dx);
+    void addToDisplacementY(Board *board,int dy);
     void addToResizeMultiplier(double ds, Board* board, float width);
     void setBrightenedHexes(std::vector<Hexagon*> hexes);
     void ClearBrightenedHexes();
