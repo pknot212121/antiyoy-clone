@@ -354,6 +354,11 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
     RenderBatch("border_placeholder",borderData);
     for (auto& r : warriorToTexture)
     {
+        if (unmovedWarrior(r.first))
+        {
+            glm::vec2 j = Jump(getSize(board));
+            for (auto& d : residentData[(int)r.first]) d.position-=j;
+        }
         RenderBatch(r.second,residentData[(int)r.first]);
     }
     RenderBatch("exclamation",exclamationData);

@@ -370,9 +370,9 @@ void Game::RefreshSprites()
             }
             glm::vec2 hexPos = Renderer->calculateHexPosition(hex->getX(), hex->getY(), Renderer->size) +(hexSizeVec * 0.5f);
             if (!water(hex->getResident())) Renderer -> hexData[i*board->getWidth()+j]=HexInstanceData(hexPos,color,0.0f,hexSizeVec);
-            Renderer -> residentData[(int)hex->getResident()].push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
-            if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
-            if (unmovedWarrior(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
+            Renderer -> residentData[(int)hex->getResident()].push_back({hexPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+            if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+            if (unmovedWarrior(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,smallSizeVec});
         }
     }
     RefreshOutline();
