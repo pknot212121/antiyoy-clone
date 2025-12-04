@@ -131,13 +131,13 @@ Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
     return fromAxial(q, r);
 }
 
-void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY)
+void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *board)
 {
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
     if (newZoom < 0.5f) newZoom = 0.5f;
-    // if (newZoom > 3.0f) newZoom = 3.0f;
+    if (newZoom > board->getWidth()/4) newZoom = board->getWidth()/4;
 
     float scaleRatio = newZoom / oldZoom;
     displacementX = pivotX - (pivotX - displacementX) * scaleRatio;
@@ -152,8 +152,8 @@ const float SQRT_3 = 1.7320508f;
 glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)
 {
     float height = size * SQRT_3 / 2.0f;
-    float posX = gridX * size * 0.75f + displacementX / resizeMultiplier;
-    float posY = gridY * height + displacementY / resizeMultiplier;
+    float posX = gridX * size * 0.75f + displacementX;
+    float posY = gridY * height + displacementY;
     if (gridX % 2 != 0)
     {
         posY += height / 2.0f;
@@ -196,20 +196,115 @@ void SpriteRenderer::RenderBatch(const std::string &textureName, const std::vect
     glBindVertexArray(0);
 }
 
+std::vector<std::pair<coord, coord>> evenD =
+{
+    { 0, -1}, // górny
+    {-1, -1}, // lewy górny
+    {-1,  0}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  0}, // prawy dolny
+    { 1, -1}  // prawy górny
+};
+
+std::vector<std::pair<coord, coord>> oddD =
+{
+    { 0, -1}, // górny
+    {-1,  0}, // lewy górny
+    {-1,  1}, // lewy dolny
+    { 0,  1}, // dolny
+    { 1,  1}, // prawy dolny
+    { 1,  0}  // prawy górny
+};
+
+std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
+{
+    return std::vector<glm::vec2>{
+                {glm::vec2(a,0.0f)+start},
+                {glm::vec2(0.25*a,0.433*a)+start},
+                {glm::vec2(0.25*a,1.299*a)+start},
+                {glm::vec2(a,1.732*a)+start},
+                {glm::vec2(1.75 *a,1.299*a)+start},
+                {glm::vec2(1.75 * a,0.433*a)+start},
+            };
+}
+
+void SpriteRenderer::generateSprites(Board *board, int width, int height)
+{
+    size = getSize(board);
+    hexData.clear();
+    exclamationData.clear();
+    shieldData.clear();
+    for (auto& r : residentData) r.clear();
+
+
+    for (int i = 0; i < board->getWidth()*board->getHeight(); i++)
+    {
+        Hexagon *hex = board->getHexagon(i);
+        glm::vec2 hexSizeVec(size, size * 1.73 / 2.0f);
+        float smallSize = size * 0.8;
+        glm::vec2 smallSizeVec(smallSize, smallSize);
+        glm::vec3 color = glm::vec3(1.0f,1.0f,1.0f);
+
+        if (hex->getOwnerId()!=0) color = palette[hex->getOwnerId()%10];
+        if (auto it = std::ranges::find(brightenedHexes,hex);it!=brightenedHexes.end()) color -= glm::vec3(0.2,0.2,0.2);
+
+        glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
+        glm::vec2 unitPos = hexPos + glm::vec2((size-smallSize)/2,0);
+
+        if (hexPos.x>-size && hexPos.x<width && hexPos.y>-size && hexPos.y<height)
+        {
+            if (!water(hex->getResident())) hexData.push_back(HexInstanceData(hexPos,color,0.0f,hexSizeVec));
+            residentData[(int)hex->getResident()].push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+            if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) exclamationData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+            if (shieldHexes.contains(hex)) shieldData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+        }
+
+    }
+}
+
+void SpriteRenderer::generateBorders(Board *board, int width, int height)
+{
+    borderData.clear();
+    if (board->getGame()->provinceSelector!=nullptr)
+    {
+
+        std::vector<Hexagon*> hexes = board->getGame()->provinceSelector->province(board);
+        std::vector<float> rotations = {0.0f,120.0f,60.0f,0.0f,120.0f,60.0f};
+        for (auto& hex : hexes)
+        {
+            auto& directions = (hex->getX() % 2 == 0) ? evenD : oddD;
+            int i=0;
+            for (auto [dx, dy] : directions)
+            {
+                Hexagon* n = board->getHexagon(hex->getX() + dx, hex->getY() + dy);
+                if(n == nullptr || n->getOwnerId()!=board->getCurrentPlayerId())
+                {
+                    float width = size * 0.07;
+                    float a = size/2;
+                    glm::vec2 hexSizeVec(size, size * 1.73 / 2.0f);
+                    std::vector<glm::vec2> centers = getCenters(a,calculateHexPosition(hex->getX(),hex->getY(),size));
+                    glm::vec3 color = palette[hex->getOwnerId()%10];
+                    color -= glm::vec3(0.25,0.25,0.25);
+                    borderData.push_back({centers[i]-glm::vec2(size/4,0),color,rotations[i],glm::vec2(a,width)});
+                }
+                i++;
+            }
+        }
+    }
+}
+
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
 {
 
+    // This generates sprites and puts them in vectors ready to render
+    generateSprites(board,width,height);
+    generateBorders(board,width,height);
+
     this->shader.Use();
-    // Ustaw projekcję
     glm::mat4 projection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
     this->shader.SetMatrix4("projection", projection);
 
-    // Prześlij parametry kamery (zmieniają się co klatkę)
-    this->shader.SetVector2f("viewOffset", glm::vec2(displacementX, displacementY));
-    this->shader.SetFloat("zoom", resizeMultiplier);
-
-    // Rysuj (dane w buforze są stałe, GPU robi resztę)
     RenderBatch("hexagon", hexData);
 
     RenderBatch("border_placeholder",borderData);
@@ -219,7 +314,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
         {
             if (i>=(int)Resident::Warrior1 && i<=(int)Resident::Warrior4)
             {
-                glm::vec2 j = Jump(size/2/resizeMultiplier);
+                glm::vec2 j = Jump(size/2);
                 for (auto& d : residentData[i]) d.position-=j;
             }
             RenderBatch(textures[i],residentData[i]);

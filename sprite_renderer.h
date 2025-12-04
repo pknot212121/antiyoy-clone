@@ -66,6 +66,8 @@ public:
     void DrawResident(::Hexagon* const hex, float size,Resident r, glm::vec3 color = glm::vec3(1.0f));
     void DrawMarker(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f));
 
+    void generateSprites(Board* board, int width, int height);
+    void generateBorders(Board* board, int width, int height);
     void DrawBoard(Board* board, int width, int height, int playerIndex);
     void DrawBorder(float size, glm::vec3 color, Hexagon* hex, int index, float width, float rotation);
     void DrawOutline(Board* board, float size, uint8 id, Hexagon* h);
@@ -75,7 +77,8 @@ public:
     float getSize(Board* board);
     void RenderBatch(const std::string& textureName, const std::vector<HexInstanceData>& data);
     Point CheckWhichHexagon(int x, int y, float size);
-    void Zoom(float zoomFactor, float pivotX, float pivotY);
+    void Zoom(float zoomFactor, float pivotX, float pivotY, Board* board);
+    void ClampDisplacement();
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void InitPalette();
 

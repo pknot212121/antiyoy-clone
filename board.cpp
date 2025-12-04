@@ -220,7 +220,7 @@ restart:
 
 bool Hexagon::isNearWater(Board *board)
 {
-    return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0;
+    return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0 || neighbours(board, 0, false).size() <6;
 }
 
 bool Hexagon::bordersPineAndOtherTree(Board *board)
