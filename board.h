@@ -167,7 +167,6 @@ private:
     const coord height;
     std::vector<Hexagon> board;
 
-    uint8 lastPlayerId = 1;
     uint8 currentPlayerId = 1;
 
     std::vector<Country> countries;
