@@ -334,24 +334,9 @@ int Game::GetSelectedCastleIncome()
     return sum;
 }
 
-void Game::RefreshSprites()
-{
-
-}
-
-
-
-void Game::RefreshOutline()
-{
-
-
-
-}
-
 void Game::Render()
 {
-    RefreshSprites();
-    Renderer -> DrawBoard(board, this->Width, this->Height,board->getCurrentPlayerId());
+    Renderer -> DrawBoard(board, this->Width, this->Height);
     if (provinceSelector!=nullptr)
     {
         Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
@@ -391,7 +376,7 @@ void LocalPlayer::act()
         if (game->mousePressed)
         {
             float size = game->Renderer -> getSize(game->board);
-            Point p = game->Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
+            glm::ivec2 p = game->Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (hex!=nullptr)
             {
@@ -401,7 +386,7 @@ void LocalPlayer::act()
                 else
                 {
                     moveAction(hex,p);
-                    SelectAction(hex,p);
+                    SelectAction(hex);
                 }
                 if (tower(hex->getResident()) || castle(hex->getResident())) game->Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
                 else game->Renderer->shieldHexes.clear();
@@ -440,7 +425,7 @@ void LocalPlayer::act()
 
 }
 
-void LocalPlayer::moveAction(Hexagon* hex,Point p)
+void LocalPlayer::moveAction(Hexagon* hex,glm::ivec2 p)
 {
     std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
     Resident res = game->board->getHexagon(p.x,p.y)->getResident();
@@ -461,7 +446,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
     }
 }
 
-void LocalPlayer::spawnAction(Hexagon* hex,Point p)
+void LocalPlayer::spawnAction(Hexagon* hex,glm::ivec2 p)
 {
     if (game->provinceSelector!=nullptr)
     {
@@ -475,7 +460,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
 
 }
 
-void LocalPlayer::SelectAction(Hexagon *hex,Point p)
+void LocalPlayer::SelectAction(Hexagon *hex)
 {
     std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
     if (hexes.contains(hex))

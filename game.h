@@ -89,8 +89,6 @@ public:
     void ProcessInput(float dt);
     int GetSelectedCastleReserves();
     int GetSelectedCastleIncome();
-    void RefreshSprites();
-    void RefreshOutline();
     void Update(float dt);
     void Resize(int width, int height);
     void Render();
@@ -127,9 +125,9 @@ public:
     LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime = 60);
     virtual void act();
 
-    void moveAction(Hexagon* hex, Point p);
-    void spawnAction(Hexagon* hex, Point p);
-    void SelectAction(Hexagon* hex, Point p);
+    void moveAction(Hexagon* hex,glm::ivec2 p);
+    void spawnAction(Hexagon* hex,glm::ivec2 p);
+    void SelectAction(Hexagon* hex);
 };
 
 class BotPlayer : public Player

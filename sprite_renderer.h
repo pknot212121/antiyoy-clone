@@ -13,12 +13,6 @@
 #include "board.h"
 #include <cstdlib>
 
-struct Point
-{
-    Point(int x,int y): x(x),y(y){}
-    int x;
-    int y;
-};
 
 struct HexInstanceData {
     glm::vec2 position;
@@ -57,28 +51,17 @@ public:
     SpriteRenderer(Shader &shader, int bWidth, int bHeight);
     ~SpriteRenderer();
 
-
-    void DrawSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
-    void DrawBoardSprite(Texture2D &texture, glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
-    void DrawHexSprite(glm::vec2 position, glm::vec2 size = glm::vec2(10.0f, 10.0f), float rotate = 0.0f, glm::vec3 color = glm::vec3(1.0f));
-
-    void DrawHexagon(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.0f));
-    void DrawResident(::Hexagon* const hex, float size,Resident r, glm::vec3 color = glm::vec3(1.0f));
-    void DrawMarker(int playerIndex, ::Hexagon* hex, float size, glm::vec3 color = glm::vec3(1.0f));
-
-    void generateSprites(Board* board, int width, int height);
-    void generateBorders(Board* board, int width, int height);
-    void DrawBoard(Board* board, int width, int height, int playerIndex);
-    void DrawBorder(float size, glm::vec3 color, Hexagon* hex, int index, float width, float rotation);
-    void DrawOutline(Board* board, float size, uint8 id, Hexagon* h);
+    std::vector<int> getAllIndicesOnAScreen(Board* board);
+    void generateSprites(Board* board);
+    void generateBorders(Board* board);
+    void DrawBoard(Board* board, int width, int height);
 
 
     bool isHexOnScreen(glm::vec2 hexPos);
     float getSize(Board* board);
     void RenderBatch(const std::string& textureName, const std::vector<HexInstanceData>& data);
-    Point CheckWhichHexagon(int x, int y, float size);
+    glm::ivec2 CheckWhichHexagon(int x, int y, float size);
     void Zoom(float zoomFactor, float pivotX, float pivotY, Board* board);
-    void ClampDisplacement();
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void InitPalette();
 

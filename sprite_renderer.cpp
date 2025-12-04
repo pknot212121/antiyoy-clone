@@ -104,15 +104,15 @@ void SpriteRenderer::InitPalette() {
     }
 }
 
-Point fromAxial(int q,int r)
+glm::ivec2 fromAxial(int q,int r)
 {
     int parity = q&1;
     int col = q;
     int row = r + (q - parity) / 2;
-    return Point(col, row);
+    return glm::ivec2(col, row);
 }
 
-Point SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
+glm::ivec2 SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
 {
 
     float worldX = _x - this->displacementX;
@@ -232,7 +232,25 @@ std::vector<glm::vec2> getCenters(float a,glm::vec2 start)
             };
 }
 
-void SpriteRenderer::generateSprites(Board *board, int width, int height)
+std::vector<int> SpriteRenderer::getAllIndicesOnAScreen(Board *board)
+{
+    std::vector<int> ind;
+    glm::ivec2 p1 = CheckWhichHexagon(0,0,size);
+    if (p1.x<0) p1.x=0; if (p1.y<0) p1.y=0;
+
+    glm::ivec2 p2 = CheckWhichHexagon(width,height,size/2);
+    if (p2.x>=board->getWidth()) p2.x=board->getWidth()-1; if (p2.y>=board->getWidth()) p2.y=board->getWidth()-1;
+    for (int i=p1.y*board->getWidth()+p1.x;i<=p2.y*board->getWidth()+p2.x;i++)
+    {
+        if (i<board->getWidth()*board->getHeight() && i>=0)
+        {
+            ind.push_back(i);
+        }
+    }
+    return ind;
+}
+
+void SpriteRenderer::generateSprites(Board *board)
 {
     size = getSize(board);
     hexData.clear();
@@ -240,8 +258,8 @@ void SpriteRenderer::generateSprites(Board *board, int width, int height)
     shieldData.clear();
     for (auto& r : residentData) r.clear();
 
-
-    for (int i = 0; i < board->getWidth()*board->getHeight(); i++)
+    std::vector<int> ind = getAllIndicesOnAScreen(board);
+    for (int i : ind)
     {
         Hexagon *hex = board->getHexagon(i);
         glm::vec2 hexSizeVec(size, size * 1.73 / 2.0f);
@@ -266,7 +284,7 @@ void SpriteRenderer::generateSprites(Board *board, int width, int height)
     }
 }
 
-void SpriteRenderer::generateBorders(Board *board, int width, int height)
+void SpriteRenderer::generateBorders(Board *board)
 {
     borderData.clear();
     if (board->getGame()->provinceSelector!=nullptr)
@@ -298,12 +316,12 @@ void SpriteRenderer::generateBorders(Board *board, int width, int height)
 }
 
 
-void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIndex)
+void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
 
     // This generates sprites and puts them in vectors ready to render
-    generateSprites(board,width,height);
-    generateBorders(board,width,height);
+    generateSprites(board);
+    generateBorders(board);
 
     this->shader.Use();
     glm::mat4 projection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
