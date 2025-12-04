@@ -65,7 +65,7 @@ public:
     Hexagon                 *selectedHex = nullptr;
     Hexagon                 *provinceSelector = nullptr;
     std::vector<Player*>    players;
-
+    SpriteRenderer* Renderer;
     inline Player* getPlayer(uint8 id) noexcept { return (id == 0) ? nullptr : players[id-1]; }
 
     Board *board;

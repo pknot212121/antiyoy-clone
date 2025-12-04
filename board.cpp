@@ -4,6 +4,8 @@
 #include <set>
 #include <algorithm>
 
+#include "game.h"
+
 
 void markAll(std::vector<Hexagon *> hexagons)
 {
@@ -952,7 +954,6 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
 
             placement->setResident(::move(resident));
             placement->setOwnerId(castleHex->getOwnerId());
-
             calculateEnvironment(board, placement, oldOwnerId);
         }
     }
@@ -1020,12 +1021,14 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
         Resident merged = mergeWarriors(resident, destination->getResident()); // mieszanie żołnierzy
         if(!warrior(merged)) return false;
         destination->setResident(merged);
+
     }
     else
     {
         if(castle(destination->getResident())) destination->removeCastle(board, false);
         if (tree(destination->getResident())) destination->removeTree(board);
         destination->setResident(::move(resident));
+
     }
     setResident(Resident::Empty);
 

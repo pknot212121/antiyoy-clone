@@ -52,7 +52,7 @@ inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warri
 class SpriteRenderer
 {
 public:
-    SpriteRenderer(Shader &shader);
+    SpriteRenderer(Shader &shader, int bWidth, int bHeight);
     ~SpriteRenderer();
 
 

@@ -9,7 +9,7 @@
 
 
 // Game-related State data
-SpriteRenderer* Renderer;
+
 
 
 GameConfigData::GameConfigData(coord x, coord y, unsigned int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes)
@@ -168,7 +168,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
     ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
     // set render-specific controls
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
+
     // load textures
     ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
     ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
@@ -193,6 +193,7 @@ void Game::Init(GameConfigData& gcd)
 
     bool isHost = clientSocks.size() > 0;
     board = new Board(gcd.x, gcd.y, this);
+    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),gcd.x,gcd.y);
     int total = gcd.x * gcd.y;
     board->InitializeRandom(total * 0.5, total * 0.9);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
@@ -346,7 +347,7 @@ void Game::RefreshSprites()
     // Zakładam, że getSize korzysta z resizeMultiplier, więc musimy to zaktualizować
     Renderer->size = Renderer->getSize(board);
 
-    Renderer->hexData.clear();
+    // Renderer->hexData.clear();
     Renderer->exclamationData.clear();
     for (auto& r : Renderer->residentData) r.clear();
 
@@ -368,9 +369,10 @@ void Game::RefreshSprites()
                 color -= glm::vec3(0.2,0.2,0.2);
             }
             glm::vec2 hexPos = Renderer->calculateHexPosition(hex->getX(), hex->getY(), Renderer->size) +(hexSizeVec * 0.5f);
-            if (!water(hex->getResident())) Renderer -> hexData.push_back({hexPos,color,0.0f,hexSizeVec});
+            if (!water(hex->getResident())) Renderer -> hexData[i*board->getWidth()+j]=HexInstanceData(hexPos,color,0.0f,hexSizeVec);
             Renderer -> residentData[(int)hex->getResident()].push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
             if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
+            if (unmovedWarrior(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) Renderer->exclamationData.push_back({hexPos,glm::vec3(1.0f),0.0f,hexSizeVec});
         }
     }
     RefreshOutline();
@@ -486,13 +488,13 @@ void LocalPlayer::act()
         {
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
             std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
-            Renderer -> setBrightenedHexes(neigh);
+            game->Renderer -> setBrightenedHexes(neigh);
             game->RefreshSprites();
         }
         if (game->mousePressed)
         {
-            float size = Renderer -> getSize(game->board);
-            Point p = Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
+            float size = game->Renderer -> getSize(game->board);
+            Point p = game->Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (p.x<game->board->getWidth() && p.x>=0 && p.y<game->board->getHeight() && p.y>=0)
             {
@@ -505,8 +507,8 @@ void LocalPlayer::act()
                     moveAction(hex,p);
                     SelectAction(hex,p);
                 }
-                if (tower(hex->getResident()) || castle(hex->getResident())) Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
-                else Renderer->shieldHexes.clear();
+                if (tower(hex->getResident()) || castle(hex->getResident())) game->Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
+                else game->Renderer->shieldHexes.clear();
 
                 game-> mousePressed = false;
             }
@@ -515,7 +517,7 @@ void LocalPlayer::act()
         }
         if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
         {
-            Renderer->ClearBrightenedHexes();
+            game->Renderer->ClearBrightenedHexes();
             game->RefreshSprites();
         }
 
@@ -529,7 +531,7 @@ void LocalPlayer::act()
             game->enterPressed = false;
             game->isFirstProvinceSet = false;
             game->provinceSelector=nullptr;
-            Renderer->shieldHexes.clear();
+            game->Renderer->shieldHexes.clear();
             game->board->nextTurn(true);
             game->RefreshSprites();
 
@@ -548,7 +550,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
             if (game->selectedHex!=hex)
                 game->selectedHex->move(game->board,hex,true);
         }
-        Renderer -> ClearBrightenedHexes();
+        game->Renderer -> ClearBrightenedHexes();
         game->RefreshSprites();
         game->isHexSelected=false;
     }
@@ -556,7 +558,7 @@ void LocalPlayer::moveAction(Hexagon* hex,Point p)
     {
         game->selectedHex=hex;game->isHexSelected=true;
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
-        Renderer -> setBrightenedHexes(nearby);
+        game->Renderer -> setBrightenedHexes(nearby);
         game->RefreshSprites();
     }
 }
@@ -569,7 +571,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,Point p)
         if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
             game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex,true);
         }
-        Renderer -> ClearBrightenedHexes();
+        game->Renderer -> ClearBrightenedHexes();
         game->RefreshSprites();
     }
 

@@ -129,7 +129,7 @@ public:
     inline uint8 getOwnerId() const noexcept { return ownerId; }
     inline void setOwnerId(uint8 ownerId) noexcept { this->ownerId = ownerId; }
     inline Resident getResident() const noexcept { return resident; }
-    inline void setResident(Resident resident) noexcept { this->resident = resident; }
+    void setResident(Resident resident){ this->resident = resident; }
 
     int price(Board* board, Resident resident);
     bool isNearWater(Board* board);

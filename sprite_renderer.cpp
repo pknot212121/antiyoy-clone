@@ -12,11 +12,13 @@
 
 
 
-SpriteRenderer::SpriteRenderer(Shader &shader)
+SpriteRenderer::SpriteRenderer(Shader &shader,int bWidth, int bHeight)
 {
     this->shader = shader;
     this->initRenderData();
+    this->hexData.resize(bWidth*bHeight);
     this->residentData.resize(20);
+    for (auto& r : residentData) r.resize(bWidth*bHeight);
 }
 
 SpriteRenderer::~SpriteRenderer()
