@@ -38,10 +38,10 @@ inline std::string textures[] = {
     "soilder2",
     "placeholder",
     "placeholder",
-    "placeholder",
+    "farm1",
     "castle",
     "tower",
-    "placeholder",
+    "strongTower",
     "palm",
     "pine",
     "gravestone"
@@ -108,7 +108,7 @@ private:
 
 
     // Initializes and configures the quad's buffer and vertex attributes
-    void initRenderData();
+    void initRenderData(int bWidth, int bHeight);
 };
 
 #endif
