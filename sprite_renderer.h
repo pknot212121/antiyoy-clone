@@ -27,7 +27,7 @@ struct HexInstanceData {
     glm::vec2 size;
 };
 
-inline std::vector<std::string> textures = {
+inline std::string textures[] = {
     "nic",
     "nic",
     "soilder1",
