@@ -178,6 +178,7 @@ public:
     // inicjalizatory
     Board(coord width, coord height, Game* game);
     void InitializeRandom(int min, int max);
+    void InitializeRandomWithAnts(int n, int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
     void InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize);
     void spawnTrees(double treeRatio);

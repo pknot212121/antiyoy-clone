@@ -26,36 +26,6 @@ SpriteRenderer::~SpriteRenderer()
     glDeleteVertexArrays(1, &this->quadVAO);
 }
 
-void SpriteRenderer::constrainMapBounds(Board *board)
-{
-    auto topLeft = calculateHexPosition(0, 0, size);
-    auto bottomRight = calculateHexPosition(board->getWidth() - 1, board->getHeight() - 1, size);
-
-    int mapPixelWidth = bottomRight.x - topLeft.x + size;
-    int mapPixelHeight = bottomRight.y - topLeft.y + size;
-    int maxDisplacementX = width / 2;
-    int maxDisplacementY = height / 2;
-    int minDisplacementX = (width / 2) - mapPixelWidth;
-    int minDisplacementY = (height / 2) - mapPixelHeight;
-
-
-    if (minDisplacementX > maxDisplacementX) {
-        int centerOffset = (maxDisplacementX - minDisplacementX) / 2;
-        minDisplacementX = maxDisplacementX - centerOffset;
-
-    }
-    if (minDisplacementY > maxDisplacementY) {
-         int centerOffset = (maxDisplacementY - minDisplacementY) / 2;
-         minDisplacementY = maxDisplacementY - centerOffset;
-    }
-
-    if (displacementX > maxDisplacementX) displacementX = maxDisplacementX;
-    if (displacementX < minDisplacementX) displacementX = minDisplacementX;
-
-    if (displacementY > maxDisplacementY) displacementY = maxDisplacementY;
-    if (displacementY < minDisplacementY) displacementY = minDisplacementY;
-}
-
 void SpriteRenderer::addToDisplacementX(Board *board,int dx)
 {
     displacementX += dx;
@@ -343,7 +313,6 @@ void SpriteRenderer::generateBorders(Board *board)
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
-    constrainMapBounds(board);
     // This generates sprites and puts them in vectors ready to render
     generateSprites(board);
     generateBorders(board);

@@ -197,7 +197,7 @@ void Game::Init(GameConfigData& gcd)
     board = new Board(gcd.x, gcd.y, this);
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),gcd.x,gcd.y);
     int total = gcd.x * gcd.y;
-    board->InitializeRandom(total * 0.5, total * 0.9);
+    board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
     Renderer->width = Width;
@@ -407,6 +407,11 @@ void LocalPlayer::act()
         if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
         {
             game->Renderer->ClearBrightenedHexes();
+        }
+        if (game->pressedKey==GLFW_KEY_R)
+        {
+            game->Renderer->displacementX=0;
+            game->Renderer->displacementY=0;
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)
