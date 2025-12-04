@@ -180,9 +180,13 @@ void Board::InitializeRandomWithAnts(int numOfAnts,int min,int max)
                 if (water(neighbours[index]->getResident())){neighbours[index]->setResident(Resident::Warrior1Moved);n--;}
                 ant = neighbours[index];
             }
-
         }
     }
+    for (auto& ant : ants)
+    {
+        ant->setResident(Resident::Empty);
+    }
+    ants.clear();
 }
 
 void Board::InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize)
