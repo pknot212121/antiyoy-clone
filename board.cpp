@@ -130,6 +130,65 @@ void Board::InitializeRandom(int min, int max)
     }
 }
 
+void Board::InitializeRandomWithAnts(int numOfAnts,int min,int max)
+{
+    int num=numOfAnts;
+    std::uniform_int_distribution<int> randN(min, max);
+    int n = randN(gen);
+
+    Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
+    if(!middle) return;
+
+    std::unordered_set<Hexagon*> addableS = { middle };
+    std::vector<Hexagon*> addableV = { middle };
+
+
+    std::vector<Hexagon*> ants;
+
+    while(num > 0 && !addableV.empty())
+    {
+        std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
+        int index = randomAddable(gen);
+        Hexagon* hex = addableV[index];
+        ants.push_back(hex);
+        addableS.erase(hex);
+        addableV[index] = addableV.back();
+        addableV.pop_back();
+        hex->setResident(Resident::Warrior1Moved);
+        auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return water(h->getResident()); });
+        for(Hexagon* neighbour : neighbours)
+        {
+            if(!addableS.count(neighbour))
+            {
+                addableS.insert(neighbour);
+                addableV.push_back(neighbour);
+            }
+        }
+        num--;
+    }
+    while (n>0)
+    {
+        std::uniform_int_distribution<int> randomNeighbor(0, 6);
+        for (auto& ant : ants)
+        {
+            auto neighbours = ant->neighbours(this, 0, false,[](Hexagon *h){return h->getResident()!=Resident::Warrior1Moved;});
+            if (neighbours.size()>0)
+            {
+                std::uniform_int_distribution<int> randomNeighbor(0, neighbours.size()-1);
+                int index = randomNeighbor(gen);
+                ant->setResident(Resident::Empty);
+                if (water(neighbours[index]->getResident())){neighbours[index]->setResident(Resident::Warrior1Moved);n--;}
+                ant = neighbours[index];
+            }
+        }
+    }
+    for (auto& ant : ants)
+    {
+        ant->setResident(Resident::Empty);
+    }
+    ants.clear();
+}
+
 void Board::InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize)
 {
     if(minCountrySize > maxCountrySize)
@@ -220,7 +279,7 @@ restart:
 
 bool Hexagon::isNearWater(Board *board)
 {
-    return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0;
+    return (neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size() > 0 || neighbours(board, 0, false).size() <6;
 }
 
 bool Hexagon::bordersPineAndOtherTree(Board *board)
