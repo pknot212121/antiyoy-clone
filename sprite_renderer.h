@@ -50,6 +50,7 @@ class SpriteRenderer
 public:
     SpriteRenderer(Shader &shader, int bWidth, int bHeight);
     ~SpriteRenderer();
+    void constrainMapBounds(Board* board);
 
     std::vector<int> getAllIndicesOnAScreen(Board* board);
     void generateSprites(Board* board);
