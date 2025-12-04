@@ -252,6 +252,7 @@ void Game::Init(GameConfigData& gcd)
         getchar();
         std::exit(1);
     }
+    std::cout << "Finished init\n";
 
 }
 
