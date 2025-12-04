@@ -140,7 +140,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *bo
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
-    if (newZoom < 0.5f) newZoom = 0.5f;
+    if (newZoom < 1.0f) newZoom = 1.0f;
     if (newZoom > board->getWidth()/4) newZoom = board->getWidth()/4;
 
     float scaleRatio = newZoom / oldZoom;
@@ -238,8 +238,9 @@ std::vector<int> SpriteRenderer::getAllIndicesOnAScreen(Board *board)
     glm::ivec2 p1 = CheckWhichHexagon(0,0,size);
     if (p1.x<0) p1.x=0; if (p1.y<0) p1.y=0;
 
-    glm::ivec2 p2 = CheckWhichHexagon(width,height,size/2);
+    glm::ivec2 p2 = CheckWhichHexagon(width,height+size,size/2);
     if (p2.x>=board->getWidth()) p2.x=board->getWidth()-1; if (p2.y>=board->getWidth()) p2.y=board->getWidth()-1;
+
     for (int i=p1.y*board->getWidth()+p1.x;i<=p2.y*board->getWidth()+p2.x;i++)
     {
         if (i<board->getWidth()*board->getHeight() && i>=0)

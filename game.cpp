@@ -268,6 +268,8 @@ void Game::Resize(int width, int height)
 {
     this->Width = width;
     this->Height = height;
+    Renderer->width =width;
+    Renderer->height = height;
     Text->TextShader.SetMatrix4("projection", glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f), true);
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width),
         static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
