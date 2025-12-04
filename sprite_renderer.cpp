@@ -213,7 +213,7 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height, int playerIn
     RenderBatch("hexagon", hexData);
 
     RenderBatch("border_placeholder",borderData);
-    for (int i=0;i<(int)Resident::Gravestone;i++)
+    for (int i=0;i<=(int)Resident::Gravestone;i++)
     {
         if (textures[i]!="nic" )
         {
