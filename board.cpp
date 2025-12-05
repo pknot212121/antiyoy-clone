@@ -220,7 +220,7 @@ restart:
         for(int j = 0; j < width * height; j++)
         {
             Hexagon* hex = &board[j];
-            if(!water(hex->getResident()) && hex->getOwnerId() == 0) available.push_back(hex);
+            if(!water(hex->getResident()) && hex->getOwnerId() == 0 && hex!=nullptr) available.push_back(hex);
         }
         if (available.empty()) 
         {
@@ -264,7 +264,7 @@ restart:
             addableV[index] = addableV.back();
             addableV.pop_back();
             hex->setOwnerId(i);
-            auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return !water(h->getResident()) && h->getOwnerId() == 0; });
+            auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return !water(h->getResident()) && h->getOwnerId() == 0 && h!=nullptr; });
             for(Hexagon* neighbour : neighbours)
             {
                 if(!addableS.count(neighbour))

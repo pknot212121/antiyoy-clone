@@ -26,11 +26,11 @@ inline std::string textures[] = {
     "nic",
     "soilder1",
     "soilder2",
-    "placeholder",
+    "soilder3",
     "placeholder",
     "soilder1",
     "soilder2",
-    "placeholder",
+    "soilder3",
     "placeholder",
     "farm1",
     "castle",
@@ -64,6 +64,7 @@ public:
     glm::ivec2 CheckWhichHexagon(int x, int y, float size);
     void Zoom(float zoomFactor, float pivotX, float pivotY, Board* board);
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
+    void setPosToCastle(Board *board,uint8 id);
     void InitPalette();
 
     void addToDisplacementX(Board *board,int dx);
@@ -82,6 +83,8 @@ public:
     std::vector<glm::vec3> palette;
     int   displacementX = 0;
     int   displacementY = 0;
+    int   displacementXOriginal = 0;
+    int   displacementYOriginal=0;
     double resizeMultiplier = 1.0f;
     int width;
     int height;

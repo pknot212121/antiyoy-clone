@@ -193,6 +193,7 @@ void Game::Init(GameConfigData& gcd)
     // load textures
     ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
     ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
+    ResourceManager::LoadTexture("textures/soldier3_256.png",true,"soilder3");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
@@ -383,10 +384,9 @@ LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int ma
 void LocalPlayer::act()
 {
 
-    if (game->State == GameState::GAME_ACTIVE)
-    {
         if (!game->isFirstProvinceSet)
         {
+            game->Renderer->setPosToCastle(game->board,id);
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
             this->game->provinceSelector = *hexes.begin();
             game->isFirstProvinceSet = true;
@@ -433,9 +433,13 @@ void LocalPlayer::act()
         }
         if (game->pressedKey==GLFW_KEY_R)
         {
-            game->Renderer->resizeMultiplier=1.0f;
-            game->Renderer->displacementX=0;
-            game->Renderer->displacementY=0;
+            game->rPressed=true;
+        }
+
+        if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
+        {
+            game->Renderer->setPosToCastle(game->board,id);
+            game->rPressed=false;
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)
@@ -453,8 +457,6 @@ void LocalPlayer::act()
 
         }
     }
-
-}
 
 void LocalPlayer::moveAction(Hexagon* hex,glm::ivec2 p)
 {
