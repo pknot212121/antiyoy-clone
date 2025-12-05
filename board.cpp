@@ -359,6 +359,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             {
                 for (Hexagon* h : province)
                 {
+                    money=0;
                     if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
                 }
             }
