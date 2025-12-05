@@ -136,57 +136,63 @@ void Board::InitializeRandomWithAnts(int numOfAnts,int min,int max)
     std::uniform_int_distribution<int> randN(min, max);
     int n = randN(gen);
 
-    Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
-    if(!middle) return;
-
-    std::unordered_set<Hexagon*> addableS = { middle };
-    std::vector<Hexagon*> addableV = { middle };
-
-
-    std::vector<Hexagon*> ants;
-
-    while(num > 0 && !addableV.empty())
+    if (n>num)
     {
-        std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
-        int index = randomAddable(gen);
-        Hexagon* hex = addableV[index];
-        ants.push_back(hex);
-        addableS.erase(hex);
-        addableV[index] = addableV.back();
-        addableV.pop_back();
-        hex->setResident(Resident::Warrior1Moved);
-        auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return water(h->getResident()); });
-        for(Hexagon* neighbour : neighbours)
+        Hexagon* middle = getHexagon(getWidth() / 2, getHeight() / 2);
+        if(!middle) return;
+
+        std::unordered_set<Hexagon*> addableS = { middle };
+        std::vector<Hexagon*> addableV = { middle };
+
+
+        std::vector<Hexagon*> ants;
+
+        while(num > 0 && !addableV.empty())
         {
-            if(!addableS.count(neighbour))
+            std::uniform_int_distribution<int> randomAddable(0, addableV.size() - 1);
+            int index = randomAddable(gen);
+            Hexagon* hex = addableV[index];
+            ants.push_back(hex);
+            addableS.erase(hex);
+            addableV[index] = addableV.back();
+            addableV.pop_back();
+            hex->setResident(Resident::Warrior1Moved);
+            auto neighbours = hex->neighbours(this, 0, false, [](Hexagon* h) { return water(h->getResident()); });
+            for(Hexagon* neighbour : neighbours)
             {
-                addableS.insert(neighbour);
-                addableV.push_back(neighbour);
+                if(!addableS.count(neighbour))
+                {
+                    addableS.insert(neighbour);
+                    addableV.push_back(neighbour);
+                }
+            }
+            num--;
+            n--;
+        }
+        while (n>0)
+        {
+            std::uniform_int_distribution<int> randomNeighbor(0, 6);
+            for (auto& ant : ants)
+            {
+                auto neighbours = ant->neighbours(this, 0, false,[](Hexagon *h){return h->getResident()!=Resident::Warrior1Moved;});
+                if (neighbours.size()>0)
+                {
+                    std::uniform_int_distribution<int> randomNeighbor(0, neighbours.size()-1);
+                    int index = randomNeighbor(gen);
+                    ant->setResident(Resident::Empty);
+                    if (water(neighbours[index]->getResident())){neighbours[index]->setResident(Resident::Warrior1Moved);n--;}
+                    ant = neighbours[index];
+                }
             }
         }
-        num--;
-    }
-    while (n>0)
-    {
-        std::uniform_int_distribution<int> randomNeighbor(0, 6);
         for (auto& ant : ants)
         {
-            auto neighbours = ant->neighbours(this, 0, false,[](Hexagon *h){return h->getResident()!=Resident::Warrior1Moved;});
-            if (neighbours.size()>0)
-            {
-                std::uniform_int_distribution<int> randomNeighbor(0, neighbours.size()-1);
-                int index = randomNeighbor(gen);
-                ant->setResident(Resident::Empty);
-                if (water(neighbours[index]->getResident())){neighbours[index]->setResident(Resident::Warrior1Moved);n--;}
-                ant = neighbours[index];
-            }
+            ant->setResident(Resident::Empty);
         }
+        ants.clear();
     }
-    for (auto& ant : ants)
-    {
-        ant->setResident(Resident::Empty);
-    }
-    ants.clear();
+    else InitializeRandom(n,n);
+
 }
 
 void Board::InitializeCountries(uint8 countriesCount, int minCountrySize, int maxCountrySize)
@@ -353,6 +359,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             {
                 for (Hexagon* h : province)
                 {
+                    money=0;
                     if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
                 }
             }

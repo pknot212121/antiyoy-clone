@@ -343,6 +343,7 @@ void Game::Render()
     {
         Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
+        Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
     }
 }
 
@@ -410,6 +411,7 @@ void LocalPlayer::act()
         }
         if (game->pressedKey==GLFW_KEY_R)
         {
+            game->Renderer->resizeMultiplier=1.0f;
             game->Renderer->displacementX=0;
             game->Renderer->displacementY=0;
         }

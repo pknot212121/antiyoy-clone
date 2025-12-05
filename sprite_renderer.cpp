@@ -28,12 +28,17 @@ SpriteRenderer::~SpriteRenderer()
 
 void SpriteRenderer::addToDisplacementX(Board *board,int dx)
 {
-    displacementX += dx;
+    float displacementMultiX = (float)width/800;
+
+    displacementX += dx*displacementMultiX;
+
 }
 void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
-    displacementY += dy;
+    float displacementMultiY = (float)height/600;
+    displacementY += dy*displacementMultiY;
 }
+
 
 void SpriteRenderer::addToResizeMultiplier(double ds,Board *board,float width)
 {
@@ -134,7 +139,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *bo
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
-    if (newZoom < 1.0f) newZoom = 1.0f;
+    if (newZoom < 0.5f) newZoom = 0.5f;
     if (newZoom > board->getWidth()/4) newZoom = board->getWidth()/4;
 
     float scaleRatio = newZoom / oldZoom;
