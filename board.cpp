@@ -225,7 +225,8 @@ restart:
         if (available.empty()) 
         {
             std::cout << "Not enough space to initialize countries" << std::endl;
-            return;
+            getchar();
+            std::exit(1);
         }
 
         std::uniform_int_distribution<int> randOrigin(0, available.size() - 1);
@@ -251,7 +252,8 @@ restart:
                 if(tries > 100)
                 {
                     std::cout << "Too many failed country initializations, aborted" << std::endl;
-                    return;
+                    getchar();
+                    std::exit(1);
                 }
                 else goto restart;
             }

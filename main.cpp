@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
     if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.playerMarkers))
     {
-        std::string net;
+        std::string title;
     #ifdef _WIN32
         file.close();
         file.open("config.txt");
@@ -69,47 +69,66 @@ int main(int argc, char *argv[])
         file.clear();
         file.seekg(0, std::ios::beg);
     #endif
-        if((file >> net) && net == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
+        if(file >> title) // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
         {
-            if(!(file >> discoveryPort))
+            if(title == "net")
             {
-                std::cout << "Invalid content of config.txt\n";
-                getchar();
-                return 1;
-            }
-            //std::cout << "Discovery port: " << discoveryPort << '\n';
-            std::cout << "Searching for a server...\n";
-            searchForServer(discoveryPort, &ipAddress, &port);
+                if(!(file >> discoveryPort))
+                {
+                    std::cout << "Invalid content of config.txt\n";
+                    getchar();
+                    return 1;
+                }
+                //std::cout << "Discovery port: " << discoveryPort << '\n';
+                std::cout << "Searching for a server...\n";
+                searchForServer(discoveryPort, &ipAddress, &port);
 
-            std::cout << "IP: " << ipAddress << ", Port: " << port << '\n';
-            std::cout << "Server found, connecting...\n";
-            if(!connectToServer(ipAddress, port))
+                std::cout << "IP: " << ipAddress << ", Port: " << port << '\n';
+                std::cout << "Server found, connecting...\n";
+                if(!connectToServer(ipAddress, port))
+                {
+                    std::cout << "Failed to connect to the server\n";
+                    getchar();
+                    return 1;
+                }
+
+                std::cout << "Connected, awaiting connection confirmation...\n";
+                if(!receiveMagicNumbers(sock, true))
+                {
+                    std::cout << "Confirmation failed\n";
+                    getchar();
+                    closeSockets();
+                    return 1;
+                }
+
+                std::cout << "Confirmation received, awaiting configuration data...\n";
+                if(!gcd.receiveFromSocket(sock, true))
+                {
+                    std::cout << "Configuration failed\n";
+                    getchar();
+                    closeSockets();
+                    return 1;
+                }
+                std::cout << "Successfully configured!\n";
+
+                goto netConfiguration;
+            }
+            else if(title == "rand")
             {
-                std::cout << "Failed to connect to the server\n";
-                getchar();
-                return 1;
+                char marker;
+                int maxMoveTime;
+                if(!(file >> marker >> maxMoveTime) || (marker != 'L' && marker != 'B' && marker != 'N') || maxMoveTime < -1)
+                {
+                    std::cout << "Invalid content of config.txt\n";
+                    getchar();
+                    return 1;
+                }
+                gcd.randomize(marker, maxMoveTime);
+                std::cout << "Generated:\nX: " << gcd.x << " Y: " << gcd.y << " Seed: " << gcd.seed << " MinP: " << gcd.minProvinceSize << " MaxP: " << gcd.maxProvinceSize << " Markers: " << gcd.playerMarkers << '\n';
+                shouldRunAi = marker == 'B';
+                if(marker == 'N') networkPlayers = gcd.playerMarkers.length();
+                goto randConfiguration;
             }
-
-            std::cout << "Connected, awaiting connection confirmation...\n";
-            if(!receiveMagicNumbers(sock, true))
-            {
-                std::cout << "Confirmation failed\n";
-                getchar();
-                closeSockets();
-                return 1;
-            }
-
-            std::cout << "Confirmation received, awaiting configuration data...\n";
-            if(!gcd.receiveFromSocket(sock, true))
-            {
-                std::cout << "Configuration failed\n";
-                getchar();
-                closeSockets();
-                return 1;
-            }
-            std::cout << "Successfully configured!\n";
-
-            goto skipFileConfiguration;
         }
         else
         {
@@ -159,6 +178,8 @@ int main(int argc, char *argv[])
         gcd.maxMoveTimes.push_back(maxMoveTime);
     }
 
+randConfiguration:
+
     if(!(file >> port >> pythonProgram >> ipAddress >> discoveryPort))
     {
         std::cout << "Invalid content of config.txt\n";
@@ -205,7 +226,7 @@ int main(int argc, char *argv[])
         sendMagicNumbers();
     }
 
-skipFileConfiguration: // Dla gracza sieciowego
+netConfiguration: // Dla gracza sieciowego
 
     // OPENGL
     glfwInit();

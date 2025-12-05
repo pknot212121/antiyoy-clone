@@ -11,11 +11,32 @@
 // Game-related State data
 
 
+std::mt19937 GameConfigData::gcdGen(std::random_device{}() + 12345);
 
 GameConfigData::GameConfigData(coord x, coord y, unsigned int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes)
 : x(x), y(y), seed(seed), minProvinceSize(minProvinceSize), maxProvinceSize(maxProvinceSize), playerMarkers(playerMarkers), maxMoveTimes(maxMoveTimes)
 {
 
+}
+
+void GameConfigData::randomize(char marker, int maxMoveTime)
+{
+    coord min = 5;
+    coord max = 75;
+    std::uniform_int_distribution<> dist(min, max);
+restart:
+    x = dist(gcdGen);
+    y = 0;
+    while(y < x/3 || y > x*3) y = dist(gcdGen);
+    playerMarkers.assign(std::uniform_int_distribution<>(2, 8)(gcdGen), marker); // od 2 do 8 botów
+    maxMoveTimes.assign(playerMarkers.length(), maxMoveTime);
+    int maxMaxProvinceSize = x * y / 2 / playerMarkers.length();
+    if(maxMaxProvinceSize < 2) goto restart;
+    maxProvinceSize = std::uniform_int_distribution<>(2, maxMaxProvinceSize)(gcdGen);
+    std::uniform_int_distribution<> minDist(2, maxProvinceSize);
+    minProvinceSize = 0;
+    while(minProvinceSize < maxProvinceSize/2) minProvinceSize = minDist(gen);
+    seed = 0;
 }
 
 void GameConfigData::sendGameConfigData(int receivingSocket)
@@ -196,17 +217,15 @@ void Game::Init(GameConfigData& gcd)
 
     bool isHost = clientSocks.size() > 0;
     board = new Board(gcd.x, gcd.y, this);
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
+    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),gcd.x,gcd.y);
     int total = gcd.x * gcd.y;
-    board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
-    Renderer->getActualDimensions(board);
+    //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
+    board->InitializeRandom(total * 0.5, total * 0.9);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
-
     Renderer->width = Width;
     Renderer->height = Height;
     Renderer->size = Renderer->getSize(board);
-    std::cout << Renderer->size << std::endl;
 
 
     auto countries = board->getCountries();
@@ -347,9 +366,8 @@ void Game::Render()
     {
         Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
-
+        Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
     }
-    Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
 }
 
 
