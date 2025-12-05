@@ -142,7 +142,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *bo
     float newZoom = oldZoom * zoomFactor;
 
     if (newZoom < 0.1f) newZoom = 0.1f;
-    if (newZoom > board->getWidth()/4) newZoom = board->getWidth()/4;
+    if (newZoom > std::max(board->getWidth(),board->getHeight())/4) newZoom = std::max(board->getWidth(),board->getHeight())/4;
 
     float scaleRatio = newZoom / oldZoom;
     displacementX = pivotX - (pivotX - displacementX) * scaleRatio;
@@ -191,7 +191,7 @@ bool SpriteRenderer::isHexOnScreen(glm::vec2 hexPos)
 
 float SpriteRenderer::getSize(Board *board)
 {
-    float boardWidth = static_cast<float>(board->getWidth());
+    float boardWidth = static_cast<float>(std::max(board->getWidth(),board->getHeight()));
     float screenWidth = static_cast<float>(width) * resizeMultiplier;
     return (screenWidth / boardWidth) / 0.75f;
 }
