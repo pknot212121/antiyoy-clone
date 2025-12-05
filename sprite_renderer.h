@@ -48,7 +48,8 @@ inline std::unordered_set<Resident> active = {Resident::Warrior1,Resident::Warri
 class SpriteRenderer
 {
 public:
-    SpriteRenderer(Shader &shader, int bWidth, int bHeight);
+    SpriteRenderer(Shader &shader, Board *board);
+    void getActualDimensions(Board* board);
     ~SpriteRenderer();
     void constrainMapBounds(Board* board);
 
@@ -62,6 +63,7 @@ public:
     float getSize(Board* board);
     void RenderBatch(const std::string& textureName, const std::vector<HexInstanceData>& data);
     glm::ivec2 CheckWhichHexagon(int x, int y, float size);
+    glm::ivec2 CheckWhichActualHexagon(int _x, int _y, float baseSize);
     void Zoom(float zoomFactor, float pivotX, float pivotY, Board* board);
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void setPosToCastle(Board *board,uint8 id);
@@ -83,8 +85,12 @@ public:
     std::vector<glm::vec3> palette;
     int   displacementX = 0;
     int   displacementY = 0;
-    int   displacementXOriginal = 0;
-    int   displacementYOriginal=0;
+    int   actualBoardWidth=0;
+    int   actualBoardHeight=0;
+    int actualMinX=0;
+    int actualMaxX =0;
+    int actualMinY = 0;
+    int actualMaxY = 0;
     double resizeMultiplier = 1.0f;
     int width;
     int height;

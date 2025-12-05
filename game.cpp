@@ -196,14 +196,17 @@ void Game::Init(GameConfigData& gcd)
 
     bool isHost = clientSocks.size() > 0;
     board = new Board(gcd.x, gcd.y, this);
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),gcd.x,gcd.y);
+    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
     int total = gcd.x * gcd.y;
     board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
+    Renderer->getActualDimensions(board);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
+
     Renderer->width = Width;
     Renderer->height = Height;
     Renderer->size = Renderer->getSize(board);
+    std::cout << Renderer->size << std::endl;
 
 
     auto countries = board->getCountries();
@@ -344,8 +347,9 @@ void Game::Render()
     {
         Text->RenderText("Money:"+std::to_string(GetSelectedCastleReserves()) ,10.0f, 10.0f, 1.0f);
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
-        Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
+
     }
+    Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
 }
 
 

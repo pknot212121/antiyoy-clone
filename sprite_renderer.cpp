@@ -12,13 +12,39 @@
 
 
 
-SpriteRenderer::SpriteRenderer(Shader &shader,int bWidth, int bHeight)
+SpriteRenderer::SpriteRenderer(Shader &shader,Board *board)
 {
+    int bWidth = board->getWidth();
+    int bHeight = board->getHeight();
     this->shader = shader;
     this->initRenderData(bWidth,bHeight);
     this->hexData.resize(bWidth*bHeight);
     this->residentData.resize(20);
     for (auto& r : residentData) r.resize(bWidth*bHeight);
+}
+
+void SpriteRenderer::getActualDimensions(Board *board)
+{
+    int maxX = 0; int minX = board->getWidth()-1;
+    int maxY = 0; int minY = board->getHeight()-1;
+    for (int i=0;i<board->getWidth()*board->getHeight();i++)
+    {
+        Hexagon *h = board->getHexagon(i);
+        if (!water(h->getResident()))
+        {
+            if (h->getX()>maxX) maxX=h->getX();
+            if (h->getX()<minX) minX=h->getX();
+            if (h->getY()>maxY) maxY=h->getY();
+            if (h->getY()<minY) minY=h->getY();
+        }
+    }
+    actualMinX = minX;
+    actualMaxX = maxX;
+    actualMaxY = maxY;
+    actualMinY = minY;
+    actualBoardWidth=abs(maxX-minX);
+    actualBoardHeight=abs(maxY-minY);
+    std::cout << actualBoardWidth << " " << actualBoardHeight << std::endl;
 }
 
 SpriteRenderer::~SpriteRenderer()
@@ -31,14 +57,20 @@ void SpriteRenderer::addToDisplacementX(Board *board,int dx)
     float displacementMultiX = (float)width/800;
 
     displacementX += dx*displacementMultiX;
-    displacementXOriginal+= dx*displacementMultiX;
+    glm::ivec2 pos1 = CheckWhichHexagon(width,0,size/2);
+    glm::ivec2 pos2 = CheckWhichHexagon(0,height,size/2);
+    if (pos1.x<actualMinX) displacementX-=2*abs(dx)*displacementMultiX;
+    if (pos2.x>actualMaxX) displacementX+=2*abs(dx)*displacementMultiX;
 
 }
 void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
     float displacementMultiY = (float)height/600;
     displacementY += dy*displacementMultiY;
-    displacementYOriginal +=dy*displacementMultiY;
+    glm::ivec2 pos1 = CheckWhichHexagon(width,0,size/2);
+    glm::ivec2 pos2 = CheckWhichHexagon(0,height,size/2);
+    if (pos2.y<actualMinY) displacementY-=2*abs(dy)*displacementMultiY;
+    if (pos1.y>actualMaxY) displacementY+=2*abs(dy)*displacementMultiY;
 }
 
 
@@ -136,15 +168,17 @@ glm::ivec2 SpriteRenderer::CheckWhichHexagon(int _x, int _y, float baseSize)
     return fromAxial(q, r);
 }
 
+
 void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *board)
 {
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
-    if (newZoom < 0.1f) newZoom = 0.1f;
-    if (newZoom > std::max(board->getWidth(),board->getHeight())/4) newZoom = std::max(board->getWidth(),board->getHeight())/4;
+    if (newZoom < 1.0f) newZoom = 1.0f;
+    if (newZoom > std::max(actualBoardWidth,actualBoardHeight)/4) newZoom = std::max(actualBoardWidth,actualBoardHeight)/4;
 
     float scaleRatio = newZoom / oldZoom;
+
     displacementX = pivotX - (pivotX - displacementX) * scaleRatio;
     displacementY = pivotY - (pivotY - displacementY) * scaleRatio;
 
@@ -191,7 +225,7 @@ bool SpriteRenderer::isHexOnScreen(glm::vec2 hexPos)
 
 float SpriteRenderer::getSize(Board *board)
 {
-    float boardWidth = static_cast<float>(std::max(board->getWidth(),board->getHeight()));
+    float boardWidth = static_cast<float>(std::max(actualBoardWidth,actualBoardHeight));
     float screenWidth = static_cast<float>(width) * resizeMultiplier;
     return (screenWidth / boardWidth) / 0.75f;
 }
