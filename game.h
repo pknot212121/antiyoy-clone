@@ -70,6 +70,7 @@ public:
     int                     scroll = 0;
     unsigned int            Width, Height;
     bool                    enterPressed = false;
+    bool                    rPressed = false;
     bool                    isHexSelected = false;
     bool                    isFirstProvinceSet = false;
     Hexagon                 *selectedHex = nullptr;

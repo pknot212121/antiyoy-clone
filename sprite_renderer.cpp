@@ -31,12 +31,14 @@ void SpriteRenderer::addToDisplacementX(Board *board,int dx)
     float displacementMultiX = (float)width/800;
 
     displacementX += dx*displacementMultiX;
+    displacementXOriginal+= dx*displacementMultiX;
 
 }
 void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
     float displacementMultiY = (float)height/600;
     displacementY += dy*displacementMultiY;
+    displacementYOriginal +=dy*displacementMultiY;
 }
 
 
@@ -139,7 +141,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *bo
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
-    if (newZoom < 0.5f) newZoom = 0.5f;
+    if (newZoom < 0.1f) newZoom = 0.1f;
     if (newZoom > board->getWidth()/4) newZoom = board->getWidth()/4;
 
     float scaleRatio = newZoom / oldZoom;
@@ -238,8 +240,7 @@ std::vector<int> SpriteRenderer::getAllIndicesOnAScreen(Board *board)
     if (p1.x<0) p1.x=0; if (p1.y<0) p1.y=0;
 
     glm::ivec2 p2 = CheckWhichHexagon(width,height+size,size/2);
-    if (p2.x>=board->getWidth()) p2.x=board->getWidth()-1; if (p2.y>=board->getWidth()) p2.y=board->getWidth()-1;
-
+    if (p2.x>=board->getWidth()) p2.x=board->getWidth()-1; if (p2.y>=board->getHeight()) p2.y=board->getHeight()-1;
     for (int i=p1.y*board->getWidth()+p1.x;i<=p2.y*board->getWidth()+p2.x;i++)
     {
         if (i<board->getWidth()*board->getHeight() && i>=0)
@@ -273,13 +274,10 @@ void SpriteRenderer::generateSprites(Board *board)
         glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
         glm::vec2 unitPos = hexPos + glm::vec2((size-smallSize)/2,0);
 
-        if (hexPos.x>-size && hexPos.x<width && hexPos.y>-size && hexPos.y<height)
-        {
-            if (!water(hex->getResident())) hexData.push_back(HexInstanceData(hexPos,color,0.0f,hexSizeVec));
-            residentData[(int)hex->getResident()].push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
-            if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) exclamationData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
-            if (shieldHexes.contains(hex)) shieldData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
-        }
+        if (!water(hex->getResident())) hexData.push_back(HexInstanceData(hexPos,color,0.0f,hexSizeVec));
+        residentData[(int)hex->getResident()].push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+        if (castle(hex->getResident()) && hex->getOwnerId()==board->getCurrentPlayerId()) exclamationData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
+        if (shieldHexes.contains(hex)) shieldData.push_back({unitPos,glm::vec3(1.0f),0.0f,smallSizeVec});
 
     }
 }

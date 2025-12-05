@@ -383,6 +383,7 @@ void LocalPlayer::act()
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (hex!=nullptr)
             {
+                std::cout << (int)hex->getResident() << std::endl;
                 if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
                     spawnAction(hex,p);
                 }
@@ -411,9 +412,19 @@ void LocalPlayer::act()
         }
         if (game->pressedKey==GLFW_KEY_R)
         {
-            game->Renderer->resizeMultiplier=1.0f;
-            game->Renderer->displacementX=0;
-            game->Renderer->displacementY=0;
+            game->rPressed=true;
+        }
+
+        if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
+        {
+            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
+            Hexagon *h = *hexes.begin();
+            glm::vec2 pos = game->Renderer->calculateHexPosition(h->getX(),h->getY(),game->Renderer->size);
+            game->Renderer->displacementX -= pos.x;
+            game->Renderer->displacementX += game->Renderer->width/2;
+            game->Renderer->displacementY-=pos.y;
+            game->Renderer->displacementY += game->Renderer->height/2;
+            game->rPressed=false;
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)

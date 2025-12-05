@@ -82,6 +82,8 @@ public:
     std::vector<glm::vec3> palette;
     int   displacementX = 0;
     int   displacementY = 0;
+    int   displacementXOriginal = 0;
+    int   displacementYOriginal=0;
     double resizeMultiplier = 1.0f;
     int width;
     int height;
