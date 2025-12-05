@@ -612,18 +612,27 @@ void BotPlayer::act()
             uint8 actionsNumber;
             if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
             {
-                std::vector<char> data = {tag, static_cast<char>(actionsNumber)};
-                for(int i = 0; i < actionsNumber; i++)
+                // ONE MOVE PER TURN: Only accept first action, ignore the rest
+                // This simplifies RL learning dramatically
+                
+                std::vector<char> data = {tag, 1}; // Force actionsNumber to 1
+                
+                if(actionsNumber > 0)
                 {
                     char action;
                     if(recv(receiveSock, &action, 1, 0) > 0)
                     {
                         data.push_back(action);
+                        
+                        // If action is 0 (end turn/skip), we're done
                         if(action == 0)
                         {
-                            break;
+                            // Skip/pass - execute no-op and end turn
+                            executeActions(game->board, data.data() + 2, 1);
+                            sendData(data.data(), data.size(), -1, receiveSock);
+                            return; // Turn ends
                         }
-                        else if(action == 1)
+                        else if(action == 1) // Place unit
                         {
                             char content[9];
                             int total = 0;
@@ -635,7 +644,7 @@ void BotPlayer::act()
                             }
                             data.insert(data.end(), content, content + sizeof(content));
                         }
-                        else if(action == 2)
+                        else if(action == 2) // Move unit
                         {
                             char content[8];
                             int total = 0;
@@ -648,15 +657,121 @@ void BotPlayer::act()
                             data.insert(data.end(), content, content + sizeof(content));
                         }
                         else goto invalidContent;
+                        
+                        // Execute the single action
+                        executeActions(game->board, data.data() + 2, 1);
+                        sendData(data.data(), data.size(), -1, receiveSock);
+                        
+                        // Consume any remaining actions client tried to send (discard them)
+                        for(int i = 1; i < actionsNumber; i++)
+                        {
+                            char dummy_action;
+                            if(recv(receiveSock, &dummy_action, 1, 0) > 0)
+                            {
+                                if(dummy_action == 1) {
+                                    char dummy[9];
+                                    recv(receiveSock, dummy, sizeof(dummy), 0);
+                                } else if(dummy_action == 2) {
+                                    char dummy[8];
+                                    recv(receiveSock, dummy, sizeof(dummy), 0);
+                                }
+                            }
+                        }
+                        
+                        // Turn automatically ends after 1 action
+                        return;
                     }
                     else goto error;
                 }
-
-                executeActions(game->board, data.data() + 2, actionsNumber);
-
-                sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
             }
             else goto error;
+        }
+        else if(tag == VALID_ACTIONS_SOCKET_TAG)
+        {
+            // Calculate valid actions
+            std::vector<char> response;
+            response.push_back(VALID_ACTIONS_SOCKET_TAG);
+            
+            // Placeholder for count (2 bytes)
+            response.push_back(0);
+            response.push_back(0);
+            
+            uint16_t count = 0;
+            
+            // 1. Placements (via Castles)
+            // Iterate over all castles of the current player
+            auto country = game->board->getCountry(id);
+            if (country) {
+                auto& castles = country->getCastles();
+                std::vector<Resident> placeable = {
+                    Resident::Warrior1, Resident::Warrior2, Resident::Warrior3, Resident::Warrior4,
+                    Resident::Farm, Resident::Tower, Resident::StrongTower
+                };
+                
+                for (auto const& [castleHex, money] : castles) {
+                    for (Resident type : placeable) {
+                        if (castleHex->price(game->board, type) <= money) {
+                            auto targets = castleHex->possiblePlacements(game->board, type);
+                            for (auto target : targets) {
+                                // Add Place Action: Type=1, X, Y, Resident, ToX, ToY
+                                // Format: 1 (Type), Resident, FromX(2), FromY(2), ToX(2), ToY(2)
+                                response.push_back(1);
+                                response.push_back(static_cast<char>(type));
+                                
+                                ucoord netXF = htons(castleHex->getX());
+                                ucoord netYF = htons(castleHex->getY());
+                                ucoord netXT = htons(target->getX());
+                                ucoord netYT = htons(target->getY());
+                                
+                                char* ptr;
+                                ptr = (char*)&netXF; response.insert(response.end(), ptr, ptr + 2);
+                                ptr = (char*)&netYF; response.insert(response.end(), ptr, ptr + 2);
+                                ptr = (char*)&netXT; response.insert(response.end(), ptr, ptr + 2);
+                                ptr = (char*)&netYT; response.insert(response.end(), ptr, ptr + 2);
+                                
+                                count++;
+                            }
+                        }
+                    }
+                }
+                
+                // 2. Moves (via Warriors)
+                auto hexes = game->board->getHexesOfCountry(id);
+                for (auto hex : hexes) {
+                    // Check if warrior and unmoved
+                    Resident r = hex->getResident();
+                    if (r == Resident::Warrior1 || r == Resident::Warrior2 || 
+                        r == Resident::Warrior3 || r == Resident::Warrior4) {
+                        
+                        auto targets = hex->possibleMovements(game->board);
+                        for (auto target : targets) {
+                            // Add Move Action: Type=2, FromX, FromY, ToX, ToY
+                            // Format: 2 (Type), FromX(2), FromY(2), ToX(2), ToY(2)
+                            response.push_back(2);
+                            
+                            ucoord netXF = htons(hex->getX());
+                            ucoord netYF = htons(hex->getY());
+                            ucoord netXT = htons(target->getX());
+                            ucoord netYT = htons(target->getY());
+                            
+                            char* ptr;
+                            ptr = (char*)&netXF; response.insert(response.end(), ptr, ptr + 2);
+                            ptr = (char*)&netYF; response.insert(response.end(), ptr, ptr + 2);
+                            ptr = (char*)&netXT; response.insert(response.end(), ptr, ptr + 2);
+                            ptr = (char*)&netYT; response.insert(response.end(), ptr, ptr + 2);
+                            
+                            count++;
+                        }
+                    }
+                }
+            }
+            
+            // Update count
+            ucoord netCount = htons(count);
+            memcpy(response.data() + 1, &netCount, 2);
+            
+            // Send response
+            sendData(response.data(), response.size(), receiveSock);
         }
     }
     else switchSocketMode(receiveSock, defaultSocketMode);
@@ -686,14 +801,13 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
     {
         if(*actions == 0)
         {
-            //std::cout << "NP ended turn\n";
+            std::cout << "Player ended turn\n";
             actions++;
             board->nextTurn(false);
             break;
         }
         else if(*actions == 1)
         {
-            //std::cout << "NP placed\n";
             actions++;
             Resident resident = (Resident)(*actions);
             coord xF = decodeCoord(actions + 1);
@@ -701,23 +815,36 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
             coord xT = decodeCoord(actions + 5);
             coord yT = decodeCoord(actions + 7);
             Hexagon* hex = board->getHexagon(xF, yF);
-            hex->place(board, resident, board->getHexagon(xT, yT), false);
+            bool success = hex->place(board, resident, board->getHexagon(xT, yT), false);
+            if(success) {
+                std::cout << "✓ PLACE " << (int)resident << " at (" << xT << "," << yT << ")\n";
+            } else {
+                std::cout << "✗ PLACE REJECTED: " << (int)resident << " at (" << xT << "," << yT << ") from (" << xF << "," << yF << ")\n";
+            }
             actions += 9;
         }
         else if(*actions == 2)
         {
-            //std::cout << "NP moved\n";
             actions++;
             coord xF = decodeCoord(actions);
             coord yF = decodeCoord(actions + 2);
             coord xT = decodeCoord(actions + 4);
             coord yT = decodeCoord(actions + 6);
             Hexagon* hex = board->getHexagon(xF, yF);
-            hex->move(board, board->getHexagon(xT, yT), false);
+            bool success = hex->move(board, board->getHexagon(xT, yT), false);
+            if(success) {
+                std::cout << "✓ MOVE (" << xF << "," << yF << ") -> (" << xT << "," << yT << ")\n";
+            } else {
+                std::cout << "✗ MOVE REJECTED: (" << xF << "," << yF << ") -> (" << xT << "," << yT << ")\n";
+            }
             actions += 8;
         }
         else return;
     }
+    
+    // CRITICAL: Send updated board state back to Python/bots after processing actions
+    // This enables visualization sync and allows Python to update its local state
+    board->sendBoard();
 }
 
 void NetworkPlayer::act()

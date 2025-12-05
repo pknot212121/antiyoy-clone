@@ -955,10 +955,34 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
     }
     else if(farm(resident))
     {
+        if(placement->getOwnerId() != castleHex->getOwnerId()) return false;
+        bool adjacentToFarmOrCastle = false;
+        auto neighbors = placement->neighbours(board, 0, false);
+        for(Hexagon* n : neighbors)
+        {
+            if(n->getOwnerId() == castleHex->getOwnerId() && (castle(n->getResident()) || farm(n->getResident())))
+            {
+                adjacentToFarmOrCastle = true;
+                break;
+            }
+        }
+        if(!adjacentToFarmOrCastle) return false;
+        if(!(empty(placement->getResident()) || gravestone(placement->getResident()))) return false;
+        
         placement->setResident(resident);
     }
     else if(tower(resident))
     {
+        if(placement->getOwnerId() != castleHex->getOwnerId()) return false;
+        if(resident == Resident::Tower)
+        {
+             if(!(empty(placement->getResident()) || gravestone(placement->getResident()))) return false;
+        }
+        else if(resident == Resident::StrongTower)
+        {
+             if(!(empty(placement->getResident()) || gravestone(placement->getResident()) || placement->getResident() == Resident::Tower)) return false;
+        }
+        
         placement->setResident(resident);
     }
     else return false;
