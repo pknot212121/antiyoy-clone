@@ -166,6 +166,17 @@ glm::vec2 SpriteRenderer::calculateHexPosition(int gridX, int gridY, float size)
     return glm::vec2(posX, posY);
 }
 
+void SpriteRenderer::setPosToCastle(Board* board,uint8 id)
+{
+    std::unordered_set<Hexagon*> hexes = board->getHexesOfCountry(id);
+    Hexagon *h = *hexes.begin();
+    glm::vec2 pos = calculateHexPosition(h->getX(),h->getY(),size);
+    displacementX -= pos.x;
+    displacementX += width/2;
+    displacementY-=pos.y;
+    displacementY += height/2;
+}
+
 glm::vec2 Jump(float size)
 {
     float time = glfwGetTime();

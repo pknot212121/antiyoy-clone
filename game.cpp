@@ -172,6 +172,7 @@ void Game::Init(GameConfigData& gcd)
     // load textures
     ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
     ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
+    ResourceManager::LoadTexture("textures/soldier3_256.png",true,"soilder3");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
     ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
@@ -361,10 +362,9 @@ LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int ma
 void LocalPlayer::act()
 {
 
-    if (game->State == GameState::GAME_ACTIVE)
-    {
         if (!game->isFirstProvinceSet)
         {
+            game->Renderer->setPosToCastle(game->board,id);
             std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
             this->game->provinceSelector = *hexes.begin();
             game->isFirstProvinceSet = true;
@@ -383,7 +383,6 @@ void LocalPlayer::act()
             Hexagon *hex = game->board->getHexagon(p.x,p.y);
             if (hex!=nullptr)
             {
-                std::cout << (int)hex->getResident() << std::endl;
                 if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
                     spawnAction(hex,p);
                 }
@@ -417,13 +416,7 @@ void LocalPlayer::act()
 
         if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
         {
-            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
-            Hexagon *h = *hexes.begin();
-            glm::vec2 pos = game->Renderer->calculateHexPosition(h->getX(),h->getY(),game->Renderer->size);
-            game->Renderer->displacementX -= pos.x;
-            game->Renderer->displacementX += game->Renderer->width/2;
-            game->Renderer->displacementY-=pos.y;
-            game->Renderer->displacementY += game->Renderer->height/2;
+            game->Renderer->setPosToCastle(game->board,id);
             game->rPressed=false;
         }
 
@@ -442,8 +435,6 @@ void LocalPlayer::act()
 
         }
     }
-
-}
 
 void LocalPlayer::moveAction(Hexagon* hex,glm::ivec2 p)
 {
