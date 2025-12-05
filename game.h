@@ -47,10 +47,15 @@ public:
     std::string playerMarkers;
     std::vector<int> maxMoveTimes;
 
+    static std::mt19937 gcdGen;
+
     GameConfigData() = default;
     GameConfigData(coord x, coord y, unsigned int seed, int minProvinceSize, int maxProvinceSize, std::string playerMarkers, std::vector<int> maxMoveTimes);
 
     inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + sizeof(minProvinceSize) + sizeof(maxProvinceSize) + 1 + playerMarkers.length() + 1 + maxMoveTimes.size() * sizeof(int); };
+
+    void randomize(char marker, int maxMoveTime);
+
     void sendGameConfigData(int receivingSocket = -1);
     bool receiveFromSocket(int deliveringSocket, bool tag = false);
 };
