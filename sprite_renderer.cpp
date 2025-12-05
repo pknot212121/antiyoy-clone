@@ -28,11 +28,15 @@ SpriteRenderer::~SpriteRenderer()
 
 void SpriteRenderer::addToDisplacementX(Board *board,int dx)
 {
-    displacementX += dx;
+    float displacementMultiX = (float)width/800;
+
+    displacementX += dx*displacementMultiX;
+
 }
 void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
-    displacementY += dy;
+    float displacementMultiY = (float)height/600;
+    displacementY += dy*displacementMultiY;
 }
 
 void SpriteRenderer::addToResizeMultiplier(double ds,Board *board,float width)
