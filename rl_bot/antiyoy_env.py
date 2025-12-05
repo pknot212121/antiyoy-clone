@@ -38,7 +38,7 @@ class AntiyoyEnv(gym.Env):
         self.connected = False
         
         # Board configuration - MUST MATCH config.txt!
-        self.board_width = 8   # 8x8 board for fast training
+        self.board_width = 8   # 8x8 board for curriculum training
         self.board_height = 8
         self.board_size = self.board_width * self.board_height
         
@@ -57,13 +57,14 @@ class AntiyoyEnv(gym.Env):
         # Action space: discrete
         # Simplified: treat as multi-discrete or use action mapping
         # Observation space: flat vector of board + resources
-        # board: width*height*2 (owner_id, resident_type)
-        # + player_resources: 3*num_players (money, income, castle_count)        
+        # board: width*height*13 features per hex (owner, resident, power, capturable, adjacency)
+        # + global: 10 features (money, income, territory, castles, enemy_castles, player_id, step, reserved)
         # Observation space (must match _encode_observation output size)
-        # For 8x8: 8*8=64 hexes * 13 features + 2 player info = 834
+        # For 8x8: 8*8=64 hexes * 13 features + 10 global = 842
+        obs_size = self.board_width * self.board_height * 13 + 10
         self.observation_space = spaces.Box(
             low=0, high=255,
-            shape=(834,),  # Updated for 8x8 board
+            shape=(obs_size,),
             dtype=np.uint8
         )
         
@@ -415,6 +416,14 @@ class AntiyoyEnv(gym.Env):
             done = True
             reward += 200.0  # WON THE GAME - huge reward!
         
+        # Update local state to track money/income accurately
+        # This ensures observation stays in sync with game state
+        if action == 0:  # End turn updates income
+            income = self._calculate_income(self.current_player_id)
+            if self.current_player_id in self.player_money:
+                self.player_money[self.current_player_id] += income
+            logger.debug(f"End turn: Player {self.current_player_id} earned {income}, total: {self.player_money.get(self.current_player_id, 0)}")
+        
         # Update metadata
         self.prev_territory = self._count_territory(self.current_player_id)
         self.prev_income = self._calculate_income(self.current_player_id)
@@ -422,8 +431,8 @@ class AntiyoyEnv(gym.Env):
         self.episode_reward += reward
         self.step_count += 1
         
-        # Also check max turns to end episode
-        if self.step_count >= 1000:
+        # Also check max turns to end episode (reduced for 6x6 board)
+        if self.step_count >= 300:
             done = True
         
         info = {
@@ -434,7 +443,9 @@ class AntiyoyEnv(gym.Env):
             'action_success': success,
             'action_type': action_type,
             'player_castles': player_castles_after,
-            'enemy_castles': enemy_castles_after
+            'enemy_castles': enemy_castles_after,
+            'money': self.player_money.get(self.current_player_id, 0),
+            'income': self._calculate_income(self.current_player_id)
         }
         
         obs = self._encode_observation()
@@ -462,20 +473,69 @@ class AntiyoyEnv(gym.Env):
     # Helper methods
     
     def _encode_observation(self) -> np.ndarray:
-        """Convert board state to observation vector."""
+        """Convert board state to observation vector with complete game state."""
         obs = np.zeros(self.observation_space.shape[0], dtype=np.uint8)
         
-        # Encode board (2 bytes per hex: owner_id, resident)
+        # Encode board (13 bytes per hex)
         for y in range(self.board_height):
             for x in range(self.board_width):
-                idx = (y * self.board_width + x) * 2
+                idx = (y * self.board_width + x) * 13
                 cell = self.board_state.get((x, y), {})
+                
+                # Basic hex info (3 bytes)
                 obs[idx] = cell.get('owner_id', 0)
                 obs[idx + 1] = self._resident_to_int(cell.get('resident', 'water'))
+                obs[idx + 2] = self._get_hex_power(x, y)
+                
+                # Adjacency info: count friendly/enemy neighbors (10 bytes)
+                # [3]: friendly warriors adjacent
+                # [4]: enemy warriors adjacent  
+                # [5]: friendly buildings adjacent
+                # [6]: empty owned hexes adjacent
+                # [7-12]: reserved for future features
+                friendly_warriors = 0
+                enemy_warriors = 0
+                friendly_buildings = 0
+                empty_owned = 0
+                
+                # Get neighbors (simplified - assume even column for now)
+                neighbors = [
+                    (x, y-1), (x-1, y-1), (x-1, y),
+                    (x, y+1), (x+1, y), (x+1, y-1)
+                ]
+                
+                for nx, ny in neighbors:
+                    if 0 <= nx < self.board_width and 0 <= ny < self.board_height:
+                        ncell = self.board_state.get((nx, ny), {})
+                        nowner = ncell.get('owner_id', 0)
+                        nresident = self._resident_to_int(ncell.get('resident', 'water'))
+                        
+                        if nowner == self.current_player_id:
+                            if 2 <= nresident <= 9:  # Warriors
+                                friendly_warriors += 1
+                            elif 10 <= nresident <= 13:  # Buildings
+                                friendly_buildings += 1
+                            elif nresident == 1:  # Empty
+                                empty_owned += 1
+                        elif nowner != 0:
+                            if 2 <= nresident <= 9:  # Enemy warriors
+                                enemy_warriors += 1
+                
+                obs[idx + 3] = min(friendly_warriors, 255)
+                obs[idx + 4] = min(enemy_warriors, 255)
+                obs[idx + 5] = min(friendly_buildings, 255)
+                obs[idx + 6] = min(empty_owned, 255)
         
-        # Encode metadata (player id, step count, etc.)
-        obs[-10] = self.current_player_id
-        obs[-9] = min(self.step_count, 255)
+        # Encode global game state (last 10 bytes)
+        player_id = self.current_player_id
+        obs[-10] = min(max(self.player_money.get(player_id, 0), 0) // 4, 255)  # Scale money (0-1020), clamp negatives
+        obs[-9] = min(self._calculate_income(player_id) + 128, 255)  # Offset income (-128 to 127)
+        obs[-8] = min(self._count_territory(player_id), 255)
+        obs[-7] = min(self._count_castles(player_id), 255)
+        obs[-6] = min(self._count_enemy_castles(player_id), 255)
+        obs[-5] = player_id
+        obs[-4] = min(self.step_count, 255)
+        # obs[-3] to obs[-1] reserved for future use
         
         return obs
     
@@ -604,6 +664,30 @@ class AntiyoyEnv(gym.Env):
         
         return income
     
+    def _count_castles(self, player_id: int) -> int:
+        """Count castles owned by player."""
+        return sum(1 for cell in self.board_state.values()
+                   if cell.get('owner_id') == player_id and 
+                   cell.get('resident', '').lower() == 'castle')
+    
+    def _count_enemy_castles(self, player_id: int) -> int:
+        """Count total enemy castles."""
+        return sum(1 for cell in self.board_state.values()
+                   if cell.get('owner_id') != player_id and
+                   cell.get('owner_id') != 0 and
+                   cell.get('resident', '').lower() == 'castle')
+    
+    def _get_hex_power(self, x: int, y: int) -> int:
+        """Get power level of resident at hex (0-4)."""
+        cell = self.board_state.get((x, y), {})
+        resident_str = cell.get('resident', 'water')
+        resident = self._resident_to_int(resident_str)
+        
+        # Import power function from game_rules
+        from game_rules import power
+        return max(0, power(resident))
+
+    
     def _compute_reward(self) -> float:
         """Compute reward for current step."""
         reward = 0.0
@@ -621,8 +705,9 @@ class AntiyoyEnv(gym.Env):
         reward += income_gain * 0.1
         self.prev_income = curr_income
         
-        # Survival penalty (to encourage progress)
-        reward -= 0.01
+        # Time penalty - encourage faster victories!
+        # Each turn costs a small amount to prevent stalling
+        reward -= 0.05  # Increased from 0.01 to push for aggression
         
         return reward
     
@@ -664,10 +749,9 @@ class AntiyoyEnv(gym.Env):
         
         # Add valid place actions using game rules
         for unit_idx, resident_type in enumerate(unit_map):
-            # Skip money check - let C++ game validate affordability
-            # (We don't sync money from C++ so this check would be wrong)
-            # if not rules.can_afford(player_id, resident_type):
-            #     continue
+            # Check if player can afford this unit type
+            if not rules.can_afford(player_id, resident_type):
+                continue
             
             # Get valid placement locations from game rules
             valid_hexes = rules.get_valid_placements(player_id, resident_type)

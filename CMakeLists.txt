@@ -1,12 +1,18 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.28)
 
 set(CMAKE_CXX_STANDARD 20)
 project(anti)
 cmake_policy(SET CMP0072 NEW)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(OpenGL REQUIRED)
-find_package(glfw3 REQUIRED)
+
+# GLFW options
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+add_subdirectory(external/glfw)
 
 set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
@@ -36,4 +42,4 @@ add_executable(anti
         shaders-arr/text_vs.h)
 include_directories(anti PRIVATE include)
 set_property(TARGET anti PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-target_link_libraries(anti ${GLFW3_LIBRARY} OpenGL::GL freetype)
+target_link_libraries(anti glfw /usr/lib/x86_64-linux-gnu/libGL.so.1 freetype)

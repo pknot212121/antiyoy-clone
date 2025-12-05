@@ -216,6 +216,51 @@ restart:
     {
         countries.emplace_back(std::vector{ o });
     }
+    // CURRICULUM: Give player 1 more warriors for easier learning!
+    std::cout << "CURRICULUM MODE: Placing warriors...\\n";
+    for(uint8 playerId = 1; playerId <= countriesCount; playerId++)
+    {
+        // Find castle hex for this player
+        Hexagon* castleHex = nullptr;
+        for(int j = 0; j < width * height; j++)
+        {
+            Hexagon* hex = &board[j];
+            if(hex->getOwnerId() == playerId && castle(hex->getResident()))
+            {
+                castleHex = hex;
+                break;
+            }
+        }
+        
+        if(!castleHex) continue;
+        
+        // Find empty hexes near castle to place warriors
+        auto nearCastle = castleHex->neighbours(this, 0, false, 
+            [playerId](Hexagon* h) { 
+                return h->getOwnerId() == playerId && empty(h->getResident()); 
+            });
+        
+        // CURRICULUM: Player 1 gets 4 warriors, Player 2 gets 1
+        int targetWarriors = (playerId == 1) ? 5 : 0;
+        
+        // Place warriors
+        int warriorsPlaced = 0;
+        for(Hexagon* hex : nearCastle)
+        {
+            if(warriorsPlaced >= targetWarriors) break;
+            hex->setResident(Resident::Warrior1);
+            warriorsPlaced++;
+            std::cout << "  Placed warrior for player " << (int)playerId 
+                      << " at (" << (int)hex->getX() << "," << (int)hex->getY() << ")\n";
+        }
+        
+        if(warriorsPlaced < targetWarriors)
+        {
+            std::cout << "  WARNING: Only placed " << warriorsPlaced 
+                      << " warriors for player " << (int)playerId 
+                      << " (wanted " << targetWarriors << ")\n";
+        }
+    }
 }
 
 bool Hexagon::isNearWater(Board *board)
@@ -265,7 +310,8 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
     while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        if(currentPlayerId == 1) propagateTrees();
+        // PURE TACTICAL: Disable tree growth
+        // if(currentPlayerId == 1) propagateTrees();
         std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
         if(!castles.size()) continue; // Jeśli nie ma zamków to powtarzamy
         std::vector<Hexagon*> castlesToRemove;
@@ -282,14 +328,18 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
             for(Hexagon* h : province)
             {
                 if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+                // PURE TACTICAL: Don't convert gravestones to trees
+                // Keep battlefield clear for warriors
                 else if (gravestone(h->getResident()))
                 {
-                    if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
-                    else h->setResident(Resident::PineTree);
+                    h->setResident(Resident::Empty);  // Just clear it
                 }
             }
-            money += calculateIncome(province);
+            money += 0;  // PURE TACTICAL: Disable income, money stays constant
 
+            // PURE TACTICAL: Disable warrior death from negative money
+            // No economy = warriors never die from lack of funds
+            /*
             if (money < 0)
             {
                 for (Hexagon* h : province)
@@ -297,6 +347,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
                     if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
                 }
             }
+            */
         }
         for(Hexagon* c : castlesToRemove)
         {
@@ -416,8 +467,11 @@ void Board::sendGameOver(int receivingSocket)
 
 void Hexagon::rot(Board* board)
 {
-    if(warrior(resident)) setResident(Resident::Gravestone);
-    else if((resident >= Resident::Castle && resident <= Resident::StrongTower) || gravestone(resident))
+    // PURE TACTICAL: Don't kill warriors when territory rots
+    // Warriors should only die from combat!
+    // if(warrior(resident)) setResident(Resident::Gravestone);
+    
+    if((resident >= Resident::Castle && resident <= Resident::StrongTower) || gravestone(resident))
     {
         if((neighbours(board, 0, false, [](Hexagon* h) { return water(h->resident); })).size()) setResident(Resident::PalmTree);
         else setResident(Resident::PineTree);
@@ -577,7 +631,8 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(province.size() == 1)
     {
-        if(castlesNumber == 0) province[0]->rot(board);
+        // PURE TACTICAL: Don't rot single hex provinces
+        // if(castlesNumber == 0) province[0]->rot(board);
         return province;
     }
     if(castlesNumber > 1)
@@ -619,6 +674,21 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(castlesNumber == 0)
     {
+        // SIMPLIFIED TRAINING MODE: Territory without castle dies
+        // When territory splits and has no castle, all hexes rot
+        // This ensures: 1 castle per player, lose castle = lose game
+        
+        // PURE TACTICAL: Just neutralize territory, DON'T rot (don't destroy warriors)
+        std::cout << "Province has no castle - making neutral (keeping units)\n";
+        for(Hexagon* h : province)
+        {
+            // h->rot(board);  // DISABLED - don't turn warriors into trees!
+            h->setOwnerId(0);  // Make territory neutral (warriors stay)
+        }
+        
+        return province;
+        
+        /* ORIGINAL CODE - Creates new castle when territory has none
         std::vector<Hexagon*> firstLine;
         firstLine.reserve(province.size());
         std::vector<Hexagon*> secondLine;
@@ -630,12 +700,12 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
         }
         
         Hexagon* newCastle;
-        if(firstLine.size()) // w pierwszej kolejności próbuje położyć zamek na pustym polu
+        if(firstLine.size())
         {
             std::uniform_int_distribution<int> rand(0, firstLine.size() - 1);
             newCastle = firstLine[rand(gen)];
         }
-        else // potem na niepustym
+        else
         {
             std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
             newCastle = secondLine[rand(gen)];
@@ -646,7 +716,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
             newCastle->setCastle(board,board->getCountry(ownerId)->tempMoneyStorage);
             board->getCountry(ownerId)->tempMoneyStorage=0;
         }
-
+        */
     }
     return province;
 }
