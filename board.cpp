@@ -461,6 +461,63 @@ void Board::sendBoard(int receivingSocket)
     delete[] result;
 }
 
+void Board::sendBoardWithMoney(int receivingSocket)
+{
+    if(invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send board data\n";
+        return;
+    }
+    
+#pragma pack(push, 1)
+    struct HexData
+    {
+        uint8 ownerId;
+        Resident resident;
+        uint16_t money;
+    };
+#pragma pack(pop)
+
+    int hexesNumber = width * height;
+    ucoord wh = htons(width);
+    ucoord hh = htons(height);
+    int total = 1 + sizeof(wh) + sizeof(hh) + hexesNumber * sizeof(HexData);
+    uint8* result = new uint8[total];
+    uint8* position = result;
+    *position++ = BOARD_SOCKET_TAG;
+    memcpy(position, &wh, sizeof(wh));
+    position += sizeof(wh);
+    memcpy(position, &hh, sizeof(hh));
+    position += sizeof(hh);
+    HexData* hds = reinterpret_cast<HexData*>(position);
+    for(int i = 0; i < hexesNumber; i++)
+    {
+        hds[i] = {board[i].getOwnerId(), board[i].getResident(), 0};
+    }
+
+    for(Country& country : countries)
+    {
+        std::unordered_map<Hexagon*, int>& castles = country.getCastles();
+        for(auto& [castle, money] : castles)
+        {
+            uint16_t money16;
+            if(money > 65535) money16 = 65535;
+            else money16 = money;
+            money16 = htons(money16);
+            
+            std::vector<Hexagon*> province = castle->neighbours(this, BIG_NUMBER, true, [castle](Hexagon* h){ return castle->getOwnerId() == h->getOwnerId(); });
+            for(Hexagon* h : province)
+            {
+                hds[h->getY() * width + h->getX()].money = money16;
+            }
+        }
+    }
+
+    sendData(reinterpret_cast<char*>(result), total, receivingSocket);
+    
+    delete[] result;
+}
+
 void Board::sendGameOver(int receivingSocket)
 {
     if(invalidSocks())
