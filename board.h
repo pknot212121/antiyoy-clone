@@ -203,6 +203,7 @@ public:
     void nextTurn(bool send); // Definicja w game.cpp
     void propagateTrees();
     void sendBoard(int receivingSocket = -1);
+    void sendBoardWithMoney(int receivingSocket);
     void sendGameOver(int receivingSocket = -1);
 };
 
