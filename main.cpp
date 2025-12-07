@@ -263,6 +263,8 @@ netConfiguration: // Dla gracza sieciowego
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    Anti->LoadResources();
+
     // initialize game
     // ---------------
     Anti->Init(gcd);
@@ -281,7 +283,10 @@ netConfiguration: // Dla gracza sieciowego
         lastFrame = currentFrame;
         glfwPollEvents();
 
-        if (Anti->board->isLeaderboardFull()) Anti->Restart();
+        if (Anti->board->isLeaderboardFull())
+        {
+            Anti->Restart(gcd);
+        }
 
         // manage user input
         // -----------------

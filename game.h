@@ -92,8 +92,9 @@ public:
     Game(unsigned int width, unsigned int height);
     ~Game();
     // initialize game state (load all shaders/textures/levels)
+    void LoadResources();
     void Init(GameConfigData gcd);
-    void Restart();
+    void Restart(GameConfigData& gcd);
     // game loop
     void ProcessInput(float dt);
     int GetSelectedCastleReserves();

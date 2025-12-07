@@ -166,8 +166,8 @@ bool GameConfigData::receiveFromSocket(int deliveringSocket, bool tag)
 
 
 
-Game::Game(unsigned int width, unsigned int height)
-    : State(GameState::GAME_ACTIVE), Width(width), Height(height), board() {
+Game::Game(unsigned int width, unsigned int height) : State(GameState::GAME_ACTIVE), Width(width), Height(height), board()
+{
 }
 
 Game::~Game()
@@ -176,16 +176,17 @@ Game::~Game()
     {
         delete p;
     }
+    delete board;
     delete Renderer;
+    delete Text;
 }
 
-void Game::Init(GameConfigData gcd)
+void Game::LoadResources()
 {
     // load shaders
     ResourceManager::LoadShader("shaders/instance.vs","shaders/instance.fs",nullptr,"sprite");
     // configure shaders
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), 
-        static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
     ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);
     ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
     // set render-specific controls
@@ -208,6 +209,10 @@ void Game::Init(GameConfigData gcd)
     ResourceManager::LoadTexture("textures/strongTower_256.png",true,"strongTower");
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load(24);
+}
+
+void Game::Init(GameConfigData gcd)
+{
     if(gcd.seed == 0) gcd.seed = std::random_device{}();
 
     std::string markers = gcd.playerMarkers;
@@ -215,13 +220,14 @@ void Game::Init(GameConfigData gcd)
 
     bool isHost = clientSocks.size() > 0;
     board = new Board(gcd.x, gcd.y, gcd.seed, this);
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
+    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"), board);
     int total = gcd.x * gcd.y;
     //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
     board->InitializeRandom(total * 0.5, total * 0.9);
-    Renderer->getActualDimensions(board);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
+
+    Renderer->getActualDimensions(board);
     Renderer->width = Width;
     Renderer->height = Height;
     Renderer->size = Renderer->getSize(board);
@@ -285,7 +291,6 @@ void Game::Init(GameConfigData gcd)
         std::exit(1);
     }
 
-
     /*if(isHost)
     {
         sendTurnChange(1);
@@ -293,87 +298,20 @@ void Game::Init(GameConfigData gcd)
     }*/
     this->gcd = gcd;
     std::cout << "Finished init\n";
-
 }
 
-void Game::Restart()
+void Game::Restart(GameConfigData& gcd)
 {
+    for (Player* p : players) delete p;
     players.clear();
-    delete Renderer;
+
     delete board;
+    board = nullptr;
 
-    if(gcd.seed == 0) gcd.seed = std::random_device{}();
+    delete Renderer;
+    Renderer = nullptr;
 
-    std::string markers = gcd.playerMarkers;
-    uint8 playersNumber = markers.length();
-
-    bool isHost = clientSocks.size() > 0;
-    board = new Board(gcd.x, gcd.y, gcd.seed, this);
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
-    int total = gcd.x * gcd.y;
-    //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
-    board->InitializeRandom(total * 0.5, total * 0.9);
-    Renderer->getActualDimensions(board);
-    board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
-    board->spawnTrees(0.2);
-    Renderer->width = Width;
-    Renderer->height = Height;
-    Renderer->size = Renderer->getSize(board);
-
-
-    auto countries = board->getCountries();
-    //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
-    if(countries.size() == playersNumber)
-    {
-        players.reserve(playersNumber);
-        //bool bots = false;
-        uint8 networkSockIndex = 0;
-        for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
-        {
-            if(markers[i] == 'B')
-            {
-                gcd.sendGameConfigData(clientSocks[0]);
-                networkSockIndex = 1;
-                //bots = true;
-                break;
-            }
-        }
-
-        gcd.playerMarkers.assign(playersNumber, 'N');
-
-        for(uint8 i = 0; i < playersNumber; i++)
-        {
-            if(markers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, gcd.maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
-            else if(markers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, this, clientSocks[0], gcd.maxMoveTimes[i]));
-            else if(markers[i] == 'N')
-            {
-                if(isHost)
-                {
-                    players.push_back(new NetworkPlayer(&countries[i], i+1, this, clientSocks[networkSockIndex], gcd.maxMoveTimes[i]));
-                    gcd.playerMarkers[i] = 'L';
-                    gcd.sendGameConfigData(clientSocks[networkSockIndex]);
-                    gcd.playerMarkers[i] = 'N';
-                    networkSockIndex++;
-                }
-                else players.push_back(new NetworkPlayer(&countries[i], i+1, this, sock, gcd.maxMoveTimes[i]));
-            }
-            else
-            {
-                std::cout << "Unidentified player markers\n";
-                getchar();
-                std::exit(1);
-            }
-        }
-        gcd.playerMarkers = markers;
-
-        getPlayer(this->board->getCurrentPlayerId())->actStart();
-    }
-    else
-    {
-        std::cout << "Countries initialization error\n";
-        getchar();
-        std::exit(1);
-    }
+    Init(gcd);
 }
 
 void Game::Update(float dt)
