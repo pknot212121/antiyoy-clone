@@ -179,7 +179,7 @@ Game::~Game()
     delete Renderer;
 }
 
-void Game::Init(GameConfigData& gcd)
+void Game::Init(GameConfigData gcd)
 {
     // load shaders
     ResourceManager::LoadShader("shaders/instance.vs","shaders/instance.fs",nullptr,"sprite");
@@ -195,7 +195,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
     ResourceManager::LoadTexture("textures/soldier3_256.png",true,"soilder3");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
-    ResourceManager::LoadTexture("textures/warrior4_256.png",true,"soilder4");
+    ResourceManager::LoadTexture("textures/soldier4_256.png",true,"soilder4");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
     ResourceManager::LoadTexture("textures/pineTree_256.png",true,"pine");
@@ -206,7 +206,6 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
     ResourceManager::LoadTexture("textures/farm1_256.png",true,"farm1");
     ResourceManager::LoadTexture("textures/strongTower_256.png",true,"strongTower");
-
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load(24);
     if(gcd.seed == 0) gcd.seed = std::random_device{}();
@@ -292,9 +291,93 @@ void Game::Init(GameConfigData& gcd)
         sendTurnChange(1);
         board->sendBoardWithMoney();
     }*/
-
+    this->gcd = gcd;
     std::cout << "Finished init\n";
 
+}
+
+void Game::Restart()
+{
+    players.clear();
+    delete Renderer;
+    delete board;
+
+    if(gcd.seed == 0) gcd.seed = std::random_device{}();
+
+    std::string markers = gcd.playerMarkers;
+    uint8 playersNumber = markers.length();
+
+    bool isHost = clientSocks.size() > 0;
+    board = new Board(gcd.x, gcd.y, gcd.seed, this);
+    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
+    int total = gcd.x * gcd.y;
+    //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
+    board->InitializeRandom(total * 0.5, total * 0.9);
+    Renderer->getActualDimensions(board);
+    board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
+    board->spawnTrees(0.2);
+    Renderer->width = Width;
+    Renderer->height = Height;
+    Renderer->size = Renderer->getSize(board);
+
+
+    auto countries = board->getCountries();
+    //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
+    if(countries.size() == playersNumber)
+    {
+        players.reserve(playersNumber);
+        bool bots = false;
+        uint8 networkSockIndex = 0;
+        for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
+        {
+            if(markers[i] == 'B')
+            {
+                gcd.sendGameConfigData(clientSocks[0]);
+                networkSockIndex = 1;
+                bots = true;
+                break;
+            }
+        }
+
+        gcd.playerMarkers.assign(playersNumber, 'N');
+
+        for(uint8 i = 0; i < playersNumber; i++)
+        {
+            if(markers[i] == 'L') players.push_back(new LocalPlayer(&countries[i], i+1, this, gcd.maxMoveTimes[i])); // rzutowanie maxMoveTimes[i] na unsigned int zmienia -1 na max unsigned int
+            else if(markers[i] == 'B') players.push_back(new BotPlayer(&countries[i], i+1, this, clientSocks[0], gcd.maxMoveTimes[i]));
+            else if(markers[i] == 'N')
+            {
+                if(isHost)
+                {
+                    players.push_back(new NetworkPlayer(&countries[i], i+1, this, clientSocks[networkSockIndex], gcd.maxMoveTimes[i]));
+                    gcd.playerMarkers[i] = 'L';
+                    gcd.sendGameConfigData(clientSocks[networkSockIndex]);
+                    gcd.playerMarkers[i] = 'N';
+                    networkSockIndex++;
+                }
+                else players.push_back(new NetworkPlayer(&countries[i], i+1, this, sock, gcd.maxMoveTimes[i]));
+            }
+            else
+            {
+                std::cout << "Unidentified player markers\n";
+                getchar();
+                std::exit(1);
+            }
+        }
+        gcd.playerMarkers = markers;
+
+        if(bots)
+        {
+            sendTurnChange(1, clientSocks[0]);
+            board->sendBoardWithMoney(clientSocks[0]);
+        }
+    }
+    else
+    {
+        std::cout << "Countries initialization error\n";
+        getchar();
+        std::exit(1);
+    }
 }
 
 void Game::Update(float dt)
@@ -384,6 +467,7 @@ void Game::Render()
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
         Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
     }
+    if (board->isLeaderboardFull()){this->Restart();}
 }
 
 
@@ -456,6 +540,7 @@ void LocalPlayer::act()
         {
             game->Renderer->setPosToCastle(game->board,id);
             game->rPressed=false;
+            game->Restart();
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)

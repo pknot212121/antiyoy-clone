@@ -11,6 +11,8 @@
 
 
 // Represents the current state of the game
+
+
 enum class GameState
 {
     GAME_ACTIVE,
@@ -83,14 +85,15 @@ public:
     std::vector<Player*>    players;
     SpriteRenderer* Renderer;
     inline Player* getPlayer(uint8 id) noexcept { return (id == 0) ? nullptr : players[id-1]; }
-
+    GameConfigData gcd;
     Board *board;
     TextRenderer  *Text;
     // constructor/destructor
     Game(unsigned int width, unsigned int height);
     ~Game();
     // initialize game state (load all shaders/textures/levels)
-    void Init(GameConfigData& gcd);
+    void Init(GameConfigData gcd);
+    void Restart();
     // game loop
     void ProcessInput(float dt);
     int GetSelectedCastleReserves();
