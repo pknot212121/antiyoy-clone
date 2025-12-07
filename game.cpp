@@ -195,7 +195,7 @@ void Game::Init(GameConfigData& gcd)
     ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
     ResourceManager::LoadTexture("textures/soldier3_256.png",true,"soilder3");
     ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
-    ResourceManager::LoadTexture("textures/placeholder.png",true,"placeholder");
+    ResourceManager::LoadTexture("textures/warrior4_256.png",true,"soilder4");
     ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
     ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
     ResourceManager::LoadTexture("textures/pineTree_256.png",true,"pine");
