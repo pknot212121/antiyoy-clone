@@ -67,7 +67,7 @@ public:
     void Zoom(float zoomFactor, float pivotX, float pivotY, Board* board);
     glm::vec2 calculateHexPosition(int gridX, int gridY, float size);
     void setPosToCastle(Board *board,uint8 id);
-    void InitPalette();
+    void InitPalette(Board *board);
 
     void addToDisplacementX(Board *board,int dx);
     void addToDisplacementY(Board *board,int dy);

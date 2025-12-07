@@ -21,6 +21,7 @@ SpriteRenderer::SpriteRenderer(Shader &shader,Board *board)
     this->hexData.resize(bWidth*bHeight);
     this->residentData.resize(20);
     for (auto& r : residentData) r.resize(bWidth*bHeight);
+    this->InitPalette(board);
 }
 
 void SpriteRenderer::getActualDimensions(Board *board)
@@ -92,24 +93,7 @@ void SpriteRenderer::ClearBrightenedHexes()
     brightenedHexes.clear();
 }
 
-
-std::vector<int> rand_vect(std::vector<int> base_vector)
-{
-    std::vector<int> temp_vector;
-    int reps = base_vector.size();
-
-    for (int i = 0; i < reps; i++)
-    {
-        std::uniform_int_distribution<> dis(0, base_vector.size() - 1);
-        int random_number = dis(gen);
-
-        temp_vector.push_back(base_vector[random_number]);
-        base_vector.erase(base_vector.begin() + random_number);
-    }
-    return temp_vector;
-}
-
-void SpriteRenderer::InitPalette() {
+void SpriteRenderer::InitPalette(Board *board) {
     std::vector<int> hexColors{
         0xCC3333,
         0x33CC33,
@@ -122,8 +106,8 @@ void SpriteRenderer::InitPalette() {
         0x3399CC,
         0x9933CC
     };
-    std::vector<int> shuffled = rand_vect(hexColors);
-    for (auto hex : shuffled)
+    std::shuffle(hexColors.begin(),hexColors.end(),board->getGen());
+    for (auto hex : hexColors)
     {
 
         double red, green, blue;
@@ -453,5 +437,5 @@ void SpriteRenderer::initRenderData(int bWidth,int bHeight)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    this->InitPalette();
+
 }
