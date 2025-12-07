@@ -96,8 +96,6 @@ inline int8_t incomeBoard[] =
     coord y;
 };*/
 
-inline std::mt19937 gen; // generator liczb losowych
-
 class Hexagon; // deklaracje by nie było problemu z mieszaniem kolejności
 class Board;
 class Player;
@@ -149,11 +147,13 @@ public:
     std::unordered_set<Hexagon*> getAllProtectedAreas(Board* board);
     int calculateProvinceIncome(Board* board);
     bool allows(Board* board, Resident resident, uint8 ownerId);
-    std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
     void removeTree(Board* board);
+    std::vector<Hexagon*> possiblePlacements(Board* board, Resident resident);
+    //bool canPlace(Board* board, Resident resident, Hexagon* placement);
     bool place(Board* board, Resident resident, Hexagon* placement, bool send);
-    std::vector<Hexagon *> possibleMovements(Board *board);
-    bool move(Board *board, Hexagon *destination, bool send);
+    std::vector<Hexagon*> possibleMovements(Board *board);
+    //bool canMove(Board* board, Hexagon *destination);
+    bool move(Board* board, Hexagon *destination, bool send);
 
     inline void mark() noexcept { isMarked = true; }
     inline void unmark() noexcept { isMarked = false; }
@@ -167,6 +167,8 @@ private:
     const coord height;
     std::vector<Hexagon> board;
 
+    std::mt19937 gen;
+
     uint8 currentPlayerId = 1;
 
     std::vector<Country> countries;
@@ -176,7 +178,7 @@ private:
 
 public:
     // inicjalizatory
-    Board(coord width, coord height, Game* game);
+    Board(coord width, coord height, int seed, Game* game);
     void InitializeRandom(int min, int max);
     void InitializeRandomWithAnts(int n, int min, int max);
     void InitializeNeighbour(int recursion, bool includeMiddle);
@@ -191,6 +193,7 @@ public:
     inline Hexagon* getHexagon(int i) { return (i < 0 || i >= width * height) ? nullptr : &(board[i]); }
     std::unordered_set<Hexagon*> getHexesOfCountry(uint8 id); // z getterami do getterów bo wyrwę jaja i wygotuję w rosole
 
+    inline std::mt19937& getGen() noexcept { return gen; }
     inline Country* getCountry(uint8 id) noexcept { return (id == 0) ? nullptr : &countries[id-1]; }
     inline std::vector<Country>& getCountries() noexcept { return countries; }
     inline void leaderboardInsert(uint8 id) { leaderboard.insert(leaderboard.begin(), id); }
@@ -198,22 +201,25 @@ public:
     void eliminateCountry(uint8 id);
 
     inline const Game* getGame() const noexcept { return game; }
-    inline int getCurrentPlayerId() const noexcept { return currentPlayerId; }
+    inline uint8 getCurrentPlayerId() const noexcept { return currentPlayerId; }
 
     void nextTurn(bool send); // Definicja w game.cpp
     void propagateTrees();
     void sendBoard(int receivingSocket = -1);
-    void sendBoardWithMoney(int receivingSocket);
+    void sendBoardWithMoney(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);
+
+    Board dummy();
 };
 
 class Country
 {
-    Player* player;
+    Player* player = nullptr;
 
     std::unordered_map<Hexagon*, int> castles; // zamki i pieniądze
 
 public:
+    Country() = default;
     Country(std::vector<Hexagon*> castles);
     int tempMoneyStorage = 0;
     inline std::unordered_map<Hexagon*, int>& getCastles() noexcept { return castles; }

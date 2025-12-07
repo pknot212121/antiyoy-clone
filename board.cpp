@@ -73,7 +73,7 @@ Hexagon::Hexagon(coord x, coord y, uint8 ownerId, Resident resident) : x(x), y(y
 
 }
 
-Board::Board(coord width, coord height, Game* game) : width(width), height(height), game(game)
+Board::Board(coord width, coord height, int seed, Game* game) : width(width), height(height), game(game)
 {
     board.reserve(width * height);
     for (coord y = 0; y < height; y++)
@@ -83,6 +83,7 @@ Board::Board(coord width, coord height, Game* game) : width(width), height(heigh
             board.emplace_back(x, y);
         }
     }
+    gen = std::mt19937(seed);
 }
 
 void Board::InitializeNeighbour(int recursion, bool includeMiddle)
@@ -314,7 +315,7 @@ void Board::spawnTrees(double treeRatio)
 }
 
 
-void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na game->getPlayer()
+void Board::nextTurn(bool send)
 {
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
@@ -384,6 +385,7 @@ void Board::nextTurn(bool send) // Definicja przeniesiona tutaj ze względu na g
         *position++ = 0; // tag akcji (0 - koniec tury)
         sendData(content, sizeof(content), -1);
         //std::cout << "Sent next turn\n";
+        sendBoardWithMoney();
     }
 }
 
@@ -484,7 +486,7 @@ void Board::sendBoardWithMoney(int receivingSocket)
     int total = 1 + sizeof(wh) + sizeof(hh) + hexesNumber * sizeof(HexData);
     uint8* result = new uint8[total];
     uint8* position = result;
-    *position++ = BOARD_SOCKET_TAG;
+    *position++ = BOARD_WITH_MONEY_SOCKET_TAG;
     memcpy(position, &wh, sizeof(wh));
     position += sizeof(wh);
     memcpy(position, &hh, sizeof(hh));
@@ -504,7 +506,7 @@ void Board::sendBoardWithMoney(int receivingSocket)
             if(money > 65535) money16 = 65535;
             else money16 = money;
             money16 = htons(money16);
-            
+
             std::vector<Hexagon*> province = castle->neighbours(this, BIG_NUMBER, true, [castle](Hexagon* h){ return castle->getOwnerId() == h->getOwnerId(); });
             for(Hexagon* h : province)
             {
@@ -537,7 +539,25 @@ void Board::sendGameOver(int receivingSocket)
     delete[] lb;
 }
 
+Board Board::dummy()
+{
+    Board copy = *this;
+    copy.game = nullptr;
 
+    copy.countries.clear();
+
+    for(Country& c : countries)
+    {
+        copy.countries.emplace_back();
+        auto& copyCastles = copy.countries.back().getCastles();
+        for(auto& [castle, money] : c.getCastles())
+        {
+            copyCastles[copy.getHexagon(castle->getX(), castle->getY())] = money;
+        }
+    }
+
+    return copy;
+}
 
 void Hexagon::rot(Board* board)
 {
@@ -686,7 +706,7 @@ std::vector<Hexagon*> Hexagon::doubleFilterNeighbours(Board *board, int recursio
 // Droższa ale dokładniejsza od province(). Używać po zmianie terytorium by naprawić prowincje (dodać/odjąć zamki)
 std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
 {
-    std::cout << "Calculate province for " << (int)ownerId << "\n";
+    if(board->getGame()) std::cout << "Calculate province for " << (int)ownerId << "\n";
     if(this->getOwnerId() == 0) return std::vector<Hexagon*>();
     std::vector<Hexagon*> province = this->neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     int castlesNumber = 0;
@@ -707,35 +727,7 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
     }
     if(castlesNumber > 1)
     {
-        std::unordered_map<Hexagon*, int> castlesMap = board->getCountry(ownerId)->getCastles();
-        /*int mostFarms = 0;
-        int mostMoney = 0;
-        int bestI = 0;
-        for(int i = 0; i < castlesNumber; i++)
-        {
-            MoneyAndFarms moneyAndFarms = castlesMap[province[i]];
-            if(moneyAndFarms.farms > mostFarms)
-            {
-                bestI = i;
-                mostMoney = moneyAndFarms.money;
-                mostFarms = moneyAndFarms.farms;
-            }
-            else if(moneyAndFarms.farms == mostFarms)
-            {
-                if(moneyAndFarms.money > mostMoney)
-                {
-                    bestI = i;
-                    mostMoney = moneyAndFarms.money;
-                    mostFarms = moneyAndFarms.farms;
-                }
-            }
-        }
-        if(bestI != 0)
-        {
-            Hexagon* t = province[bestI];
-            province[bestI] = province[0];
-            province[0] = t;
-        }*/
+        std::unordered_map<Hexagon*, int>& castlesMap = board->getCountry(ownerId)->getCastles();
         for(int i = 1; i < castlesNumber; i++)
         {
             castlesMap[province[0]] += province[i]->removeCastle(board, false);
@@ -758,12 +750,12 @@ std::vector<Hexagon*> Hexagon::calculateProvince(Board* board)
         if(firstLine.size()) // w pierwszej kolejności próbuje położyć zamek na pustym polu
         {
             std::uniform_int_distribution<int> rand(0, firstLine.size() - 1);
-            newCastle = firstLine[rand(gen)];
+            newCastle = firstLine[rand(board->getGen())];
         }
         else // potem na niepustym
         {
             std::uniform_int_distribution<int> rand(0, secondLine.size() - 1);
-            newCastle = secondLine[rand(gen)];
+            newCastle = secondLine[rand(board->getGen())];
         }
         if (board->getCountry(ownerId)->tempMoneyStorage==0) newCastle->setCastle(board, 0);
         else
@@ -925,7 +917,7 @@ void Board::eliminateCountry(uint8 id)
 {
     leaderboardInsert(id);
     std::cout << "Country " << (int)id << " eliminated!\n";
-    if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
+    if(game && leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy i mamy grę (to nie dummy)
     {
         for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
         {
@@ -962,6 +954,17 @@ int Hexagon::removeCastle(Board* board, bool eliminateCastleless)
     }
     return 0;
 }
+
+
+void Hexagon::removeTree(Board *board)
+{
+    if(!ownerId) return;
+    auto& castlesMap = board->getCountry(ownerId)->getCastles();
+    if(!castlesMap.size()) return;
+    std::vector<Hexagon*> province = this->province(board);
+    if(castle(province[0]->resident)) castlesMap[province[0]] += 3;
+}
+
 
 // Używać dla żołnierzy (kładzionych, nie przesuwanych), farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
@@ -1014,42 +1017,39 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     return std::vector<Hexagon*>();
 }
 
-void Hexagon::removeTree(Board *board)
-{
-    auto& castlesMap = board->getCountry(ownerId)->getCastles();
-    std::vector<Hexagon*> province = this->province(board);
-    if(castle(province[0]->resident)) castlesMap[province[0]] += 3;
-    /*for (auto& it : castlesMap)
-    {
-        if (std::find(it.first->province(board).begin(),it.first->province(board).end(),this) != it.first->province(board).end())
-        {
-            it.second+=3;
-            break;
-        }
-    }*/
-}
-
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
 bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool send)
 {
     Hexagon* castleHex;
     if(castle(getResident())) castleHex = this;
     else castleHex = province(board)[0];
-    if(!castle(castleHex->getResident())) return false;
+    if(!castle(castleHex->getResident())) return false; // to nie prowincja, nie może kłaść
     int price = castleHex->price(board, resident);
-    if(!price) return false;
+    if(!price) return false; // tego nie można kupić
     auto& castles = board->getCountry(castleHex->getOwnerId())->getCastles();
-    if(price > castles[castleHex]) return false;
+    if(price > castles[castleHex]) return false; // bieda
+
+    std::vector<Hexagon*> placements = possiblePlacements(board, resident);
+    bool found = false;
+    for(int i = 0; i < placements.size(); i++)
+    {
+        if(placement == placements[i])
+        {
+            found = true;
+            break;
+        }
+    }
+    if(!found) return false; // nie możemy kłaść na tym miejscu
     
     if(unmovedWarrior(resident))
     {
-        if(!placement->allows(board, resident, castleHex->getOwnerId())) return false;
+        //if(!placement->allows(board, resident, castleHex->getOwnerId())) return false;
         if(placement->getOwnerId() == castleHex->getOwnerId())
         {
             if(warrior(placement->getResident()))
             {
-                Resident merged = mergeWarriors(resident, placement->getResident()); // mieszanie żołnierzy
-                if(!warrior(merged)) return false;
+                Resident merged = mergeWarriors(resident, placement->getResident()); // łączenie żołnierzy
+                if(!warrior(merged)) return false; // nie możemy złączyć tych żołnierzy
                 placement->setResident(merged);
             }
             else if(gravestone(placement->getResident()))
@@ -1086,7 +1086,7 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
     {
         placement->setResident(resident);
     }
-    else return false;
+    else return false; // To coś innego
     castles[castleHex] -= price;
 
     if(send)
@@ -1111,7 +1111,6 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
     return true;
 }
 
-
 // Używać dla żołnierzy (przesuwanych, nie kładzionych)
 std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 {
@@ -1134,13 +1133,25 @@ std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 // Przesuwa wojownika na inne miejsce. Zwraca czy przesunięcie się powiodło
 bool Hexagon::move(Board* board, Hexagon* destination, bool send)
 {
-    if(!unmovedWarrior(resident)) return false;
-    if(!destination->allows(board, resident, ownerId)) return false;
+    if(!unmovedWarrior(resident)) return false; // to nie żołnierz który wciąż może się ruszyć
+    
+    std::vector<Hexagon*> movements = possibleMovements(board);
+    bool found = false;
+    for(int i = 0; i < movements.size(); i++)
+    {
+        if(destination == movements[i])
+        {
+            found = true;
+            break;
+        }
+    }
+    if(!found) return false; // nie możemy przesunąć na to miejsce
+
     uint8 oldOwnerId = destination->getOwnerId();
     if(oldOwnerId == ownerId && warrior(destination->getResident()))
     {
-        Resident merged = mergeWarriors(resident, destination->getResident()); // mieszanie żołnierzy
-        if(!warrior(merged)) return false;
+        Resident merged = mergeWarriors(resident, destination->getResident()); // łączenie żołnierzy
+        if(!warrior(merged)) return false; // nie możemy złączyć tych żołnierzy
         destination->setResident(merged);
 
     }
@@ -1178,6 +1189,7 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
     }
     return true;
 }
+
 
 Country::Country(std::vector<Hexagon*> castles)
 {

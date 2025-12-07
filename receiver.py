@@ -39,6 +39,14 @@ class Hex:
     def __repr__(self):
         return f"Hex(x={self.x}, y={self.y}, owner={self.owner_id}, resident={self.resident})"
 
+class HexWithMoney(Hex):
+    def __init__(self, x, y, owner_id, resident, money):
+        super().__init__(x, y, owner_id, resident)
+        self.money = money
+
+    def __repr__(self):
+        return f"Hex(x={self.x}, y={self.y}, owner={self.owner_id}, resident={self.resident}, money={self.money})"
+
 class Board:
     def __init__(self, width, height):
         self.width = width
@@ -50,15 +58,50 @@ class Board:
 
     def __repr__(self):
         return f"Board({self.width}x{self.height}, {len(self.hexes)} hexes)"
+    
+    def print_owners(self):
+        print("Owners:")
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+                h = self.hexes[y * self.width + x]
+                row.append(f"{h.owner_id:2d}")
+            print(" ".join(row))
+        print()
+
+    def print_residents(self):
+        print("Residents:")
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+                h = self.hexes[y * self.width + x]
+                row.append(f"{h.resident.value:2d}")
+            print(" ".join(row))
+        print()
+
+    def print_money(self):
+        print("Money:")
+        for y in range(self.height):
+            row = []
+            for x in range(self.width):
+                h = self.hexes[y * self.width + x]
+                money = getattr(h, "money", None)
+                if money is None:
+                    row.append(" - ")
+                else:
+                    row.append(f"{money:3d}")
+            print(" ".join(row))
+        print()
 
 
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 BOARD_SOCKET_TAG = 2 # Plansza (spłaszczona dwuwymiarowa tablica heksagonów)
-ACTION_SOCKET_TAG = 3 # Ruchy (wysyłane przez AI do gry)
-CONFIRMATION_SOCKET_TAG = 4 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
-TURN_CHANGE_SOCKET_TAG = 5 # Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
-GAME_OVER_SOCKET_TAG = 6 # Numery graczy w kolejności od wygranego do pierwszego który odpadł
+BOARD_WITH_MONEY_SOCKET_TAG = 3 # Plansza (tym razem jeszcze z pieniędzmi)
+ACTION_SOCKET_TAG = 4 # Ruchy (Położenie, przesunięcie lub koniec tury)
+CONFIRMATION_SOCKET_TAG = 5 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
+TURN_CHANGE_SOCKET_TAG = 6 # Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
+GAME_OVER_SOCKET_TAG = 7 # Numery graczy w kolejności od wygranego do pierwszego który odpadł
 
 SOCKET_MAGIC_NUMBERS = b'ANTIYOY'
 
@@ -163,6 +206,73 @@ def receive_board() -> Board:
 
     return board
 
+def receive_board_with_money() -> Board:
+    """
+    Odbiera planszę z pieniędzmi.
+    Zakłada że tag został już odebrany
+    """
+    header = recv_size(sock, 4)
+    width, height = struct.unpack("!HH", header)
+
+    hexes_number = width * height
+
+    # Każdy HexData ma 4 bajty:
+    # ownerId (1)
+    # resident (1)
+    # money (uint16)
+    data_size = hexes_number * 4
+
+    data = recv_size(sock, data_size)
+
+    board = Board(width, height)
+
+    offset = 0
+    for y in range(height):
+        for x in range(width):
+            owner_id = data[offset]
+            resident_raw = data[offset + 1]
+            money_raw = struct.unpack_from("!H", data, offset + 2)[0]
+
+            resident = Resident(resident_raw)
+            money = money_raw
+
+            hexagon = HexWithMoney(x, y, owner_id, resident, money)
+            board.add_hex(hexagon)
+
+            offset += 4
+
+    return board
+
+def receive_action():
+    """
+    Odbiera zestaw akcji.
+    Zakłada że tag został już odebrany
+    """
+    num_raw = recv_size(sock, 1)
+    num = num_raw[0]
+
+    actions = []
+
+    for _ in range(num):
+        action_type_raw = recv_size(sock, 1)
+        action_type = action_type_raw[0]
+
+        if action_type == ActionType.END_TURN:
+            actions.append(action_type_raw)
+
+        elif action_type == ActionType.PLACE:
+            rest = recv_size(sock, 9)
+            actions.append(action_type_raw + rest)
+
+        elif action_type == ActionType.MOVE:
+            rest = recv_size(sock, 8)
+            actions.append(action_type_raw + rest)
+
+        else:
+            raise RuntimeError(f"Unknown action type received: {action_type}")
+
+    return actions
+
 def receive_confirmation() -> tuple[bool, bool]:
     """
     Odbiera potwierdzenie ruchu (czy zatwierdzono i czy oczekuje dalszych ruchów).
@@ -228,6 +338,12 @@ def receive_all():
         elif tag == BOARD_SOCKET_TAG:
             result.append((BOARD_SOCKET_TAG, receive_board()))
 
+        elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
+            result.append((BOARD_WITH_MONEY_SOCKET_TAG, receive_board_with_money()))
+
+        elif tag == ACTION_SOCKET_TAG:
+            result.append((ACTION_SOCKET_TAG, receive_action()))
+
         elif tag == CONFIRMATION_SOCKET_TAG:
             result.append((CONFIRMATION_SOCKET_TAG, receive_confirmation()))
 
@@ -267,6 +383,12 @@ def receive_next():
 
     elif tag == BOARD_SOCKET_TAG:
         result = (BOARD_SOCKET_TAG, receive_board())
+
+    elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
+        result = (BOARD_WITH_MONEY_SOCKET_TAG, receive_board_with_money())
+
+    elif tag == ACTION_SOCKET_TAG:
+        result = (ACTION_SOCKET_TAG, receive_action())
 
     elif tag == CONFIRMATION_SOCKET_TAG:
         result = (CONFIRMATION_SOCKET_TAG, receive_confirmation())
@@ -379,6 +501,18 @@ try:
         elif tag == BOARD_SOCKET_TAG:
             print("New board:")
             print(payload)
+            payload.print_owners()
+            payload.print_residents()
+        
+        elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
+            print("New board with money:")
+            print(payload)
+            payload.print_owners()
+            payload.print_residents()
+            payload.print_money()
+
+        elif tag == ACTION_SOCKET_TAG:
+            print("Action received")
 
 except:
     print("Connection error")

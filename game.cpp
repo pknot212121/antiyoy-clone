@@ -35,7 +35,7 @@ restart:
     maxProvinceSize = std::uniform_int_distribution<>(2, maxMaxProvinceSize)(gcdGen);
     std::uniform_int_distribution<> minDist(2, maxProvinceSize);
     minProvinceSize = 0;
-    while(minProvinceSize < maxProvinceSize/2) minProvinceSize = minDist(gen);
+    while(minProvinceSize < maxProvinceSize/2) minProvinceSize = minDist(gcdGen);
     seed = 0;
 }
 
@@ -210,13 +210,12 @@ void Game::Init(GameConfigData& gcd)
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load(24);
     if(gcd.seed == 0) gcd.seed = std::random_device{}();
-    gen = std::mt19937(gcd.seed);
 
     std::string markers = gcd.playerMarkers;
     uint8 playersNumber = markers.length();
 
     bool isHost = clientSocks.size() > 0;
-    board = new Board(gcd.x, gcd.y, this);
+    board = new Board(gcd.x, gcd.y, gcd.seed, this);
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"),board);
     int total = gcd.x * gcd.y;
     //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
@@ -234,6 +233,7 @@ void Game::Init(GameConfigData& gcd)
     if(countries.size() == playersNumber)
     {
         players.reserve(playersNumber);
+        bool bots = false;
         uint8 networkSockIndex = 0;
         for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
         {
@@ -241,6 +241,7 @@ void Game::Init(GameConfigData& gcd)
             {
                 gcd.sendGameConfigData(clientSocks[0]);
                 networkSockIndex = 1;
+                bots = true;
                 break;
             }
         }
@@ -271,6 +272,12 @@ void Game::Init(GameConfigData& gcd)
             }
         }
         gcd.playerMarkers = markers;
+
+        if(bots)
+        {
+            sendTurnChange(1, clientSocks[0]);
+            board->sendBoardWithMoney(clientSocks[0]);
+        }
     }
     else
     {
@@ -278,6 +285,14 @@ void Game::Init(GameConfigData& gcd)
         getchar();
         std::exit(1);
     }
+
+
+    /*if(isHost)
+    {
+        sendTurnChange(1);
+        board->sendBoardWithMoney();
+    }*/
+
     std::cout << "Finished init\n";
 
 }
@@ -517,88 +532,95 @@ BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, un
     sendTurnChange(id);
 }*/
 
-void BotPlayer::act()
+bool receiveActions(int receiveSock, std::vector<char>& output)
 {
-    switchSocketMode(receiveSock, 1);
-
-    char tag;
-    if(recv(receiveSock, &tag, 1, 0) > 0)
+    switchSocketMode(receiveSock, 0);
+    uint8 actionsNumber;
+    if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
     {
-        if(tag == ACTION_SOCKET_TAG)
+        output = {ACTION_SOCKET_TAG, static_cast<char>(actionsNumber)};
+        for(int i = 0; i < actionsNumber; i++)
         {
-            switchSocketMode(receiveSock, 0);
-            uint8 actionsNumber;
-            if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
+            char action;
+            if(recv(receiveSock, &action, 1, 0) > 0)
             {
-                std::vector<char> data = {tag, static_cast<char>(actionsNumber)};
-                for(int i = 0; i < actionsNumber; i++)
+                output.push_back(action);
+                if(action == 0)
                 {
-                    char action;
-                    if(recv(receiveSock, &action, 1, 0) > 0)
-                    {
-                        data.push_back(action);
-                        if(action == 0)
-                        {
-                            break;
-                        }
-                        else if(action == 1)
-                        {
-                            char content[9];
-                            int total = 0;
-                            while (total < sizeof(content))
-                            {
-                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
-                                if (r <= 0) goto error;
-                                total += r;
-                            }
-                            data.insert(data.end(), content, content + sizeof(content));
-                        }
-                        else if(action == 2)
-                        {
-                            char content[8];
-                            int total = 0;
-                            while (total < sizeof(content))
-                            {
-                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
-                                if (r <= 0) goto error;
-                                total += r;
-                            }
-                            data.insert(data.end(), content, content + sizeof(content));
-                        }
-                        else goto invalidContent;
-                    }
-                    else goto error;
+                    // nic xd
                 }
-
-                executeActions(game->board, data.data() + 2, actionsNumber);
-
-                sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
+                else if(action == 1)
+                {
+                    char content[9];
+                    int total = 0;
+                    while (total < sizeof(content))
+                    {
+                        int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                        if (r <= 0) return false;
+                        total += r;
+                    }
+                    output.insert(output.end(), content, content + sizeof(content));
+                }
+                else if(action == 2)
+                {
+                    char content[8];
+                    int total = 0;
+                    while (total < sizeof(content))
+                    {
+                        int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
+                        if (r <= 0) return false;
+                        total += r;
+                    }
+                    output.insert(output.end(), content, content + sizeof(content));
+                }
+                else return false;
             }
-            else goto error;
+            else return false;
         }
     }
-    else switchSocketMode(receiveSock, defaultSocketMode);
-
-    return;
-error:
-    switchSocketMode(receiveSock, defaultSocketMode);
-    // Coś wymyślę
-    std::cout << "Read error\n";
-    return;
-
-invalidContent:
-    switchSocketMode(receiveSock, defaultSocketMode);
-    // Tu też
-    std::cout << "Invalid content\n";
-    return;
+    else return false;
+    return true;
 }
 
-NetworkPlayer::NetworkPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
+bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 actionsNumber)
 {
-    std::cout << "Network player created with max move time " << maxMoveTime << "\n";
+    if(playerId != board->getCurrentPlayerId()) return false;
+    Board dummyBoard = board->dummy();
+    for(int i = 0; i < actionsNumber; i++)
+    {
+        if(*actions == 0)
+        {
+            return true;
+        }
+        else if(*actions == 1)
+        {
+            actions++;
+            Resident resident = (Resident)(*actions);
+            coord xF = decodeCoord(actions + 1);
+            coord yF = decodeCoord(actions + 3);
+            coord xT = decodeCoord(actions + 5);
+            coord yT = decodeCoord(actions + 7);
+            Hexagon* hex = dummyBoard.getHexagon(xF, yF);
+            if(!hex->place(&dummyBoard, resident, dummyBoard.getHexagon(xT, yT), false)) return false;
+            actions += 9;
+        }
+        else if(*actions == 2)
+        {
+            actions++;
+            coord xF = decodeCoord(actions);
+            coord yF = decodeCoord(actions + 2);
+            coord xT = decodeCoord(actions + 4);
+            coord yT = decodeCoord(actions + 6);
+            Hexagon* hex = dummyBoard.getHexagon(xF, yF);
+            if(!hex->move(&dummyBoard, dummyBoard.getHexagon(xT, yT), false)) return false;
+            actions += 8;
+        }
+        else return false;
+    }
+    return true;
 }
 
-void executeActions(Board* board, char* actions, uint8 actionsNumber)
+bool executeActions(Board* board, char* actions, uint8 actionsNumber)
 {
     for(int i = 0; i < actionsNumber; i++)
     {
@@ -619,7 +641,7 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
             coord xT = decodeCoord(actions + 5);
             coord yT = decodeCoord(actions + 7);
             Hexagon* hex = board->getHexagon(xF, yF);
-            hex->place(board, resident, board->getHexagon(xT, yT), false);
+            if(!hex->place(board, resident, board->getHexagon(xT, yT), false)) return false;
             actions += 9;
         }
         else if(*actions == 2)
@@ -631,11 +653,61 @@ void executeActions(Board* board, char* actions, uint8 actionsNumber)
             coord xT = decodeCoord(actions + 4);
             coord yT = decodeCoord(actions + 6);
             Hexagon* hex = board->getHexagon(xF, yF);
-            hex->move(board, board->getHexagon(xT, yT), false);
+            if(!hex->move(board, board->getHexagon(xT, yT), false)) return false;
             actions += 8;
         }
-        else return;
+        else return false;
     }
+    return true;
+}
+
+void BotPlayer::act()
+{
+    switchSocketMode(receiveSock, 1);
+
+    char tag;
+    if(recv(receiveSock, &tag, 1, 0) > 0)
+    {
+        if(tag == ACTION_SOCKET_TAG)
+        {
+            std::vector<char> data;
+            if(!receiveActions(receiveSock, data))
+            {
+                std::cout << "Error receiving actions!\n";
+                clearSocket(receiveSock);
+                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
+                game->board->sendBoardWithMoney(receiveSock);
+                goto end;
+            }
+
+            if(!canExecuteActions(game->board, id, data.data() + 2, data[1]))
+            {
+                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
+                game->board->sendBoardWithMoney(receiveSock);
+                goto end;
+            }
+            
+            if(!executeActions(game->board, data.data() + 2, data[1]))
+            {
+                std::cout << "Actions check passed but an error occured during actions execution!\n";
+                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
+                game->board->sendBoardWithMoney(receiveSock);
+                goto end;
+            }
+
+            sendConfirmation(true, game->board->getCurrentPlayerId() == id);
+
+            sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
+        }
+    }
+
+end:
+    switchSocketMode(receiveSock, defaultSocketMode);
+}
+
+NetworkPlayer::NetworkPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
+{
+    std::cout << "Network player created with max move time " << maxMoveTime << "\n";
 }
 
 void NetworkPlayer::act()
@@ -647,69 +719,26 @@ void NetworkPlayer::act()
     {
         if(tag == ACTION_SOCKET_TAG)
         {
-            switchSocketMode(receiveSock, 0);
-            uint8 actionsNumber;
-            if(recv(receiveSock, reinterpret_cast<char*>(&actionsNumber), 1, 0) > 0)
+            std::vector<char> data;
+            if(!receiveActions(receiveSock, data))
             {
-                std::vector<char> data = {tag, static_cast<char>(actionsNumber)};
-                for(int i = 0; i < actionsNumber; i++)
-                {
-                    char action;
-                    if(recv(receiveSock, &action, 1, 0) > 0)
-                    {
-                        data.push_back(action);
-                        if(action == 0)
-                        {
-                            break;
-                        }
-                        else if(action == 1)
-                        {
-                            char content[9];
-                            int total = 0;
-                            while (total < sizeof(content))
-                            {
-                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
-                                if (r <= 0) goto error;
-                                total += r;
-                            }
-                            data.insert(data.end(), content, content + sizeof(content));
-                        }
-                        else if(action == 2)
-                        {
-                            char content[8];
-                            int total = 0;
-                            while (total < sizeof(content))
-                            {
-                                int r = recv(receiveSock, content + total, sizeof(content) - total, 0);
-                                if (r <= 0) goto error;
-                                total += r;
-                            }
-                            data.insert(data.end(), content, content + sizeof(content));
-                        }
-                        else goto invalidContent;
-                    }
-                    else goto error;
-                }
-
-                executeActions(game->board, data.data() + 2, actionsNumber);
-
-                sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
+                std::cout << "Error receiving network actions!\n";
+                clearSocket(receiveSock);
+                goto end;
             }
-            else goto error;
+            
+            if(!executeActions(game->board, data.data() + 2, data[1]))
+            {
+                std::cout << "Received unallowed actions!\n";
+                clearSocket(receiveSock);
+                goto end;
+            }
+
+            sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
         }
+        else clearSocket(receiveSock);
     }
-    else switchSocketMode(receiveSock, defaultSocketMode);
 
-    return;
-error:
+end:
     switchSocketMode(receiveSock, defaultSocketMode);
-    // Coś wymyślę
-    std::cout << "Read error\n";
-    return;
-
-invalidContent:
-    switchSocketMode(receiveSock, defaultSocketMode);
-    // Tu też
-    std::cout << "Invalid content\n";
-    return;
 }
