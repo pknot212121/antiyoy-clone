@@ -158,7 +158,7 @@ void SpriteRenderer::Zoom(float zoomFactor, float pivotX, float pivotY,Board *bo
     float oldZoom = resizeMultiplier;
     float newZoom = oldZoom * zoomFactor;
 
-    if (newZoom < 0.5f) newZoom = 0.5f;
+    if (newZoom < 0.3f) newZoom = 0.3f;
     if (newZoom > std::max(actualBoardWidth,actualBoardHeight)/4) newZoom = std::max(actualBoardWidth,actualBoardHeight)/4;
 
     float scaleRatio = newZoom / oldZoom;
