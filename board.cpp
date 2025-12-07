@@ -385,8 +385,14 @@ void Board::nextTurn(bool send)
         *position++ = 0; // tag akcji (0 - koniec tury)
         sendData(content, sizeof(content), -1);
         //std::cout << "Sent next turn\n";
-        sendBoardWithMoney();
     }
+    game->getPlayer(currentPlayerId)->actStart();
+    /*BotPlayer* bp = static_cast<BotPlayer*>(game->getPlayer(currentPlayerId));
+    if(bp)
+    {
+        sendTurnChange(currentPlayerId, bp->getReceiveSock());
+        sendBoardWithMoney(bp->getReceiveSock());
+    }*/
 }
 
 

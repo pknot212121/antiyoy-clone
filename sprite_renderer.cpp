@@ -10,6 +10,8 @@
 #include "glm/common.hpp"
 #include "glm/common.hpp"
 
+#include <algorithm>
+
 
 
 SpriteRenderer::SpriteRenderer(Shader &shader,Board *board)

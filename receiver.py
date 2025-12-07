@@ -511,6 +511,9 @@ try:
             payload.print_residents()
             payload.print_money()
 
+        elif tag == TURN_CHANGE_SOCKET_TAG:
+            print(f"Player {payload} starting turn")
+
         elif tag == ACTION_SOCKET_TAG:
             print("Action received")
 

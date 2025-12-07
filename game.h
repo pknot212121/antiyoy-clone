@@ -121,7 +121,7 @@ protected:
 public:
     Player(Country* country, uint8 id, Game* game, unsigned int maxMoveTime = 60);
 
-    //virtual void actStart();
+    virtual void actStart();
     virtual void act() = 0; // udawaj że to funkcja abstrakcyjna
 };
 
@@ -141,8 +141,9 @@ class BotPlayer : public Player
     int receiveSock;
 public:
     BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime = 10);
-    //virtual void actStart();
+    virtual void actStart();
     virtual void act();
+    inline int getReceiveSock() { return receiveSock; } 
 };
 
 class NetworkPlayer : public Player // Easter egg

@@ -233,7 +233,7 @@ void Game::Init(GameConfigData& gcd)
     if(countries.size() == playersNumber)
     {
         players.reserve(playersNumber);
-        bool bots = false;
+        //bool firstBot = false;
         uint8 networkSockIndex = 0;
         for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
         {
@@ -241,7 +241,7 @@ void Game::Init(GameConfigData& gcd)
             {
                 gcd.sendGameConfigData(clientSocks[0]);
                 networkSockIndex = 1;
-                bots = true;
+                //if(i == 0) firstBot = true;
                 break;
             }
         }
@@ -273,11 +273,12 @@ void Game::Init(GameConfigData& gcd)
         }
         gcd.playerMarkers = markers;
 
-        if(bots)
+        getPlayer(this->board->getCurrentPlayerId())->actStart();
+        /*if(firstBot)
         {
             sendTurnChange(1, clientSocks[0]);
             board->sendBoardWithMoney(clientSocks[0]);
-        }
+        }*/
     }
     else
     {
@@ -390,6 +391,10 @@ void Game::Render()
 Player::Player(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : country(country), id(id), game(game), maxMoveTime(maxMoveTime)
 {
     country->setPlayer(this);
+}
+
+void Player::actStart()
+{
 }
 
 LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime)
@@ -522,16 +527,6 @@ void LocalPlayer::SelectAction(Hexagon *hex)
     }
 }
 
-BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
-{
-    std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
-}
-
-/*void BotPlayer::actStart()
-{
-    sendTurnChange(id);
-}*/
-
 bool receiveActions(int receiveSock, std::vector<char>& output)
 {
     switchSocketMode(receiveSock, 0);
@@ -659,6 +654,17 @@ bool executeActions(Board* board, char* actions, uint8 actionsNumber)
         else return false;
     }
     return true;
+}
+
+BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
+{
+    std::cout << "Bot player created with max move time " << maxMoveTime << "\n";
+}
+
+void BotPlayer::actStart()
+{
+    sendTurnChange(game->board->getCurrentPlayerId(), receiveSock);
+    game->board->sendBoardWithMoney(receiveSock);
 }
 
 void BotPlayer::act()
