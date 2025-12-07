@@ -23,7 +23,7 @@ void unmarkAll(std::vector<Hexagon*> hexagons)
 // 1-4 - żołnierze i budowle
 int power(Resident resident)
 {
-    if(resident == Resident::Farm) return 0;
+    if(farm(resident)) return 0;
     if(resident == Resident::Warrior1 || resident == Resident::Warrior1Moved || resident == Resident::Castle) return 1;
     if(resident == Resident::Warrior2 || resident == Resident::Warrior2Moved || resident == Resident::Tower) return 2;
     if(resident == Resident::Warrior3 || resident == Resident::Warrior3Moved || resident == Resident::StrongTower) return 3;
@@ -996,7 +996,7 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
     }
     std::vector<Hexagon*> province = neighbours(board, BIG_NUMBER, true, [this](Hexagon* h) { return h->ownerId == this->ownerId; });
     valid.reserve(province.size());
-    if(resident == Resident::Farm)
+    if(farm(resident))
     {
         for (Hexagon* h : province) // nasze pola które graniczą z innymi farmami lub zamkiem
         {

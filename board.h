@@ -39,7 +39,10 @@ enum class Resident : uint8
     Warrior3Moved,
     Warrior4Moved,
 
-    Farm, // dziwne nazewnictwo z wiki
+    Farm1, // dziwne nazewnictwo z wiki
+    Farm2,
+    Farm3,
+
     Castle,
     Tower,
     StrongTower,
@@ -54,8 +57,7 @@ inline bool empty(Resident resident) noexcept { return resident == Resident::Emp
 inline bool warrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4Moved; };
 inline bool unmovedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4; };
 inline bool movedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1Moved && resident <= Resident::Warrior4Moved; };
-inline bool building(Resident resident) noexcept { return resident >= Resident::Farm && resident <= Resident::StrongTower; };
-inline bool farm(Resident resident) noexcept { return resident == Resident::Farm; };
+inline bool farm(Resident resident) noexcept { return resident >= Resident::Farm1 && resident <= Resident::Farm3; };
 inline bool castle(Resident resident) noexcept { return resident == Resident::Castle; };
 inline bool tower(Resident resident) noexcept { return resident == Resident::Tower || resident == Resident::StrongTower; };
 inline bool tree(Resident resident) noexcept { return resident == Resident::PalmTree || resident == Resident::PineTree; };

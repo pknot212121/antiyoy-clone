@@ -20,14 +20,17 @@ class Resident(IntEnum):
     Warrior3Moved = 8
     Warrior4Moved = 9
 
-    Farm = 10
-    Castle = 11
-    Tower = 12
-    StrongTower = 13
+    Farm1 = 10
+    Farm2 = 11
+    Farm3 = 12
+    
+    Castle = 13
+    Tower = 14
+    StrongTower = 15
 
-    PalmTree = 14
-    PineTree = 15
-    Gravestone = 16
+    PalmTree = 16
+    PineTree = 17
+    Gravestone = 18
 
 class Hex:
     def __init__(self, x, y, owner_id, resident):
