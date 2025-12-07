@@ -228,7 +228,6 @@ void Game::Init(GameConfigData gcd)
 
 
     auto countries = board->getCountries();
-    //std::cout << countries.size() << " " << (int)playersNumber << " " << gcd.maxMoveTimes.size() << '\n';
     if(countries.size() == playersNumber)
     {
         players.reserve(playersNumber);
@@ -327,7 +326,7 @@ void Game::Restart()
     if(countries.size() == playersNumber)
     {
         players.reserve(playersNumber);
-        bool bots = false;
+        //bool bots = false;
         uint8 networkSockIndex = 0;
         for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
         {
@@ -335,7 +334,7 @@ void Game::Restart()
             {
                 gcd.sendGameConfigData(clientSocks[0]);
                 networkSockIndex = 1;
-                bots = true;
+                //bots = true;
                 break;
             }
         }
@@ -367,11 +366,7 @@ void Game::Restart()
         }
         gcd.playerMarkers = markers;
 
-        if(bots)
-        {
-            sendTurnChange(1, clientSocks[0]);
-            board->sendBoardWithMoney(clientSocks[0]);
-        }
+        getPlayer(this->board->getCurrentPlayerId())->actStart();
     }
     else
     {
@@ -468,7 +463,6 @@ void Game::Render()
         Text->RenderText("Income:"+std::to_string(GetSelectedCastleIncome()),this->Width/2,10.0f,1.0f);
         Text->RenderText("Press R to return to the center",10.0f,this->Height-30.0f,1.0f);
     }
-    if (board->isLeaderboardFull()){this->Restart();}
 }
 
 
@@ -545,7 +539,7 @@ void LocalPlayer::act()
         {
             game->Renderer->setPosToCastle(game->board,id);
             game->rPressed=false;
-            game->Restart();
+            //game->Restart();
         }
 
         if(game->pressedKey==GLFW_KEY_ENTER)

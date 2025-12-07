@@ -281,6 +281,8 @@ netConfiguration: // Dla gracza sieciowego
         lastFrame = currentFrame;
         glfwPollEvents();
 
+        if (Anti->board->isLeaderboardFull()) Anti->Restart();
+
         // manage user input
         // -----------------
         Anti->ProcessInput(deltaTime);
