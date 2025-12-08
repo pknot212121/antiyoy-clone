@@ -211,6 +211,7 @@ randConfiguration:
             }
             std::cout << "Python client connected!\n";
         }
+        else clientSocks.push_back(-1);
 
         if(networkPlayers)
         {

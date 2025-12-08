@@ -41,7 +41,7 @@ void sendData(char* data, int size, int receivingSocket, int exceptionSocket)
     {
         for(int s : clientSocks)
         {
-            if((receivingSocket == -1 || s == receivingSocket) && s != exceptionSocket)
+            if((receivingSocket == -1 || s == receivingSocket) && s != -1 && s != exceptionSocket)
             {
                 int sentBytes = 0;
                 while (sentBytes < size)
@@ -122,7 +122,8 @@ void initializeSocket(int port)
     }
 
     #ifdef _WIN32
-        if (ioctlsocket(sock, FIONBIO, &defaultSocketMode) != 0)
+        u_long mode = 0;
+        if (ioctlsocket(sock, FIONBIO, &mode) != 0)
         {
             std::cout << "Failed to set default socket mode! Error: " << getSocketError() << "\n";
         }
@@ -149,7 +150,7 @@ void acceptSocketClient(u_long mode)
 
     int clientSock = accept(sock, (sockaddr*)&client, &clientSize);
 
-    switchSocketMode(sock, defaultSocketMode);
+    switchSocketMode(sock, 0);
     if(clientSock == INVALID_SOCKET || clientSock < 0)
     {
         if (mode == 0) std::cout << "Accept failed, error: " << getSocketError() << "\n";
@@ -300,7 +301,7 @@ bool connectToServer(std::string& ip, int port)
     }
 
 #ifdef _WIN32
-    u_long mode = defaultSocketMode;
+    u_long mode = 0;
     ioctlsocket(sock, FIONBIO, &mode);
 #else
     int flags = fcntl(sock, F_GETFL, 0);
@@ -319,7 +320,7 @@ void clearSocket(int sock)
     switchSocketMode(sock, 1);
     char buffer[512];
     while (recv(sock, buffer, sizeof(buffer), 0) > 0);
-    switchSocketMode(sock, defaultSocketMode);
+    switchSocketMode(sock, 0);
 }
 
 void closeSockets()
@@ -375,6 +376,19 @@ void sendTurnChange(uint8 player, int receivingSocket)
     }
     char content[2];
     content[0] = TURN_CHANGE_SOCKET_TAG;
+    content[1] = player;
+    sendData(content, sizeof(content), receivingSocket);
+}
+
+void sendPlayerEliminated(uint8 player, int receivingSocket)
+{
+    if (invalidSocks())
+    {
+        std::cout << "Socket not initialized, cannot send turn change data\n";
+        return;
+    }
+    char content[2];
+    content[0] = PLAYER_ELIMINATED_SOCKET_TAG;
     content[1] = player;
     sendData(content, sizeof(content), receivingSocket);
 }

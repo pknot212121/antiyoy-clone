@@ -317,6 +317,18 @@ void Board::spawnTrees(double treeRatio)
 
 void Board::nextTurn(bool send)
 {
+    if(send)
+    {
+        char content[3]; // tag (1) + liczba akcji (1) + tag akcji (1)
+        char* position = content;
+
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 0; // tag akcji (0 - koniec tury)
+        sendData(content, sizeof(content), -1);
+        //std::cout << "Sent next turn\n";
+    }
+
     std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
     for (auto& [caslteHex, money] : oldCastles)
     {
@@ -367,6 +379,10 @@ void Board::nextTurn(bool send)
                 }
             }
         }
+        /*if(castles.size() == castlesToRemove.size())
+        {
+            
+        }*/
         for(Hexagon* c : castlesToRemove)
         {
             c->rot(this);
@@ -375,24 +391,7 @@ void Board::nextTurn(bool send)
         if(castles.size()) retry = false;
     }
 
-    if(send)
-    {
-        char content[3]; // tag (1) + liczba akcji (1) + tag akcji (1)
-        char* position = content;
-
-        *position++ = ACTION_SOCKET_TAG; // tag
-        *position++ = 1; // liczba akcji (jedna)
-        *position++ = 0; // tag akcji (0 - koniec tury)
-        sendData(content, sizeof(content), -1);
-        //std::cout << "Sent next turn\n";
-    }
     game->getPlayer(currentPlayerId)->actStart();
-    /*BotPlayer* bp = static_cast<BotPlayer*>(game->getPlayer(currentPlayerId));
-    if(bp)
-    {
-        sendTurnChange(currentPlayerId, bp->getReceiveSock());
-        sendBoardWithMoney(bp->getReceiveSock());
-    }*/
 }
 
 
@@ -440,7 +439,7 @@ void Board::propagateTrees()
     for (Hexagon* h : palms) h->setResident(Resident::PalmTree);
 }
 
-void Board::sendBoard(int receivingSocket)
+/*void Board::sendBoardOld(int receivingSocket)
 {
     if(invalidSocks())
     {
@@ -467,9 +466,9 @@ void Board::sendBoard(int receivingSocket)
     sendData(reinterpret_cast<char*>(result), total, receivingSocket);
     
     delete[] result;
-}
+}*/
 
-void Board::sendBoardWithMoney(int receivingSocket)
+void Board::sendBoard(int receivingSocket)
 {
     if(invalidSocks())
     {
@@ -492,7 +491,7 @@ void Board::sendBoardWithMoney(int receivingSocket)
     int total = 1 + sizeof(wh) + sizeof(hh) + hexesNumber * sizeof(HexData);
     uint8* result = new uint8[total];
     uint8* position = result;
-    *position++ = BOARD_WITH_MONEY_SOCKET_TAG;
+    *position++ = BOARD_SOCKET_TAG;
     memcpy(position, &wh, sizeof(wh));
     position += sizeof(wh);
     memcpy(position, &hh, sizeof(hh));
@@ -922,26 +921,33 @@ void calculateEnvironment(Board* board, Hexagon* center, uint8 oldOwnerId)
 void Board::eliminateCountry(uint8 id)
 {
     leaderboardInsert(id);
-    std::cout << "Country " << (int)id << " eliminated!\n";
-    if(game && leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy i mamy grę (to nie dummy)
+    if(game) // mamy grę (to nie dummy)
     {
-        for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
+        std::cout << "Country " << (int)id << " eliminated!\n";
+
+        if(clientSocks.size() && clientSocks[0] != -1) sendPlayerEliminated(id, clientSocks[0]);
+
+        if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
         {
-            bool add = true;
-            for(int j = 0; j < leaderboard.size(); j++)
+            for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
             {
-                if(leaderboard[j] == playerId)
+                bool add = true;
+                for(int j = 0; j < leaderboard.size(); j++)
                 {
-                    add = false;
-                    break;
+                    if(leaderboard[j] == playerId)
+                    {
+                        add = false;
+                        break;
+                    }
                 }
+                if(add) leaderboardInsert(playerId);
             }
-            if(add) leaderboardInsert(playerId);
-        }
-        std::cout << "Game over!\nLeaderboard:\n";
-        for(int i = 0; i < leaderboard.size(); i++)
-        {
-            std::cout << i + 1 << ". Player " << (int)leaderboard[i] << '\n';
+            std::cout << "Game over!\nLeaderboard:\n";
+            for(int i = 0; i < leaderboard.size(); i++)
+            {
+                std::cout << i + 1 << ". Player " << (int)leaderboard[i] << '\n';
+            }
+            if(clientSocks.size() && clientSocks[0] != -1) sendGameOver(clientSocks[0]);
         }
     }
 }
@@ -975,8 +981,9 @@ void Hexagon::removeTree(Board *board)
 // Używać dla żołnierzy (kładzionych, nie przesuwanych), farm i wież
 std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident resident)
 {
-    if(ownerId == 0) return std::vector<Hexagon*>();
     std::vector<Hexagon*> valid;
+    if(ownerId == 0) return valid;
+    if(!unmovedWarrior(resident) && !farm(resident) && !tower(resident)) return valid;
     if(unmovedWarrior(resident))
     {
         /*return neighbours(board, BIG_NUMBER, true, [this, board, resident](Hexagon* h)
@@ -1020,7 +1027,7 @@ std::vector<Hexagon*> Hexagon::possiblePlacements(Board* board, Resident residen
         }
         return valid;
     }
-    return std::vector<Hexagon*>();
+    return valid;
 }
 
 // Kładzie żołnierza, farmę lub wieżę na miejsce. Zwraca czy położenie się powiodło
@@ -1046,6 +1053,25 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
         }
     }
     if(!found) return false; // nie możemy kłaść na tym miejscu
+
+    if(send)
+    {
+        char content[12]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy z (2+2) + kordy do (2+2)
+        char* position = content;
+
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 1; // tag akcji (1 - położenie)
+        *position++ = static_cast<char>(resident); // rezydent
+
+        for(coord c : { x, y, placement->getX(), placement->getY() })
+        {
+            ucoord net = htons(c);
+            memcpy(position, &net, sizeof(net));
+            position += sizeof(net);
+        }
+        sendData(content, sizeof(content), -1);
+    }
     
     if(unmovedWarrior(resident))
     {
@@ -1055,7 +1081,11 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
             if(warrior(placement->getResident()))
             {
                 Resident merged = mergeWarriors(resident, placement->getResident()); // łączenie żołnierzy
-                if(!warrior(merged)) return false; // nie możemy złączyć tych żołnierzy
+                if(!warrior(merged)) // To nie powinno się stać bo possiblePlacements() powinno ich wyfiltrować
+                {
+                    std::cout << "Failed attempt to merge warriors!\n";
+                    return false; // nie możemy złączyć tych żołnierzy
+                }
                 placement->setResident(merged);
             }
             else if(gravestone(placement->getResident()))
@@ -1095,34 +1125,15 @@ bool Hexagon::place(Board* board, Resident resident, Hexagon* placement, bool se
     else return false; // To coś innego
     castles[castleHex] -= price;
 
-    if(send)
-    {
-        char content[12]; // tag (1) + liczba akcji (1) + tag akcji (1) + rezydent (1) + kordy z (2+2) + kordy do (2+2)
-        char* position = content;
-
-        *position++ = ACTION_SOCKET_TAG; // tag
-        *position++ = 1; // liczba akcji (jedna)
-        *position++ = 1; // tag akcji (1 - położenie)
-        *position++ = static_cast<char>(resident); // rezydent
-
-        for(coord c : { x, y, placement->getX(), placement->getY() })
-        {
-            ucoord net = htons(c);
-            memcpy(position, &net, sizeof(net));
-            position += sizeof(net);
-        }
-        sendData(content, sizeof(content), -1);
-    }
-
     return true;
 }
 
 // Używać dla żołnierzy (przesuwanych, nie kładzionych)
 std::vector<Hexagon*> Hexagon::possibleMovements(Board* board)
 {
-    if(ownerId == 0) return std::vector<Hexagon*>();
     std::vector<Hexagon*> valid;
-    if(warrior(resident))
+    if(ownerId == 0) return valid;
+    if(unmovedWarrior(resident))
     {
         std::unordered_set<Hexagon*> visited = { this };
         std::unordered_set<Hexagon*> border;
@@ -1153,29 +1164,6 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
     }
     if(!found) return false; // nie możemy przesunąć na to miejsce
 
-    uint8 oldOwnerId = destination->getOwnerId();
-    if(oldOwnerId == ownerId && warrior(destination->getResident()))
-    {
-        Resident merged = mergeWarriors(resident, destination->getResident()); // łączenie żołnierzy
-        if(!warrior(merged)) return false; // nie możemy złączyć tych żołnierzy
-        destination->setResident(merged);
-
-    }
-    else
-    {
-        if(castle(destination->getResident())) destination->removeCastle(board, false);
-        if (tree(destination->getResident())) destination->removeTree(board);
-        destination->setResident(::move(resident));
-
-    }
-    setResident(Resident::Empty);
-
-    if(ownerId != oldOwnerId)
-    {
-        destination->setOwnerId(ownerId);
-        calculateEnvironment(board, destination, oldOwnerId);
-    }
-
     if(send)
     {
         char content[11]; // tag (1) + liczba akcji (1) + tag akcji (1) + kordy z (2+2) + kordy do (2+2)
@@ -1193,6 +1181,33 @@ bool Hexagon::move(Board* board, Hexagon* destination, bool send)
         }
         sendData(content, sizeof(content), -1);
     }
+
+    uint8 oldOwnerId = destination->getOwnerId();
+    if(oldOwnerId == ownerId && warrior(destination->getResident()))
+    {
+        Resident merged = mergeWarriors(resident, destination->getResident()); // łączenie żołnierzy
+        if(!warrior(merged)) // To nie powinno się stać bo possibleMovements() powinno ich wyfiltrować
+        {
+            std::cout << "Failed attempt to merge warriors!\n";
+            return false; // nie możemy złączyć tych żołnierzy
+        }
+        destination->setResident(merged);
+    }
+    else
+    {
+        if(castle(destination->getResident())) destination->removeCastle(board, false);
+        if (tree(destination->getResident())) destination->removeTree(board);
+        destination->setResident(::move(resident));
+
+    }
+    setResident(Resident::Empty);
+
+    if(ownerId != oldOwnerId)
+    {
+        destination->setOwnerId(ownerId);
+        calculateEnvironment(board, destination, oldOwnerId);
+    }
+
     return true;
 }
 

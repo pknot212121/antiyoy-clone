@@ -238,18 +238,16 @@ void Game::Init(GameConfigData gcd)
     {
         players.reserve(playersNumber);
         //bool firstBot = false;
-        uint8 networkSockIndex = 0;
         for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
         {
             if(markers[i] == 'B')
             {
                 gcd.sendGameConfigData(clientSocks[0]);
-                networkSockIndex = 1;
-                //if(i == 0) firstBot = true;
                 break;
             }
         }
 
+        uint8 networkSockIndex = 1;
         gcd.playerMarkers.assign(playersNumber, 'N');
 
         for(uint8 i = 0; i < playersNumber; i++)
@@ -596,6 +594,7 @@ bool receiveActions(int receiveSock, std::vector<char>& output)
 
 bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 actionsNumber)
 {
+    //std::cout << "canExecuteActions called\n";
     if(playerId != board->getCurrentPlayerId()) return false;
     Board dummyBoard = board->dummy();
     for(int i = 0; i < actionsNumber; i++)
@@ -608,11 +607,13 @@ bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 action
         {
             actions++;
             Resident resident = (Resident)(*actions);
+            if(!unmovedWarrior(resident) && !farm(resident) && !tower(resident)) return false;
             coord xF = decodeCoord(actions + 1);
             coord yF = decodeCoord(actions + 3);
             coord xT = decodeCoord(actions + 5);
             coord yT = decodeCoord(actions + 7);
             Hexagon* hex = dummyBoard.getHexagon(xF, yF);
+            if(hex == nullptr) return false;
             if(!hex->place(&dummyBoard, resident, dummyBoard.getHexagon(xT, yT), false)) return false;
             actions += 9;
         }
@@ -624,6 +625,7 @@ bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 action
             coord xT = decodeCoord(actions + 4);
             coord yT = decodeCoord(actions + 6);
             Hexagon* hex = dummyBoard.getHexagon(xF, yF);
+            if(hex == nullptr) return false;
             if(!hex->move(&dummyBoard, dummyBoard.getHexagon(xT, yT), false)) return false;
             actions += 8;
         }
@@ -634,37 +636,41 @@ bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 action
 
 bool executeActions(Board* board, char* actions, uint8 actionsNumber)
 {
+    //std::cout << "executeActions called\nNumber of actions: " << (int)actionsNumber << '\n';
     for(int i = 0; i < actionsNumber; i++)
     {
         if(*actions == 0)
         {
-            //std::cout << "NP ended turn\n";
+            //std::cout << "BNP ended turn\n";
             actions++;
             board->nextTurn(false);
             break;
         }
         else if(*actions == 1)
         {
-            //std::cout << "NP placed\n";
+            //std::cout << "BNP placed\n";
             actions++;
             Resident resident = (Resident)(*actions);
+            if(!unmovedWarrior(resident) && !farm(resident) && !tower(resident)) return false;
             coord xF = decodeCoord(actions + 1);
             coord yF = decodeCoord(actions + 3);
             coord xT = decodeCoord(actions + 5);
             coord yT = decodeCoord(actions + 7);
             Hexagon* hex = board->getHexagon(xF, yF);
+            if(hex == nullptr) return false;
             if(!hex->place(board, resident, board->getHexagon(xT, yT), false)) return false;
             actions += 9;
         }
         else if(*actions == 2)
         {
-            //std::cout << "NP moved\n";
+            //std::cout << "BNP moved\n";
             actions++;
             coord xF = decodeCoord(actions);
             coord yF = decodeCoord(actions + 2);
             coord xT = decodeCoord(actions + 4);
             coord yT = decodeCoord(actions + 6);
             Hexagon* hex = board->getHexagon(xF, yF);
+            if(hex == nullptr) return false;
             if(!hex->move(board, board->getHexagon(xT, yT), false)) return false;
             actions += 8;
         }
@@ -680,8 +686,9 @@ BotPlayer::BotPlayer(Country* country, uint8 id, Game* game, int receiveSock, un
 
 void BotPlayer::actStart()
 {
+    clearSocket(receiveSock);
     sendTurnChange(game->board->getCurrentPlayerId(), receiveSock);
-    game->board->sendBoardWithMoney(receiveSock);
+    game->board->sendBoard(receiveSock);
 }
 
 void BotPlayer::act()
@@ -694,38 +701,49 @@ void BotPlayer::act()
         if(tag == ACTION_SOCKET_TAG)
         {
             std::vector<char> data;
+            bool gameEnded;
+            bool awaiting;
             if(!receiveActions(receiveSock, data))
             {
                 std::cout << "Error receiving actions!\n";
                 clearSocket(receiveSock);
-                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
-                game->board->sendBoardWithMoney(receiveSock);
+                gameEnded = game->board->isLeaderboardFull();
+                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
+                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
+                if(awaiting) game->board->sendBoard(receiveSock);
                 goto end;
             }
 
             if(!canExecuteActions(game->board, id, data.data() + 2, data[1]))
             {
-                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
-                game->board->sendBoardWithMoney(receiveSock);
+                gameEnded = game->board->isLeaderboardFull();
+                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
+                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
+                if(awaiting) game->board->sendBoard(receiveSock);
                 goto end;
             }
             
             if(!executeActions(game->board, data.data() + 2, data[1]))
             {
                 std::cout << "Actions check passed but an error occured during actions execution!\n";
-                sendConfirmation(false, game->board->getCurrentPlayerId() == id);
-                game->board->sendBoardWithMoney(receiveSock);
+                gameEnded = game->board->isLeaderboardFull();
+                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
+                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
+                if(awaiting) game->board->sendBoard(receiveSock);
                 goto end;
             }
 
-            sendConfirmation(true, game->board->getCurrentPlayerId() == id);
+            gameEnded = game->board->isLeaderboardFull();
+            awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
+            if(!gameEnded) sendConfirmation(true, awaiting);
+            if(awaiting) game->board->sendBoard(receiveSock);
 
             sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
         }
     }
 
 end:
-    switchSocketMode(receiveSock, defaultSocketMode);
+    switchSocketMode(receiveSock, 0);
 }
 
 NetworkPlayer::NetworkPlayer(Country* country, uint8 id, Game* game, int receiveSock, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime), receiveSock(receiveSock)
@@ -763,5 +781,5 @@ void NetworkPlayer::act()
     }
 
 end:
-    switchSocketMode(receiveSock, defaultSocketMode);
+    switchSocketMode(receiveSock, 0);
 }

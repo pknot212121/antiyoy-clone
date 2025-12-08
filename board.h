@@ -39,10 +39,7 @@ enum class Resident : uint8
     Warrior3Moved,
     Warrior4Moved,
 
-    Farm1, // dziwne nazewnictwo z wiki
-    Farm2,
-    Farm3,
-
+    Farm, // dziwne nazewnictwo z wiki
     Castle,
     Tower,
     StrongTower,
@@ -57,7 +54,7 @@ inline bool empty(Resident resident) noexcept { return resident == Resident::Emp
 inline bool warrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4Moved; };
 inline bool unmovedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1 && resident <= Resident::Warrior4; };
 inline bool movedWarrior(Resident resident) noexcept { return resident >= Resident::Warrior1Moved && resident <= Resident::Warrior4Moved; };
-inline bool farm(Resident resident) noexcept { return resident >= Resident::Farm1 && resident <= Resident::Farm3; };
+inline bool farm(Resident resident) noexcept { return resident == Resident::Farm; };
 inline bool castle(Resident resident) noexcept { return resident == Resident::Castle; };
 inline bool tower(Resident resident) noexcept { return resident == Resident::Tower || resident == Resident::StrongTower; };
 inline bool tree(Resident resident) noexcept { return resident == Resident::PalmTree || resident == Resident::PineTree; };
@@ -138,7 +135,7 @@ public:
     void rotOnlyTrees(Board* board);
     int countFarms(Board* board);
     void setCastle(Board* board, int money);
-    int removeCastle(Board* board, bool eliminateCastleless = true);
+    int removeCastle(Board* board, bool eliminateCastleless);
     //int removeCastleAndCalculate(Board* board, uint oldownerId);
 
     std::vector<Hexagon*> neighbours(Board* board, int recursion = 0, bool includeSelf = false, std::function<bool(Hexagon*)> filter = nullptr);
@@ -208,8 +205,8 @@ public:
 
     void nextTurn(bool send); // Definicja w game.cpp
     void propagateTrees();
+    //void sendBoardOld(int receivingSocket = -1);
     void sendBoard(int receivingSocket = -1);
-    void sendBoardWithMoney(int receivingSocket = -1);
     void sendGameOver(int receivingSocket = -1);
 
     Board dummy();

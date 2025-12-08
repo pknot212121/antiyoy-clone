@@ -20,35 +20,27 @@ class Resident(IntEnum):
     Warrior3Moved = 8
     Warrior4Moved = 9
 
-    Farm1 = 10
-    Farm2 = 11
-    Farm3 = 12
-    
-    Castle = 13
-    Tower = 14
-    StrongTower = 15
+    Farm = 10
 
-    PalmTree = 16
-    PineTree = 17
-    Gravestone = 18
+    Castle = 11
+    Tower = 12
+    StrongTower = 13
+
+    PalmTree = 14
+    PineTree = 15
+    Gravestone = 16
 
 class Hex:
-    def __init__(self, x, y, owner_id, resident):
+    def __init__(self, x, y, owner_id, resident, money):
         self.x = x
         self.y = y
         self.owner_id = owner_id
         self.resident = resident
-
-    def __repr__(self):
-        return f"Hex(x={self.x}, y={self.y}, owner={self.owner_id}, resident={self.resident})"
-
-class HexWithMoney(Hex):
-    def __init__(self, x, y, owner_id, resident, money):
-        super().__init__(x, y, owner_id, resident)
         self.money = money
 
     def __repr__(self):
         return f"Hex(x={self.x}, y={self.y}, owner={self.owner_id}, resident={self.resident}, money={self.money})"
+
 
 class Board:
     def __init__(self, width, height):
@@ -88,22 +80,25 @@ class Board:
             row = []
             for x in range(self.width):
                 h = self.hexes[y * self.width + x]
-                money = getattr(h, "money", None)
-                if money is None:
-                    row.append(" - ")
-                else:
-                    row.append(f"{money:3d}")
+                row.append(f"{h.money:3d}")
             print(" ".join(row))
         print()
+
+    def swap_players(self, id1, id2):
+        for h in self.hexes:
+            if h.owner_id == id1:
+                h.owner_id = id2
+            elif h.owner_id == id2:
+                h.owner_id = id1
 
 
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 BOARD_SOCKET_TAG = 2 # Plansza (spłaszczona dwuwymiarowa tablica heksagonów)
-BOARD_WITH_MONEY_SOCKET_TAG = 3 # Plansza (tym razem jeszcze z pieniędzmi)
-ACTION_SOCKET_TAG = 4 # Ruchy (Położenie, przesunięcie lub koniec tury)
-CONFIRMATION_SOCKET_TAG = 5 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
-TURN_CHANGE_SOCKET_TAG = 6 # Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
+ACTION_SOCKET_TAG = 3 # Ruchy (Położenie, przesunięcie lub koniec tury)
+CONFIRMATION_SOCKET_TAG = 4 # Potwierdzenie wysyłane przez grę po otrzymaniu ruchu składające się z 2 booleanów: czy zatwierdzono ruch oraz czy nadal wyczekuje ruchu
+TURN_CHANGE_SOCKET_TAG = 5 # Numer gracza zaczynającego turę (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
+PLAYER_ELIMINATED_SOCKET_TAG = 6 # Numer wyeliminowanego (przegranego) gracza (zaczynając od 1, nie od 0 bo gra uznaje 0 za brak gracza)
 GAME_OVER_SOCKET_TAG = 7 # Numery graczy w kolejności od wygranego do pierwszego który odpadł
 
 SOCKET_MAGIC_NUMBERS = b'ANTIYOY'
@@ -178,39 +173,6 @@ def receive_config():
 
 def receive_board() -> Board:
     """
-    Odbiera planszę.
-    Zakłada że tag został już odebrany
-    """
-    header_size = 4
-    header = sock.recv(header_size)
-    if len(header) < header_size:
-        raise RuntimeError("Failed to receive header")
-
-    width, height = struct.unpack('!HH', header)
-
-    hexes_number = width * height
-    data_size = hexes_number * 2 # Właściciel i rezydent (oba po bajcie)
-
-    data = bytearray()
-    while len(data) < data_size:
-        chunk = sock.recv(data_size - len(data))
-        if not chunk:
-            raise RuntimeError("Failed to receive all data")
-        data.extend(chunk)
-
-    board = Board(width, height)
-
-    for y in range(height):
-        for x in range(width):
-            idx = (y * width + x) * 2
-            owner_id = data[idx]
-            resident_value = data[idx + 1]
-            board.add_hex(Hex(x, y, owner_id, Resident(resident_value)))
-
-    return board
-
-def receive_board_with_money() -> Board:
-    """
     Odbiera planszę z pieniędzmi.
     Zakłada że tag został już odebrany
     """
@@ -239,7 +201,7 @@ def receive_board_with_money() -> Board:
             resident = Resident(resident_raw)
             money = money_raw
 
-            hexagon = HexWithMoney(x, y, owner_id, resident, money)
+            hexagon = Hex(x, y, owner_id, resident, money)
             board.add_hex(hexagon)
 
             offset += 4
@@ -302,6 +264,16 @@ def receive_turn_change() -> int:
         raise RuntimeError("Failed to receive player number (turn change)")
     return data[0]
 
+def receive_player_eliminated() -> int:
+    """
+    Odbiera numer wyeliminowanego (przegranego) gracza.
+    Zakłada że tag został już odebrany
+    """
+    data = sock.recv(1)
+    if len(data) < 1:
+        raise RuntimeError("Failed to receive player number (turn change)")
+    return data[0]
+
 def receive_game_over() -> list[int]:
     """
     Odbiera listę wyników (kolejność graczy od wygranego do ostatniego).
@@ -341,9 +313,6 @@ def receive_all():
         elif tag == BOARD_SOCKET_TAG:
             result.append((BOARD_SOCKET_TAG, receive_board()))
 
-        elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
-            result.append((BOARD_WITH_MONEY_SOCKET_TAG, receive_board_with_money()))
-
         elif tag == ACTION_SOCKET_TAG:
             result.append((ACTION_SOCKET_TAG, receive_action()))
 
@@ -352,6 +321,9 @@ def receive_all():
 
         elif tag == TURN_CHANGE_SOCKET_TAG:
             result.append((TURN_CHANGE_SOCKET_TAG, receive_turn_change()))
+
+        elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
+            result.append((PLAYER_ELIMINATED_SOCKET_TAG, receive_player_eliminated()))
 
         elif tag == GAME_OVER_SOCKET_TAG:
             result.append((GAME_OVER_SOCKET_TAG, receive_game_over()))
@@ -387,9 +359,6 @@ def receive_next():
     elif tag == BOARD_SOCKET_TAG:
         result = (BOARD_SOCKET_TAG, receive_board())
 
-    elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
-        result = (BOARD_WITH_MONEY_SOCKET_TAG, receive_board_with_money())
-
     elif tag == ACTION_SOCKET_TAG:
         result = (ACTION_SOCKET_TAG, receive_action())
 
@@ -398,6 +367,9 @@ def receive_next():
 
     elif tag == TURN_CHANGE_SOCKET_TAG:
         result = (TURN_CHANGE_SOCKET_TAG, receive_turn_change())
+
+    elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
+        result = (PLAYER_ELIMINATED_SOCKET_TAG, receive_player_eliminated())
 
     elif tag == GAME_OVER_SOCKET_TAG:
         result = (GAME_OVER_SOCKET_TAG, receive_game_over())
@@ -427,8 +399,8 @@ class ActionBuilder:
         self.buffer.append(ActionType.PLACE)
         self.buffer.append(resident)
         self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
-        num += 1
-        if num == 255:
+        self.num += 1
+        if self.num == 255:
             self.send()
 
     def add_move(self, x_from: int, y_from: int, x_to: int, y_to: int):
@@ -437,8 +409,8 @@ class ActionBuilder:
         """
         self.buffer.append(ActionType.MOVE)
         self.buffer.extend(struct.pack("!HHHH", x_from, y_from, x_to, y_to))
-        num += 1
-        if num == 255:
+        self.num += 1
+        if self.num == 255:
             self.send()
 
     def add_end_turn(self):
@@ -446,7 +418,67 @@ class ActionBuilder:
         Zakończenie tury, wstawienie tego od razu wywołuje send() (bo już nic dalej nie można zrobić)
         """
         self.buffer.append(ActionType.END_TURN)
+        self.num += 1
         self.send()
+
+    def send_from_line(self):
+        """
+        Wpisanie jednego ruchu z klawiatury.
+        Obsługuje ruchy:
+        et                                      ---> zakończenie tury
+        p resident x_from y_from x_to y_to      ---> położenie
+        m x_from y_from x_to y_to               ---> przesunięcie
+        """
+
+        line = input("\nInput action: ").strip().lower()
+        if not line:
+            self.send_from_line()
+            return
+
+        parts = line.split()
+        cmd = parts[0]
+
+        if cmd in ["et", "e", "t", "0"]:
+            action_type = ActionType.END_TURN
+        elif cmd in ["p", "1"]:
+            action_type = ActionType.PLACE
+        elif cmd in ["m", "2"]:
+            action_type = ActionType.MOVE
+        else:
+            self.send_from_line()
+            return
+
+        if action_type == ActionType.END_TURN:
+            self.add_end_turn()
+
+        elif action_type == ActionType.PLACE:
+            if len(parts) != 6:
+                print("Format: p resident x_from y_from x_to y_to")
+                self.send_from_line()
+                return
+
+            resident = int(parts[1])
+            x_from = int(parts[2])
+            y_from = int(parts[3])
+            x_to = int(parts[4])
+            y_to = int(parts[5])
+
+            self.add_place(resident, x_from, y_from, x_to, y_to)
+            self.send()
+
+        elif action_type == ActionType.MOVE:
+            if len(parts) != 5:
+                print("Format: m x_from y_from x_to y_to")
+                self.send_from_line()
+                return
+
+            x_from = int(parts[1])
+            y_from = int(parts[2])
+            x_to = int(parts[3])
+            y_to = int(parts[4])
+
+            self.add_move(x_from, y_from, x_to, y_to)
+            self.send()
 
     def send(self):
         """
@@ -476,52 +508,114 @@ if len(sys.argv) >= 3:
     PORT = int(sys.argv[2])
 
 
+currentBotPlayer = 0
+
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     sock.connect((HOST, PORT))
-    while True:
-        tag, payload = receive_next() # Czeka na dane
+
+    tag, payload = receive_next() # Na początku oczekujemy magicznych numerków
+
+    if tag is None: # Jeśli nie otrzymamy danych
+        print("Server disconnected")
+        input()
+        sys.exit(1)
+    
+    if tag != MAGIC_SOCKET_TAG: # Jeśli otrzymamy coś innego niż magiczne numerki
+        print(f"Unexpected content received. Tag: {tag}")
+        input()
+        sys.exit(1)
+
+    if payload: # Czy numerki się zgadzają
+        print("Correct magic numbers!")
+    else:
+        print("Wrong magic numbers!")
+        input()
+        sys.exit(1)
+
+    while True: # Pętla główna
+        tag, payload = receive_next() # Na początku każdej gry mamy otrzymać konfigurację
 
         if tag is None: # Jeśli nie otrzymamy danych
             print("Server disconnected")
             input()
-            break
+            sys.exit(1)
+    
+        if tag != CONFIGURATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż konfiguracja
+            print(f"Unexpected content received. Tag: {tag}")
+            input()
+            sys.exit(1)
 
-        if tag == MAGIC_SOCKET_TAG:
-            if payload:
-                print("Correct magic numbers!")
-            else:
-                print("Wrong magic numbers!")
-        
-        elif tag == CONFIGURATION_SOCKET_TAG:
-            print("Configuration received:")
-            print(payload)
+        print("Configuration received:") # Można coś zrobić z konfiguracją
+        print(payload)
 
-        elif tag == CONFIRMATION_SOCKET_TAG:
-            approved, awaiting = payload
-            print("Confirmation:", approved, awaiting)
+        while True: # Pętla meczu
+            tag, payload = receive_next()
 
-        elif tag == BOARD_SOCKET_TAG:
-            print("New board:")
-            print(payload)
-            payload.print_owners()
-            payload.print_residents()
-        
-        elif tag == BOARD_WITH_MONEY_SOCKET_TAG:
-            print("New board with money:")
-            print(payload)
-            payload.print_owners()
-            payload.print_residents()
-            payload.print_money()
+            if tag is None: # Jeśli nie otrzymamy danych
+                print("Server disconnected")
+                input()
+                sys.exit(1)
 
-        elif tag == TURN_CHANGE_SOCKET_TAG:
-            print(f"Player {payload} starting turn")
+            elif tag == ACTION_SOCKET_TAG: # Ruchy niebotowych graczy, botom raczej nie są one potrzebne
+                print("Received action")
 
-        elif tag == ACTION_SOCKET_TAG:
-            print("Action received")
+            elif tag == TURN_CHANGE_SOCKET_TAG: # Kiedy zaczynamy turę najpierw dostaniemy informację o zmianie tury
+                currentBotPlayer = payload
+                print("\n-----------------------------------------")
+                print(f"Playing as Player {payload}")
 
-except:
-    print("Connection error")
+            elif tag == BOARD_SOCKET_TAG: # Kiedy otrzymamy planszę to wykonujemy ruch
+                print(payload)
+                payload.print_owners()
+                payload.print_residents()
+                payload.print_money()
+
+                if currentBotPlayer != 1:
+                    payload.swap_players(1, currentBotPlayer) # Dla ułatwienia trenowania AI zawsze widzi siebie jako 1 
+
+                # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
+                ab = ActionBuilder()
+                ab.send_from_line()
+
+                tag, payload = receive_next() # Po wysłaniu ruchu oczekujemy odpowiedzi
+                if tag is None: # Jeśli nie otrzymamy danych
+                    print("Server disconnected")
+                    input()
+                    sys.exit(1)
+
+                while tag == PLAYER_ELIMINATED_SOCKET_TAG or tag == GAME_OVER_SOCKET_TAG: # Jeśli bot kogoś pokonał
+                    if tag == PLAYER_ELIMINATED_SOCKET_TAG:
+                        print(f"Bot eliminated Player {payload}!")
+                        tag, payload = receive_next()
+                    elif tag == GAME_OVER_SOCKET_TAG: # Wychodzimy z pętli
+                        print("Bot ended the game!\nLeaderboard:")
+                        for p in payload:
+                            print(f"Player {p}")
+                        break
+
+                if tag == GAME_OVER_SOCKET_TAG: # Wychodzimy z pętli (znowu)
+                    break
+
+                if tag != CONFIRMATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż odpowiedź
+                    print(f"Unexpected content received. Tag: {tag}")
+                    input()
+                    sys.exit(1)
+
+                print(f"Approved: {payload[0]}, Still awaiting: {payload[1]}")
+
+            elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
+                print(f"Player {payload} eliminated!")
+            
+            elif tag == GAME_OVER_SOCKET_TAG: # Koniec gry
+                print("Game over!\nLeaderboard:")
+                for p in payload:
+                    print(f"Player {p}")
+                break # Koniec gry wyciąga nas z tej pętli (zaczynamy nowy mecz, oczekujemy nowej konfiguracji)
+
+except Exception as e:
+    print("Connection error", e)
     input()
 
 if sock:

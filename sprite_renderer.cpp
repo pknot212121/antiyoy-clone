@@ -47,7 +47,7 @@ void SpriteRenderer::getActualDimensions(Board *board)
     actualMinY = minY;
     actualBoardWidth=abs(maxX-minX);
     actualBoardHeight=abs(maxY-minY);
-    std::cout << actualBoardWidth << " " << actualBoardHeight << std::endl;
+    //std::cout << actualBoardWidth << " " << actualBoardHeight << std::endl;
 }
 
 SpriteRenderer::~SpriteRenderer()
