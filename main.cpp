@@ -306,7 +306,6 @@ netConfiguration: // Dla gracza sieciowego
         // manage user input
         // -----------------
         Anti->ProcessInput(deltaTime);
-
         // update game state
         // -----------------
         Anti->Update(deltaTime);
@@ -365,6 +364,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             {
                 Anti->clickedMovingKeys[key]=false;
             }
+
         }
 
     }

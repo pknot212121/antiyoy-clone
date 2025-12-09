@@ -266,8 +266,8 @@ void Game::LoadResources()
 
 void Game::Init(GameConfigData gcd)
 {
-    float minLandArea = 0.5;
-    float maxLandArea = 0.9;
+    float minLandArea = 0.3;
+    float maxLandArea = 0.6;
 
     bool isHost = clientSocks.size() > 0;
     if(isHost)
@@ -362,6 +362,7 @@ void Game::Init(GameConfigData gcd)
 
 void Game::Restart(GameConfigData& gcd)
 {
+    provinceSelector=nullptr;
     for (Player* p : players) delete p;
     players.clear();
 
@@ -546,12 +547,11 @@ void LocalPlayer::act()
         game->rPressed=true;
     }
 
-    if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
-    {
-        game->Renderer->setPosToCastle(game->board,id);
-        game->rPressed=false;
-        //game->Restart();
-    }
+        if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
+        {
+            game->Renderer->setPosToCastle(game->board,id);
+            game->rPressed=false;
+        }
 
     if(game->pressedKey==GLFW_KEY_ENTER)
     {
