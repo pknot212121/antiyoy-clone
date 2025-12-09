@@ -53,6 +53,8 @@ void SpriteRenderer::getActualDimensions(Board *board)
 SpriteRenderer::~SpriteRenderer()
 {
     glDeleteVertexArrays(1, &this->quadVAO);
+    glDeleteBuffers(1, &this->quadVBO);
+    glDeleteBuffers(1,&this->instanceVBO);
 }
 
 void SpriteRenderer::addToDisplacementX(Board *board,int dx)
@@ -394,15 +396,14 @@ void SpriteRenderer::initRenderData(int bWidth,int bHeight)
         1.0f, 0.0f, 1.0f, 0.0f
     };
 
-    unsigned int VBO; // To VBO dla geometrii (lokalne, bo dane są statyczne)
 
     glGenVertexArrays(1, &this->quadVAO);
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &this->quadVBO);
 
     // --- KONFIGURACJA 1: GEOMETRIA (Quad) ---
     glBindVertexArray(this->quadVAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, this->quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     // Atrybut 0: vertex (vec4: x,y,u,v) - czytany z VBO

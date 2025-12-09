@@ -100,6 +100,7 @@ private:
     Shader       shader; 
     unsigned int quadVAO;
     unsigned int instanceVBO;
+    unsigned int quadVBO;
 
 
 
