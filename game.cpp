@@ -550,7 +550,7 @@ void LocalPlayer::act()
             game->enterPressed = true;
 
         }
-        if(game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed)
+        if((game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed) || glfwGetTime()>turnEndTime)
         {
             game->enterPressed = false;
             game->isFirstProvinceSet = false;

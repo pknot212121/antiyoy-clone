@@ -305,7 +305,7 @@ bool connectToServer(std::string& ip, int port)
     ioctlsocket(sock, FIONBIO, &mode);
 #else
     int flags = fcntl(sock, F_GETFL, 0);
-    if (defaultSocketMode == 1)
+    if (flags == 1)
         fcntl(sock, F_SETFL, flags | O_NONBLOCK);
     else
         fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
