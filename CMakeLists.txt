@@ -35,7 +35,22 @@ add_executable(anti
         shaders-arr/text_fs.h
         shaders-arr/text_vs.h
         shaders-arr/instance_vs.h
-        shaders-arr/instance_fs.h)
+        shaders-arr/instance_fs.h
+        textures-arr/b.h
+        textures-arr/castle_256.h
+        textures-arr/exclamation.h
+        textures-arr/farm1_256.h
+        textures-arr/gravestone_256.h
+        textures-arr/hexagon.h
+        textures-arr/palmTree_256.h
+        textures-arr/pineTree_256.h
+        textures-arr/shield_placeholder.h
+        textures-arr/soilder1_256.h
+        textures-arr/soldier2_256.h
+        textures-arr/soldier3_256.h
+        textures-arr/soldier4_256.h
+        textures-arr/strongTower_256.h
+        textures-arr/tower_256.h)
 include_directories(anti PRIVATE include)
 set_property(TARGET anti PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 target_link_libraries(anti ${GLFW3_LIBRARY} OpenGL::GL freetype)

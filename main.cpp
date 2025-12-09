@@ -309,7 +309,7 @@ netConfiguration: // Dla gracza sieciowego
         // update game state
         // -----------------
         Anti->Update(deltaTime);
-        if (Anti->pressedKey==GLFW_KEY_O) Anti->Restart(gcd);
+        // if (Anti->pressedKey==GLFW_KEY_O) Anti->Restart(gcd);
         // render
         // ------
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);

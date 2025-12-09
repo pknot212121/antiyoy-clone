@@ -30,6 +30,7 @@ public:
     static Texture2D& LoadTexture(const char *file, bool alpha, std::string name);
     // retrieves a stored texture
     static Texture2D& GetTexture(std::string name);
+    static void loadStaticTextures();
     // properly de-allocates all loaded resources
     static void      Clear();
 private:
@@ -41,6 +42,8 @@ private:
     static Shader loadTextShader();
     // loads a single texture from file
     static Texture2D loadTextureFromFile(const char *file, bool alpha);
+
+    Texture2D loadStaticTexture(const char* file, bool alpha);
 };
 
 #endif

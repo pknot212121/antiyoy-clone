@@ -245,21 +245,7 @@ void Game::LoadResources()
     // set render-specific controls
 
     // load textures
-    ResourceManager::LoadTexture("textures/soilder1_256.png",true,"soilder1");
-    ResourceManager::LoadTexture("textures/soldier2_256.png",true,"soilder2");
-    ResourceManager::LoadTexture("textures/soldier3_256.png",true,"soilder3");
-    ResourceManager::LoadTexture("textures/hexagon.png", true, "hexagon");
-    ResourceManager::LoadTexture("textures/soldier4_256.png",true,"soilder4");
-    ResourceManager::LoadTexture("textures/exclamation.png",true,"exclamation");
-    ResourceManager::LoadTexture("textures/castle_256.png",true,"castle");
-    ResourceManager::LoadTexture("textures/pineTree_256.png",true,"pine");
-    ResourceManager::LoadTexture("textures/palmTree_256.png",true,"palm");
-    ResourceManager::LoadTexture("textures/tower_256.png",true,"tower");
-    ResourceManager::LoadTexture("textures/gravestone_256.png",true,"gravestone");
-    ResourceManager::LoadTexture("textures/shield_placeholder.png",true,"shield");
-    ResourceManager::LoadTexture("textures/b.png",true,"border_placeholder");
-    ResourceManager::LoadTexture("textures/farm1_256.png",true,"farm1");
-    ResourceManager::LoadTexture("textures/strongTower_256.png",true,"strongTower");
+    ResourceManager::loadStaticTextures();
     Text = new TextRenderer(this->Width, this->Height);
     Text->Load(24);
 }
@@ -494,6 +480,7 @@ void LocalPlayer::act()
         game->isFirstProvinceSet = false;
         game->provinceSelector=nullptr;
         game->Renderer->shieldHexes.clear();
+        game->Renderer->brightenedHexes.clear();
         game->board->nextTurn(true);
         return;
     }

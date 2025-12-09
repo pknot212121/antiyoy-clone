@@ -9,6 +9,21 @@
 #include "shaders-arr/instance_fs.h"
 #include "shaders-arr/text_vs.h"
 #include "shaders-arr/text_fs.h"
+#include "textures-arr/b.h"
+#include "textures-arr/castle_256.h"
+#include "textures-arr/exclamation.h"
+#include "textures-arr/farm1_256.h"
+#include "textures-arr/gravestone_256.h"
+#include "textures-arr/hexagon.h"
+#include "textures-arr/palmTree_256.h"
+#include "textures-arr/pineTree_256.h"
+#include "textures-arr/shield_placeholder.h"
+#include "textures-arr/soilder1_256.h"
+#include "textures-arr/soldier2_256.h"
+#include "textures-arr/soldier3_256.h"
+#include "textures-arr/soldier4_256.h"
+#include "textures-arr/strongTower_256.h"
+#include "textures-arr/tower_256.h"
 // Instantiate static variables
 std::map<std::string, Texture2D>    ResourceManager::Textures;
 std::map<std::string, Shader>       ResourceManager::Shaders;
@@ -134,4 +149,34 @@ Texture2D ResourceManager::loadTextureFromFile(const char *file, bool alpha)
     // and finally free image data
     stbi_image_free(data);
     return texture;
+}
+Texture2D loadTextureFromData(unsigned char* tab,unsigned int len)
+{
+    Texture2D texture;
+    texture.Internal_Format = GL_RGBA;
+    texture.Image_Format = GL_RGBA;
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load_from_memory(tab, len,&width, &height, &nrChannels, 0);
+    texture.Generate(width, height, data);
+    stbi_image_free(data);
+    return texture;
+}
+
+void ResourceManager::loadStaticTextures()
+{
+    Textures["soilder1"] = loadTextureFromData(textures_soilder1_256_png,textures_soilder1_256_png_len);
+    Textures["soilder2"] = loadTextureFromData(textures_soldier2_256_png,textures_soldier2_256_png_len);
+    Textures["soilder3"] = loadTextureFromData(textures_soldier3_256_png,textures_soldier3_256_png_len);
+    Textures["hexagon"] = loadTextureFromData(textures_hexagon_png,textures_hexagon_png_len);
+    Textures["soilder4"] = loadTextureFromData(textures_soldier4_256_png,textures_soldier4_256_png_len);
+    Textures["exclamation"] = loadTextureFromData(textures_exclamation_png,textures_exclamation_png_len);
+    Textures["castle"] = loadTextureFromData(textures_castle_256_png,textures_castle_256_png_len);
+    Textures["pine"] = loadTextureFromData(textures_pineTree_256_png,textures_pineTree_256_png_len);
+    Textures["palm"] = loadTextureFromData(textures_palmTree_256_png,textures_palmTree_256_png_len);
+    Textures["tower"] = loadTextureFromData(textures_tower_256_png,textures_tower_256_png_len);
+    Textures["gravestone"] = loadTextureFromData(textures_gravestone_256_png,textures_gravestone_256_png_len);
+    Textures["shield"] = loadTextureFromData(textures_shield_placeholder_png,textures_shield_placeholder_png_len);
+    Textures["border_placeholder"] = loadTextureFromData(textures_b_png,textures_b_png_len);
+    Textures["farm1"] = loadTextureFromData(textures_farm1_256_png,textures_farm1_256_png_len);
+    Textures["strongTower"] = loadTextureFromData(textures_strongTower_256_png,textures_strongTower_256_png_len);
 }
