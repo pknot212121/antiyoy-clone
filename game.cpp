@@ -485,81 +485,80 @@ void LocalPlayer::actStart()
 
 void LocalPlayer::act()
 {
+    if((game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed) || glfwGetTime()>turnEndTime)
+    {
+        game->enterPressed = false;
+        game->isFirstProvinceSet = false;
+        game->provinceSelector=nullptr;
+        game->Renderer->shieldHexes.clear();
+        game->board->nextTurn(true);
+        return;
+    }
+    if (!game->isFirstProvinceSet)
+    {
+        game->Renderer->setPosToCastle(game->board,id);
+        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
+        this->game->provinceSelector = *hexes.begin();
+        game->isFirstProvinceSet = true;
+    }
 
-        if (!game->isFirstProvinceSet)
+    if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
+    {
+        std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
+        std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
+        game->Renderer -> setBrightenedHexes(neigh);
+    }
+    if (game->mousePressed)
+    {
+        float size = game->Renderer -> getSize(game->board);
+        glm::ivec2 p = game->Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
+        Hexagon *hex = game->board->getHexagon(p.x,p.y);
+        if (hex!=nullptr)
         {
-            game->Renderer->setPosToCastle(game->board,id);
-            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
-            this->game->provinceSelector = *hexes.begin();
-            game->isFirstProvinceSet = true;
-        }
-
-        if(keysToResidents.contains(game->pressedKey) && game->provinceSelector!=nullptr)
-        {
-            std::unordered_set<Hexagon*> hexes = game->board->getHexesOfCountry(id);
-            std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
-            game->Renderer -> setBrightenedHexes(neigh);
-        }
-        if (game->mousePressed)
-        {
-            float size = game->Renderer -> getSize(game->board);
-            glm::ivec2 p = game->Renderer -> CheckWhichHexagon(game->cursorPosX,game->cursorPosY,size/2);
-            Hexagon *hex = game->board->getHexagon(p.x,p.y);
-            if (hex!=nullptr)
-            {
-                if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
-                    spawnAction(hex,p);
-                }
-                else
-                {
-                    moveAction(hex,p);
-                    SelectAction(hex);
-                }
-                if (tower(hex->getResident()) || castle(hex->getResident())) game->Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
-                else game->Renderer->shieldHexes.clear();
-
-                game-> mousePressed = false;
+            if(keysToResidents.contains(game->pressedKey) && !game->isHexSelected){
+                spawnAction(hex,p);
             }
             else
             {
-                game->mousePressed=false;
-                game->provinceSelector=nullptr;
-
+                moveAction(hex,p);
+                SelectAction(hex);
             }
+            if (tower(hex->getResident()) || castle(hex->getResident())) game->Renderer->shieldHexes=hex->getAllProtectedAreas(game->board);
+            else game->Renderer->shieldHexes.clear();
 
-
+            game-> mousePressed = false;
         }
-        if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
+        else
         {
-            game->Renderer->ClearBrightenedHexes();
-        }
-        if (game->pressedKey==GLFW_KEY_R)
-        {
-            game->rPressed=true;
-        }
-
-        if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
-        {
-            game->Renderer->setPosToCastle(game->board,id);
-            game->rPressed=false;
-            //game->Restart();
-        }
-
-        if(game->pressedKey==GLFW_KEY_ENTER)
-        {
-            game->enterPressed = true;
-
-        }
-        if((game->pressedKey!=GLFW_KEY_ENTER && game->enterPressed) || glfwGetTime()>turnEndTime)
-        {
-            game->enterPressed = false;
-            game->isFirstProvinceSet = false;
+            game->mousePressed=false;
             game->provinceSelector=nullptr;
-            game->Renderer->shieldHexes.clear();
-            game->board->nextTurn(true);
 
         }
+
+
     }
+    if (!keysToResidents.contains(game->pressedKey) && game->isHexSelected==false && game->provinceSelector!=nullptr)
+    {
+        game->Renderer->ClearBrightenedHexes();
+    }
+    if (game->pressedKey==GLFW_KEY_R)
+    {
+        game->rPressed=true;
+    }
+
+    if (game->pressedKey!=GLFW_KEY_R && game->rPressed)
+    {
+        game->Renderer->setPosToCastle(game->board,id);
+        game->rPressed=false;
+        //game->Restart();
+    }
+
+    if(game->pressedKey==GLFW_KEY_ENTER)
+    {
+        game->enterPressed = true;
+
+    }
+}
 
 void LocalPlayer::moveAction(Hexagon* hex,glm::ivec2 p)
 {

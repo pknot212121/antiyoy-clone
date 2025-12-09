@@ -30,15 +30,6 @@ inline std::map<int,Resident> keysToResidents {
 {GLFW_KEY_7,Resident::StrongTower}
 };
 
-inline Resident keysToR[] = {
-    Resident::Warrior1,
-    Resident::Warrior2,
-    Resident::Warrior3,
-    Resident::Warrior4,
-    Resident::Farm,
-    Resident::Tower,
-    Resident::StrongTower
-};
 
 inline double turnEndTime = NAN;
 

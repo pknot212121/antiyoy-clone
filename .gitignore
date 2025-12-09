@@ -1,6 +1,5 @@
 *.out
 *.vscode
-*.exe
 .idea
 build
 cmake-build-debug
