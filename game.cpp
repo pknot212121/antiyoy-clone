@@ -294,7 +294,7 @@ void Game::Init(GameConfigData gcd)
     uint8 playersNumber = markers.length();
 
     board = new Board(gcd.x, gcd.y, gcd.seed, this);
-    Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"), board);
+    if (Renderer==nullptr) Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"), board);
     int total = gcd.x * gcd.y;
     if(gcd.x >= 10 && gcd.y >= 10) board->InitializeRandomWithAnts(5, total * minLandArea, total * maxLandArea);
     else board->InitializeRandom(total * minLandArea, total * maxLandArea);
@@ -371,8 +371,8 @@ void Game::Restart(GameConfigData& gcd)
     delete board;
     board = nullptr;
 
-    delete Renderer;
-    Renderer = nullptr;
+    // delete Renderer;
+    // Renderer = nullptr;
 
     Init(gcd);
 }
