@@ -33,7 +33,9 @@ add_executable(anti
         shaders-arr/sprite_vs.h
         shaders-arr/sprite_fs.h
         shaders-arr/text_fs.h
-        shaders-arr/text_vs.h)
+        shaders-arr/text_vs.h
+        shaders-arr/instance_vs.h
+        shaders-arr/instance_fs.h)
 include_directories(anti PRIVATE include)
 set_property(TARGET anti PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 target_link_libraries(anti ${GLFW3_LIBRARY} OpenGL::GL freetype)

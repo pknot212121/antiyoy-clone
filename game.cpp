@@ -237,7 +237,7 @@ Game::~Game()
 void Game::LoadResources()
 {
     // load shaders
-    ResourceManager::LoadShader("shaders/instance.vs","shaders/instance.fs",nullptr,"sprite");
+    ResourceManager::LoadShader("sprite");
     // configure shaders
     glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(this->Width), static_cast<float>(this->Height), 0.0f, -1.0f, 1.0f);
     ResourceManager::GetShader("sprite").Use().SetInteger("image", 0);

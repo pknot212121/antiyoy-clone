@@ -5,8 +5,8 @@
 #include <map>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "shaders-arr/sprite_vs.h"
-#include "shaders-arr/sprite_fs.h"
+#include "shaders-arr/instance_vs.h"
+#include "shaders-arr/instance_fs.h"
 #include "shaders-arr/text_vs.h"
 #include "shaders-arr/text_fs.h"
 // Instantiate static variables
@@ -105,7 +105,7 @@ Shader ResourceManager::loadShaderFromFile(const char *vShaderFile, const char *
 Shader ResourceManager::loadDefaultShader()
 {
     Shader shader;
-    shader.Compile(shaders_sprite_vs,shaders_sprite_fs,nullptr);
+    shader.Compile(reinterpret_cast<const char*>(shaders_instance_vs),reinterpret_cast<const char*>(shaders_instance_fs),nullptr);
     return shader;
 }
 
