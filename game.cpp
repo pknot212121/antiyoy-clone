@@ -860,7 +860,11 @@ void NetworkPlayer::act()
 
             sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
         }
-        else clearSocket(receiveSock);
+        else
+        {
+            std::cout << "Unexpected data of tag " << (int)tag << " received, clearing socket\n";
+            clearSocket(receiveSock);
+        }
     }
 
 end:
