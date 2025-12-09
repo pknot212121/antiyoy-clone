@@ -287,6 +287,8 @@ void Game::Init(GameConfigData gcd)
         std::cout << "Successfully configured!\n";
     }
 
+    std::cout << (int)gcd.x << " " << (int)gcd.y << " " << gcd.seed << " " << gcd.minProvinceSize << " " << gcd.maxProvinceSize << '\n';
+
 
     std::string markers = gcd.playerMarkers;
     uint8 playersNumber = markers.length();
