@@ -809,7 +809,7 @@ void BotPlayer::act()
 
             //gameEnded = game->board->isLeaderboardFull();
             bool awaits = !endsTurn && !endsGame;
-            sendConfirmation(true, awaits);
+            sendConfirmation(true, awaits, receiveSock);
             
             if(!executeActions(game->board, data.data() + 2, data[1]))
             {
