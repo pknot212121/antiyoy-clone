@@ -395,21 +395,24 @@ void Game::ProcessInput(float dt)
 
         scroll = 0;
     }
+
+    float velocityX = dt*600;
+    float velocityY = dt*600;
     if (clickedMovingKeys[GLFW_KEY_W])
     {
-        Renderer -> addToDisplacementY(board,10);
+        Renderer -> addToDisplacementY(board,velocityY);
     }
     if (clickedMovingKeys[GLFW_KEY_A])
     {
-        Renderer ->addToDisplacementX(board,10);
+        Renderer ->addToDisplacementX(board,velocityX);
     }
     if (clickedMovingKeys[GLFW_KEY_S])
     {
-        Renderer -> addToDisplacementY(board,-10);
+        Renderer -> addToDisplacementY(board,-velocityY);
     }
     if (clickedMovingKeys[GLFW_KEY_D])
     {
-        Renderer -> addToDisplacementX(board,-10);
+        Renderer -> addToDisplacementX(board,-velocityX);
     }
 }
 

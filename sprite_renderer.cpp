@@ -59,23 +59,20 @@ SpriteRenderer::~SpriteRenderer()
 
 void SpriteRenderer::addToDisplacementX(Board *board,int dx)
 {
-    float displacementMultiX = (float)width/800;
-
-    displacementX += dx*displacementMultiX;
+    displacementX += dx;
     glm::ivec2 pos1 = CheckWhichHexagon(width,0,size/2);
     glm::ivec2 pos2 = CheckWhichHexagon(0,height,size/2);
-    if (pos1.x<actualMinX) displacementX-=2*abs(dx)*displacementMultiX;
-    if (pos2.x>actualMaxX) displacementX+=2*abs(dx)*displacementMultiX;
+    if (pos1.x<actualMinX) displacementX-=2*abs(dx);
+    if (pos2.x>actualMaxX) displacementX+=2*abs(dx);
 
 }
 void SpriteRenderer::addToDisplacementY(Board *board,int dy)
 {
-    float displacementMultiY = (float)height/600;
-    displacementY += dy*displacementMultiY;
+    displacementY += dy;
     glm::ivec2 pos1 = CheckWhichHexagon(width,0,size/2);
     glm::ivec2 pos2 = CheckWhichHexagon(0,height,size/2);
-    if (pos2.y<actualMinY) displacementY-=2*abs(dy)*displacementMultiY;
-    if (pos1.y>actualMaxY) displacementY+=2*abs(dy)*displacementMultiY;
+    if (pos2.y<actualMinY) displacementY-=2*abs(dy);
+    if (pos1.y>actualMaxY) displacementY+=2*abs(dy);
 }
 
 
