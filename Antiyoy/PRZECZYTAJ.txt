@@ -67,6 +67,11 @@ receiver.py:
     Zalecam nie zmieniać klas i funkcji które już tam są a pracować jedynie w pętli głównej i używać receive_next() lub receive_all() do odbierania danych.
     Do wysyłania ruchów AI najlepiej używać przystosowanej do tego klasy ActionBuilder.
     Mimo że można wysłać nawet 255 akcji na raz zaleca się wysyłanie po jednej dla prostego i bezpiecznego sprawdzania poprawności.
+    ActionBuilder ma metodę send_from_line() pozwalającą wpisać akcję z klawiatury.
+    Wtedy wymaga jednej z trzech akcji:
+        "et"                                        <--- koniec tury
+        "p" numer_rezydenta x_z y_z x_do y_do       <--- położenie rezydenta (żołnierza, farmy lub wieży)
+        "m" x_z y_z x_do y_do                       <--- przesunięcie (żołnierza)
     Obecna pętla główna powinna obsługiwać poszczególne wiadomości od gry w takiej kolejności jak te przychodzą. 
     Przy zmianie nazwy pliku należy zmienić też program_python w config.txt.
 
