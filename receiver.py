@@ -585,19 +585,6 @@ try:
                     input()
                     sys.exit(1)
 
-                while tag == PLAYER_ELIMINATED_SOCKET_TAG or tag == GAME_OVER_SOCKET_TAG: # Jeśli bot kogoś pokonał
-                    if tag == PLAYER_ELIMINATED_SOCKET_TAG:
-                        print(f"Bot eliminated Player {payload}!")
-                        tag, payload = receive_next()
-                    elif tag == GAME_OVER_SOCKET_TAG: # Wychodzimy z pętli
-                        print("Bot ended the game!\nLeaderboard:")
-                        for p in payload:
-                            print(f"Player {p}")
-                        break
-
-                if tag == GAME_OVER_SOCKET_TAG: # Wychodzimy z pętli (znowu)
-                    break
-
                 if tag != CONFIRMATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż odpowiedź
                     print(f"Unexpected content received. Tag: {tag}")
                     input()
