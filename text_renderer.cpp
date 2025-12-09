@@ -125,8 +125,10 @@ void TextRenderer::Load(unsigned int fontSize)
             static_cast<unsigned int>(glyph->advance.x)
         };
         CharactersOutline.insert(std::pair<char,Character>(c,outlineChar));
+        FT_Done_Glyph(glyph);
     }
     glBindTexture(GL_TEXTURE_2D, 0);
+    FT_Stroker_Done(stroker);
     // destroy FreeType once we're finished
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
