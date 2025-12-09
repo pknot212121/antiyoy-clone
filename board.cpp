@@ -393,7 +393,7 @@ void Board::nextTurn(bool send, bool full)
         if(castles.size()) retry = false;
     }
 
-    if(game && full) game->getPlayer(currentPlayerId)->actStart();
+    if(game && full && !isLeaderboardFull()) game->getPlayer(currentPlayerId)->actStart();
 }
 
 
@@ -1225,7 +1225,7 @@ Country::Country(std::vector<Hexagon*> castles)
     for(Hexagon* h : castles)
     {
         h->setResident(Resident::Castle);
-        this->castles[h] = 10;
+        this->castles[h] = 100;
     }
 }
 
