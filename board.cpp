@@ -315,7 +315,7 @@ void Board::spawnTrees(double treeRatio)
 }
 
 
-void Board::nextTurn(bool send)
+void Board::nextTurn(bool send, bool full)
 {
     if(send)
     {
@@ -329,23 +329,26 @@ void Board::nextTurn(bool send)
         //std::cout << "Sent next turn\n";
     }
 
-    std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
-    for (auto& [caslteHex, money] : oldCastles)
+    if(full)
     {
-        std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
-        for(Hexagon* h : province)
+        std::unordered_map<Hexagon*, int>& oldCastles = getCountry(currentPlayerId)->getCastles();
+        for (auto& [caslteHex, money] : oldCastles)
         {
-            if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+            std::vector<Hexagon*> province = caslteHex->neighbours(this, BIG_NUMBER, true, [caslteHex](Hexagon* h) { return h->getOwnerId() == caslteHex->getOwnerId(); });
+            for(Hexagon* h : province)
+            {
+                if(unmovedWarrior(h->getResident())) h->setResident(move(h->getResident()));
+            }
         }
     }
 
-    uint8 oldId = currentPlayerId;
+    //uint8 oldId = currentPlayerId;
 
     bool retry = true;
     while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        if(currentPlayerId == 1) propagateTrees();
+        if(currentPlayerId == 1 && full) propagateTrees();
         std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
         if(!castles.size()) continue; // Jeśli nie ma zamków to powtarzamy
         std::vector<Hexagon*> castlesToRemove;
@@ -359,30 +362,29 @@ void Board::nextTurn(bool send)
                 continue;
             }
 
-            for(Hexagon* h : province)
+            if(full)
             {
-                if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
-                else if (gravestone(h->getResident()))
+                for(Hexagon* h : province)
                 {
-                    if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
-                    else h->setResident(Resident::PineTree);
+                    if(movedWarrior(h->getResident())) h->setResident(unmove(h->getResident()));
+                    else if (gravestone(h->getResident()))
+                    {
+                        if (h->isNearWater(this)) h->setResident(Resident::PalmTree);
+                        else h->setResident(Resident::PineTree);
+                    }
                 }
-            }
-            money += calculateIncome(province);
+                money += calculateIncome(province);
 
-            if (money < 0)
-            {
-                for (Hexagon* h : province)
+                if (money < 0)
                 {
-                    money=0;
-                    if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
+                    money = 0;
+                    for (Hexagon* h : province)
+                    {
+                        if (warrior(h->getResident())) h->setResident(Resident::Gravestone);
+                    }
                 }
             }
         }
-        /*if(castles.size() == castlesToRemove.size())
-        {
-            
-        }*/
         for(Hexagon* c : castlesToRemove)
         {
             c->rot(this);
@@ -391,7 +393,7 @@ void Board::nextTurn(bool send)
         if(castles.size()) retry = false;
     }
 
-    game->getPlayer(currentPlayerId)->actStart();
+    if(game && full) game->getPlayer(currentPlayerId)->actStart();
 }
 
 
@@ -926,22 +928,28 @@ void Board::eliminateCountry(uint8 id)
         std::cout << "Country " << (int)id << " eliminated!\n";
 
         if(clientSocks.size() && clientSocks[0] != -1) sendPlayerEliminated(id, clientSocks[0]);
-
-        if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
+    }
+    if(leaderboard.size() >= countries.size() - 1) // Jeśli został tylko jeden gracz żywy
+    {
+        for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
         {
-            for(uint8 playerId = 1; playerId <= countries.size(); playerId++) // Dodajemy ostatniego żywego
+            bool add = true;
+            for(int j = 0; j < leaderboard.size(); j++)
             {
-                bool add = true;
-                for(int j = 0; j < leaderboard.size(); j++)
+                if(leaderboard[j] == playerId)
                 {
-                    if(leaderboard[j] == playerId)
-                    {
-                        add = false;
-                        break;
-                    }
+                    add = false;
+                    break;
                 }
-                if(add) leaderboardInsert(playerId);
             }
+            if(add)
+            {
+                leaderboardInsert(playerId);
+                break;
+            }
+        }
+        if(game) // mamy grę (to nie dummy)
+        {
             std::cout << "Game over!\nLeaderboard:\n";
             for(int i = 0; i < leaderboard.size(); i++)
             {
@@ -1217,7 +1225,7 @@ Country::Country(std::vector<Hexagon*> castles)
     for(Hexagon* h : castles)
     {
         h->setResident(Resident::Castle);
-        this->castles[h] = 100;
+        this->castles[h] = 10;
     }
 }
 

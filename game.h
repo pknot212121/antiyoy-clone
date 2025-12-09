@@ -40,6 +40,8 @@ inline Resident keysToR[] = {
     Resident::StrongTower
 };
 
+inline double turnEndTime = NAN;
+
 class GameConfigData
 {
 public:
@@ -56,6 +58,7 @@ public:
 
     inline int estimateSize() { return sizeof(x) + sizeof(y) + sizeof(seed) + sizeof(minProvinceSize) + sizeof(maxProvinceSize) + 1 + playerMarkers.length() + 1 + maxMoveTimes.size() * sizeof(int); };
 
+    void fill(float minLandArea);
     void randomize(char marker, int maxMoveTime);
 
     void sendGameConfigData(int receivingSocket = -1);
@@ -85,7 +88,7 @@ public:
     std::vector<Player*>    players;
     SpriteRenderer* Renderer;
     inline Player* getPlayer(uint8 id) noexcept { return (id == 0) ? nullptr : players[id-1]; }
-    GameConfigData gcd;
+    //GameConfigData gcd;
     Board *board;
     TextRenderer  *Text;
     // constructor/destructor
@@ -133,6 +136,7 @@ class LocalPlayer : public Player
 {
 public:
     LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime = 60);
+    virtual void actStart();
     virtual void act();
 
     void moveAction(Hexagon* hex,glm::ivec2 p);

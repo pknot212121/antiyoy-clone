@@ -1,16 +1,78 @@
-Witaj przybyszu! Skoro to czytasz to najpewniej dostałeś bojowe zadanie napisania AI dla botów w tej grze. Oto wyjaśnienie wszystkiego co powinieneś wiedzieć:
-
+Witaj przybyszu! Skoro to czytasz to najpewniej dostałeś bojowe zadanie napisania AI dla botów w tej grze.
+Oto wyjaśnienie wszystkiego co powinieneś wiedzieć:
 
 config.txt:
-Plik z konfiguracją ustawień gry, wymagany przy uruchamianiu, może być edytowany ręcznie.
-Musi zawierać rozmiar mapy (x i y), ziarno (0 oznacza losowe ziarno), markery graczy (L - gracz lokalny, B - bot) oraz maksymalny czas wykonywania ruchu dla kolejnych graczy (-1 oznacza nieskończoność).
-Przykładowo zawartość:
+    Plik z konfiguracją ustawień gry, wymagany przy uruchamianiu, może być edytowany ręcznie.
+    Są 2 szablony konfiguracji:
+    Zwykły:
 
-10 10
-0
-LBB
--1 10 10
+        szerokosc_mapy wysokosc_mapy
+        ziarno_generatora
+        minimalny_rozmiar_prowincji maksymalny_rozmiar_prowincji
+        markery_graczy
+        maksymalne_czasy_tury
+        port_tcp
+        program_python ip_programu
+        port_discovery
 
-tworzy mapę 10x10 (100 pól) o losowej generacji (losowe ziarno) z jednym graczem lokalnym bez limitu czasu ruchu i dwoma botami o maksymalnym czasie ruchu 10.
-Mimo że mapy teoretycznie mogą być znacznie większe to zalecam trzymania się bezpiecznego limitu 50-10000 pól. Nie powinny być też zbyt płaskie lub chude.
-Należy również pamiętać że każdy gracz musi mieć przydzielone państwo a każde państwo musi mieć swoje kilka pól więc nie powinno się tworzyć zbyt wielu graczy na zbyt małej mapie. Dobrze jest też zostawić przynajmniej 25% pól niezajętych.
+        Wartości te są rozróżniane przez białe znaki ale dobrze jest zachować czytelną strukturę jak wyżej.
+        Dobrze jest się też trzymać rozsądnych limitów oraz proporcji.
+        Każda wartość w linijkach 1-3 otrzyma losową wartość jeśli zostanie ustawiona na 0.
+        Markery graczy to literki oznaczające każdy interfejs. Dostępne są L (lokalny), B (bot AI) oraz N (sieciowy).
+        Nie należy dawać spacji między markerami.
+        Jeśli podany zostanie tylko jeden marker program przy każdym rozpoczęciu meczu wylosuje 2-8 graczy tego interfejsu.
+        Nie jest to dozwolone dla gracza sieciowego.
+        Liczba maksymalnych czasów ruchu ma być taka sama jak liczba markerów.
+        Jeśli został podany jeden marker wymagany jest jeden maksymalny czas ruchu który dostaną wszyscy gracze.
+        -1 oznacza nieskończony czas ruchu.
+        Linijki 6-8 najlepiej pozostawić jak są.
+
+        Przykład:
+
+            5 5
+            0
+            2 3
+            LLB
+            -1 -1 10
+            2137
+            receiver 127.0.0.1
+            2138
+
+            Mapa 5x5, losowe ziarno, prowincje w rozmiarach 2-3, 2 gracze lokalni z nieskończonymi czasami ruchu i jeden bot z 10 sekundami czasu ruchu.
+
+    Net:
+
+        "net"
+        port_discovery
+
+        Pozwala na połączenie się graczowi sieciowemu do gry hostowanej w sieci lokalnej.
+        Port discovery musi być taki sam jak u hosta.
+        Konfiguracja gry pobierana jest od hosta.
+
+        Przykład:
+
+            net
+            2138
+
+            Szuka hosta przez port discovery 2138.
+
+anti.exe:
+    Gra działa według zasad Antiyoy.
+    Jeśli mecz zakończy się, następny jest zaczynany automatycznie dla tej samej konfiguracji.
+    Zgłaszać wszelkie bugi czy inne problemy.
+    Zmiany w logice nie są już przewidywane (chyba że będziecie coś potrzebować).
+
+receiver.py:
+    Domyślny program przystosowany do odbierania i przetwarzania sygnałów wysyłanych przez grę do AI.
+    Zalecam nie zmieniać klas i funkcji które już tam są a pracować jedynie w pętli głównej i używać receive_next() lub receive_all() do odbierania danych.
+    Do wysyłania ruchów AI najlepiej używać przystosowanej do tego klasy ActionBuilder.
+    Mimo że można wysłać nawet 255 akcji na raz zaleca się wysyłanie po jednej dla prostego i bezpiecznego sprawdzania poprawności.
+    Obecna pętla główna powinna obsługiwać poszczególne wiadomości od gry w takiej kolejności jak te przychodzą. 
+    Przy zmianie nazwy pliku należy zmienić też program_python w config.txt.
+
+
+
+
+
+
+

@@ -19,10 +19,63 @@ GameConfigData::GameConfigData(coord x, coord y, unsigned int seed, int minProvi
 
 }
 
+void GameConfigData::fill(float minLandArea)
+{
+    int tries = 0;
+restart:
+    tries++;
+    if(x == 0 && y == 0)
+    {
+        coord min = 5;
+        coord max = 25;
+        std::uniform_int_distribution<> dist(min, max);
+        x = std::uniform_int_distribution<>(min, max)(gcdGen);
+        y = std::uniform_int_distribution<>(min > x/3 ? min : x/3, max < x*3 ? max : x*3)(gcdGen);
+    }
+    else if(x == 0)
+    {
+        coord min = y / 3;
+        coord max = y * 3;
+        x = std::uniform_int_distribution<>(min > 4 ? min : 4, max)(gcdGen);
+    }
+    else if(y == 0)
+    {
+        coord min = x / 3;
+        coord max = x * 3;
+        y = std::uniform_int_distribution<>(min > 4 ? min : 4, max)(gcdGen);
+    }
+    if(!playerMarkers.length())
+    {
+        std::cout << "Invalid player markers\n";
+        getchar();
+        std::exit(1);
+    }
+    if(playerMarkers.length() == 1)
+    {
+        playerMarkers.assign(std::uniform_int_distribution<>(2, 8)(gcdGen), playerMarkers[0]);
+        maxMoveTimes.assign(playerMarkers.length(), maxMoveTimes[0]);
+    }
+    int maxMaxProvinceSize = x * y * minLandArea / playerMarkers.length();
+    if(maxMaxProvinceSize < 2)
+    {
+        if(tries >= 100)
+        {
+            std::cout << "Too many failed GCD fills, aborted\n";
+            getchar();
+            std::exit(1);
+        }
+        goto restart;
+    }
+    if(maxProvinceSize < 2 || maxProvinceSize > maxMaxProvinceSize) maxProvinceSize = std::uniform_int_distribution<>(2, maxMaxProvinceSize)(gcdGen);
+    if(minProvinceSize < 2 || minProvinceSize > maxProvinceSize) minProvinceSize = std::uniform_int_distribution<>(maxProvinceSize/2 > 2 ? maxProvinceSize/2 : 2, maxProvinceSize)(gcdGen);
+
+    if(!seed) seed = gcdGen();
+}
+
 void GameConfigData::randomize(char marker, int maxMoveTime)
 {
     coord min = 5;
-    coord max = 75;
+    coord max = 25;
     std::uniform_int_distribution<> dist(min, max);
 restart:
     x = dist(gcdGen);
@@ -213,17 +266,36 @@ void Game::LoadResources()
 
 void Game::Init(GameConfigData gcd)
 {
-    if(gcd.seed == 0) gcd.seed = std::random_device{}();
+    float minLandArea = 0.5;
+    float maxLandArea = 0.9;
+
+    bool isHost = clientSocks.size() > 0;
+    if(isHost)
+    {
+        gcd.fill(minLandArea);
+    }
+    else
+    {
+        std::cout << "Awaiting configuration data...\n";
+        if(!gcd.receiveFromSocket(sock, true))
+        {
+            std::cout << "Configuration failed\n";
+            getchar();
+            closeSockets();
+            std::exit(1);
+        }
+        std::cout << "Successfully configured!\n";
+    }
+
 
     std::string markers = gcd.playerMarkers;
     uint8 playersNumber = markers.length();
 
-    bool isHost = clientSocks.size() > 0;
     board = new Board(gcd.x, gcd.y, gcd.seed, this);
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"), board);
     int total = gcd.x * gcd.y;
-    //board->InitializeRandomWithAnts(5,total * 0.3, total * 0.5);
-    board->InitializeRandom(total * 0.5, total * 0.9);
+    if(gcd.x >= 10 && gcd.y >= 10) board->InitializeRandomWithAnts(5, total * minLandArea, total * maxLandArea);
+    else board->InitializeRandom(total * minLandArea, total * maxLandArea);
     board->InitializeCountries(playersNumber, gcd.minProvinceSize, gcd.maxProvinceSize);
     board->spawnTrees(0.2);
 
@@ -238,11 +310,11 @@ void Game::Init(GameConfigData gcd)
     {
         players.reserve(playersNumber);
         //bool firstBot = false;
-        for(uint8 i = 0; i < playersNumber; i++) // Jeśli mamy choć jednego bota to pierwszy socket należy do botów
+        for(uint8 i = 0; i < playersNumber; i++)
         {
             if(markers[i] == 'B')
             {
-                gcd.sendGameConfigData(clientSocks[0]);
+                gcd.sendGameConfigData(clientSocks[0]); // Pierwszy socket należy do botów
                 break;
             }
         }
@@ -276,11 +348,6 @@ void Game::Init(GameConfigData gcd)
         gcd.playerMarkers = markers;
 
         getPlayer(this->board->getCurrentPlayerId())->actStart();
-        /*if(firstBot)
-        {
-            sendTurnChange(1, clientSocks[0]);
-            board->sendBoardWithMoney(clientSocks[0]);
-        }*/
     }
     else
     {
@@ -289,12 +356,7 @@ void Game::Init(GameConfigData gcd)
         std::exit(1);
     }
 
-    /*if(isHost)
-    {
-        sendTurnChange(1);
-        board->sendBoardWithMoney();
-    }*/
-    this->gcd = gcd;
+    //this->gcd = gcd;
     std::cout << "Finished init\n";
 }
 
@@ -414,6 +476,11 @@ void Player::actStart()
 LocalPlayer::LocalPlayer(Country* country, uint8 id, Game* game, unsigned int maxMoveTime) : Player(country, id, game, maxMoveTime)
 {
     std::cout << "Local player created with max move time " << maxMoveTime << "\n";
+}
+
+void LocalPlayer::actStart()
+{
+    turnEndTime = glfwGetTime() + maxMoveTime;
 }
 
 void LocalPlayer::act()
@@ -592,7 +659,7 @@ bool receiveActions(int receiveSock, std::vector<char>& output)
     return true;
 }
 
-bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 actionsNumber)
+bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 actionsNumber, bool* endsTurn = nullptr, bool* endsGame = nullptr)
 {
     //std::cout << "canExecuteActions called\n";
     if(playerId != board->getCurrentPlayerId()) return false;
@@ -601,6 +668,9 @@ bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 action
     {
         if(*actions == 0)
         {
+            dummyBoard.nextTurn(false, false);
+            if(endsTurn) *endsTurn = true;
+            if(endsGame) *endsGame = dummyBoard.isLeaderboardFull();
             return true;
         }
         else if(*actions == 1)
@@ -631,6 +701,8 @@ bool canExecuteActions(Board* board, uint8 playerId, char* actions, uint8 action
         }
         else return false;
     }
+    if(endsTurn) *endsTurn = false;
+    if(endsGame) *endsGame = dummyBoard.isLeaderboardFull();
     return true;
 }
 
@@ -689,10 +761,26 @@ void BotPlayer::actStart()
     clearSocket(receiveSock);
     sendTurnChange(game->board->getCurrentPlayerId(), receiveSock);
     game->board->sendBoard(receiveSock);
+
+    turnEndTime = glfwGetTime() + maxMoveTime;
 }
 
 void BotPlayer::act()
 {
+    if(glfwGetTime() >= turnEndTime)
+    {
+        sendConfirmation(false, false, receiveSock);
+        game->board->nextTurn(false);
+
+        char content[3]; // tag (1) + liczba akcji (1) + tag akcji (1)
+        char* position = content;
+        *position++ = ACTION_SOCKET_TAG; // tag
+        *position++ = 1; // liczba akcji (jedna)
+        *position++ = 0; // tag akcji (0 - koniec tury)
+        sendData(content, sizeof(content), -1, receiveSock);
+
+        return;
+    }
     switchSocketMode(receiveSock, 1);
 
     char tag;
@@ -701,42 +789,36 @@ void BotPlayer::act()
         if(tag == ACTION_SOCKET_TAG)
         {
             std::vector<char> data;
-            bool gameEnded;
-            bool awaiting;
             if(!receiveActions(receiveSock, data))
             {
                 std::cout << "Error receiving actions!\n";
                 clearSocket(receiveSock);
-                gameEnded = game->board->isLeaderboardFull();
-                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
-                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
-                if(awaiting) game->board->sendBoard(receiveSock);
+                sendConfirmation(false, true, receiveSock);
+                game->board->sendBoard(receiveSock);
                 goto end;
             }
 
-            if(!canExecuteActions(game->board, id, data.data() + 2, data[1]))
+            bool endsTurn, endsGame;
+            if(!canExecuteActions(game->board, id, data.data() + 2, data[1], &endsTurn, &endsGame))
             {
-                gameEnded = game->board->isLeaderboardFull();
-                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
-                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
-                if(awaiting) game->board->sendBoard(receiveSock);
+                sendConfirmation(false, true, receiveSock);
+                game->board->sendBoard(receiveSock);
                 goto end;
             }
+
+            //gameEnded = game->board->isLeaderboardFull();
+            bool awaits = !endsTurn && !endsGame;
+            sendConfirmation(true, awaits);
             
             if(!executeActions(game->board, data.data() + 2, data[1]))
             {
                 std::cout << "Actions check passed but an error occured during actions execution!\n";
-                gameEnded = game->board->isLeaderboardFull();
-                awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
-                if(!gameEnded) sendConfirmation(false, awaiting, receiveSock);
-                if(awaiting) game->board->sendBoard(receiveSock);
+                sendConfirmation(false, true, receiveSock);
+                game->board->sendBoard(receiveSock);
                 goto end;
             }
 
-            gameEnded = game->board->isLeaderboardFull();
-            awaiting = game->board->getCurrentPlayerId() == id && !gameEnded;
-            if(!gameEnded) sendConfirmation(true, awaiting);
-            if(awaiting) game->board->sendBoard(receiveSock);
+            if(awaits) game->board->sendBoard(receiveSock);
 
             sendData(data.data(), data.size(), -1, receiveSock); // Wysyłamy dane do wszystkich oprócz socketa z którego je dostaliśmy
         }

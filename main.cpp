@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     bool shouldRunAi = false;
     uint8 networkPlayers = 0;
 
-    if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize >> gcd.playerMarkers))
+    if(!(file >> gcd.x >> gcd.y >> gcd.seed >> gcd.minProvinceSize >> gcd.maxProvinceSize))
     {
         std::string title;
     #ifdef _WIN32
@@ -69,9 +69,9 @@ int main(int argc, char *argv[])
         file.clear();
         file.seekg(0, std::ios::beg);
     #endif
-        if(file >> title) // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
+        if(file >> title)
         {
-            if(title == "net")
+            if(title == "net") // Jeśli w pliku jest "net", i port discovery to łączymy się z inną grą
             {
                 if(!(file >> discoveryPort))
                 {
@@ -101,19 +101,11 @@ int main(int argc, char *argv[])
                     return 1;
                 }
 
-                std::cout << "Confirmation received, awaiting configuration data...\n";
-                if(!gcd.receiveFromSocket(sock, true))
-                {
-                    std::cout << "Configuration failed\n";
-                    getchar();
-                    closeSockets();
-                    return 1;
-                }
-                std::cout << "Successfully configured!\n";
+                std::cout << "Confirmation received!\n";
 
                 goto netConfiguration;
             }
-            else if(title == "rand")
+            /*else if(title == "rand")
             {
                 char marker;
                 int maxMoveTime;
@@ -127,7 +119,19 @@ int main(int argc, char *argv[])
                 std::cout << "Generated:\nX: " << gcd.x << " Y: " << gcd.y << " Seed: " << gcd.seed << " MinP: " << gcd.minProvinceSize << " MaxP: " << gcd.maxProvinceSize << " Markers: " << gcd.playerMarkers << '\n';
                 shouldRunAi = marker == 'B';
                 if(marker == 'N') networkPlayers = gcd.playerMarkers.length();
+                gcd.x = 0;
+                gcd.y = 0;
+                gcd.seed = 0;
+                gcd.minProvinceSize = 0;
+                gcd.maxProvinceSize = 0;
+
                 goto randConfiguration;
+            }*/
+            else
+            {
+                std::cout << "Invalid content of config.txt\n";
+                getchar();
+                return 1;
             }
         }
         else
@@ -138,26 +142,46 @@ int main(int argc, char *argv[])
         }
     }
 
-    if(gcd.x < 1 || gcd.y < 1)
+    if((gcd.x < 4 && gcd.x != 0) || (gcd.y < 4 && gcd.y != 0))
     {
-        std::cout << "X and Y need to be greater than 0\n";
+        std::cout << "X and Y need to be greater than 3 (or 0)\n";
         getchar();
         return 1;
     }
-    if(gcd.minProvinceSize < 2 || gcd.maxProvinceSize < 2)
+    if((gcd.minProvinceSize < 2 && gcd.minProvinceSize != 0) || (gcd.maxProvinceSize < 2 && gcd.maxProvinceSize != 0))
     {
-        std::cout << "Min and Max province size need to be at least 2\n";
+        std::cout << "Min and Max province size need to be at least 2 (or 0)\n";
         getchar();
         return 1;
     }
-    if(gcd.playerMarkers.length() < 2)
+
+    if(!(file >> gcd.playerMarkers))
     {
-        std::cout << "At least 2 players required\n";
+        std::cout << "Invalid content of config.txt\n";
         getchar();
         return 1;
     }
 
     gcd.maxMoveTimes.reserve(gcd.playerMarkers.length());
+    for(int i = 0; i < gcd.playerMarkers.length(); i++)
+    {
+        int maxMoveTime;
+        if(!(file >> maxMoveTime) || maxMoveTime < -1 || maxMoveTime == 0)
+        {
+            std::cout << "Invalid content of config.txt\n";
+            getchar();
+            return 1;
+        }
+        gcd.maxMoveTimes.push_back(maxMoveTime);
+    }
+
+    if(gcd.playerMarkers.length() == 1 && gcd.playerMarkers[0] == 'N')
+    {
+        std::cout << "Network player does not support random numbering!\n";
+        getchar();
+        return 1;
+    }
+
     for(int i = 0; i < gcd.playerMarkers.length(); i++)
     {
         if(gcd.playerMarkers[i] == 'B') shouldRunAi = true;
@@ -168,17 +192,7 @@ int main(int argc, char *argv[])
             getchar();
             return 1;
         }
-        int maxMoveTime;
-        if(!(file >> maxMoveTime) || maxMoveTime < -1)
-        {
-            std::cout << "Invalid content of config.txt\n";
-            getchar();
-            return 1;
-        }
-        gcd.maxMoveTimes.push_back(maxMoveTime);
     }
-
-randConfiguration:
 
     if(!(file >> port >> pythonProgram >> ipAddress >> discoveryPort))
     {

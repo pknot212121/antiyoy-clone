@@ -197,13 +197,13 @@ public:
     inline std::vector<Country>& getCountries() noexcept { return countries; }
     inline void leaderboardInsert(uint8 id) { leaderboard.insert(leaderboard.begin(), id); }
     inline bool leaderboardContains(uint8 id) { for(int i = 0; i < leaderboard.size(); i++) { if(id == leaderboard[i]) return true; } return false; }
-    inline bool isLeaderboardFull(){return leaderboard.size()==countries.size();}
+    inline bool isLeaderboardFull() { return leaderboard.size() == countries.size(); }
     void eliminateCountry(uint8 id);
 
     inline const Game* getGame() const noexcept { return game; }
     inline uint8 getCurrentPlayerId() const noexcept { return currentPlayerId; }
 
-    void nextTurn(bool send); // Definicja w game.cpp
+    void nextTurn(bool send, bool full = true);
     void propagateTrees();
     //void sendBoardOld(int receivingSocket = -1);
     void sendBoard(int receivingSocket = -1);
