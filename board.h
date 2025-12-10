@@ -168,6 +168,7 @@ private:
 
     std::mt19937 gen;
 
+    bool isFirstRound = true;
     uint8 currentPlayerId = 1;
 
     std::vector<Country> countries;

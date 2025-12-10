@@ -348,7 +348,11 @@ void Board::nextTurn(bool send, bool full)
     while(retry) // Szukamy gracza który jeszcze żyje
     {
         currentPlayerId = currentPlayerId % countries.size() + 1;
-        if(currentPlayerId == 1 && full) propagateTrees();
+        if(currentPlayerId == 1 && full)
+        {
+            propagateTrees();
+            isFirstRound = false;
+        }
         std::unordered_map<Hexagon*, int>& castles = getCountry(currentPlayerId)->getCastles();
         if(!castles.size()) continue; // Jeśli nie ma zamków to powtarzamy
         std::vector<Hexagon*> castlesToRemove;
@@ -373,7 +377,7 @@ void Board::nextTurn(bool send, bool full)
                         else h->setResident(Resident::PineTree);
                     }
                 }
-                money += calculateIncome(province);
+                if(!isFirstRound) money += calculateIncome(province);
 
                 if (money < 0)
                 {
