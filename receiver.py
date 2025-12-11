@@ -2,8 +2,15 @@ import sys
 import socket
 import struct
 import select
+import random
+import math
+from collections import deque
 
 from enum import IntEnum
+
+# Force unbuffered output
+import functools
+print = functools.partial(print, flush=True)
 
 # Nazewnictwo i kolejność odpowiadają tym z gry, ich zmiana może uszkodzić rozczytywanie planszy
 class Resident(IntEnum):
@@ -30,6 +37,26 @@ class Resident(IntEnum):
     PineTree = 15
     Gravestone = 16
 
+    def is_unit(self):
+        return self in [Resident.Warrior1, Resident.Warrior2, Resident.Warrior3, Resident.Warrior4,
+                        Resident.Warrior1Moved, Resident.Warrior2Moved, Resident.Warrior3Moved, Resident.Warrior4Moved]
+    
+    def is_ready_to_move(self):
+        return self in [Resident.Warrior1, Resident.Warrior2, Resident.Warrior3, Resident.Warrior4]
+
+    def get_strength(self):
+        if self in [Resident.Warrior1, Resident.Warrior1Moved]: return 1
+        if self in [Resident.Warrior2, Resident.Warrior2Moved]: return 2
+        if self in [Resident.Warrior3, Resident.Warrior3Moved]: return 3
+        if self in [Resident.Warrior4, Resident.Warrior4Moved]: return 4
+        return 0
+    
+    def is_building(self):
+        return self in [Resident.Farm, Resident.Tower, Resident.StrongTower, Resident.Castle]
+    
+    def is_tree(self):
+        return self in [Resident.PalmTree, Resident.PineTree]
+
 class Hex:
     def __init__(self, x, y, owner_id, resident, money):
         self.x = x
@@ -41,6 +68,25 @@ class Hex:
     def __repr__(self):
         return f"Hex(x={self.x}, y={self.y}, owner={self.owner_id}, resident={self.resident}, money={self.money})"
 
+    def get_neighbors(self, board):
+        neighbors = []
+        # Even x (columns 0, 2, 4...)
+        even_directions = [
+            (0, -1), (-1, -1), (-1, 0), (0, 1), (1, 0), (1, -1)
+        ]
+        # Odd x (columns 1, 3, 5...)
+        odd_directions = [
+            (0, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0)
+        ]
+        
+        directions = even_directions if self.x % 2 == 0 else odd_directions
+        
+        for dx, dy in directions:
+            nx, ny = self.x + dx, self.y + dy
+            if 0 <= nx < board.width and 0 <= ny < board.height:
+                neighbors.append(board.get_hex(nx, ny))
+        return neighbors
+
 
 class Board:
     def __init__(self, width, height):
@@ -50,6 +96,11 @@ class Board:
 
     def add_hex(self, hexagon):
         self.hexes.append(hexagon)
+
+    def get_hex(self, x, y):
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.hexes[y * self.width + x]
+        return None
 
     def __repr__(self):
         return f"Board({self.width}x{self.height}, {len(self.hexes)} hexes)"
@@ -90,6 +141,526 @@ class Board:
                 h.owner_id = id2
             elif h.owner_id == id2:
                 h.owner_id = id1
+
+    def get_provinces(self, player_id):
+        provinces = []
+        visited = set()
+        
+        for h in self.hexes:
+            if h.owner_id == player_id and h not in visited:
+                # Start BFS/DFS to find connected component
+                province_hexes = []
+                queue = deque([h])
+                visited.add(h)
+                while queue:
+                    curr = queue.popleft()
+                    province_hexes.append(curr)
+                    for n in curr.get_neighbors(self):
+                        if n.owner_id == player_id and n not in visited:
+                            visited.add(n)
+                            queue.append(n)
+                provinces.append(Province(province_hexes, self))
+        return provinces
+
+
+class Province:
+    def __init__(self, hex_list, board):
+        self.hex_list = hex_list
+        self.board = board
+        self.capital = self._find_capital()
+        self.money = self.capital.money if self.capital else 0
+        self.fraction = self.hex_list[0].owner_id if self.hex_list else 0
+
+    def _find_capital(self):
+        for h in self.hex_list:
+            if h.resident == Resident.Castle:
+                return h
+        return self.hex_list[0] if self.hex_list else None
+
+    def can_afford_unit(self, strength):
+        cost = 10 * strength
+        return self.money >= cost
+
+    def has_money_for_tower(self):
+        return self.money >= 15
+
+    def get_units(self):
+        return [h for h in self.hex_list if h.resident.is_unit()]
+
+
+class AiBase:
+    def __init__(self, player_id):
+        self.player_id = player_id
+        self.targeted_hexes = set()  # Track hexes targeted this turn
+
+    def make_move(self, board, action_builder):
+        pass
+
+class AiEasy(AiBase):
+    def make_move(self, board, action_builder):
+        print("[AI] make_move started")
+        # Clear targeted hexes at the start of turn
+        self.targeted_hexes = set()
+        
+        provinces = board.get_provinces(self.player_id)
+        print(f"[AI] Found {len(provinces)} provinces for player {self.player_id}")
+        for i, province in enumerate(provinces):
+            if province.capital:
+                print(f"[AI] Province {i}: {len(province.hex_list)} hexes, capital at ({province.capital.x}, {province.capital.y}) with money {province.money}")
+            else:
+                print(f"[AI] Province {i}: {len(province.hex_list)} hexes, NO CAPITAL, money {province.money}")
+            if not province.hex_list:
+                print(f"[AI] Skipping empty province")
+                continue
+            self.move_units(province, board, action_builder)
+            self.spend_money_and_merge(province, board, action_builder)
+
+    def move_units(self, province, board, action_builder):
+        units = [h for h in province.hex_list if h.resident.is_unit() and h.resident.is_ready_to_move()]
+        print(f"[AI] Found {len(units)} units ready to move in province")
+        for unit_hex in units:
+            print(f"[AI] Processing unit at ({unit_hex.x}, {unit_hex.y})")
+            if not unit_hex.resident.is_ready_to_move(): continue
+            
+            move_zone = self.detect_move_zone(unit_hex, unit_hex.resident.get_strength(), board)
+            print(f"[AI] Move zone has {len(move_zone)} hexes before filtering")
+            self.exclude_friendly_units(move_zone, self.player_id)
+            self.exclude_friendly_buildings(move_zone, self.player_id)
+            
+            print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}) strength {unit_hex.resident.get_strength()} has {len(move_zone)} valid targets")
+            if not move_zone: continue
+            
+            self.decide_about_unit(unit_hex, move_zone, province, action_builder)
+
+    def decide_about_unit(self, unit_hex, move_zone, province, action_builder):
+        # Cleaning palms has highest priority (for weak units)
+        strength = unit_hex.resident.get_strength()
+        if strength <= 2 and self.check_to_clean_some_palms(unit_hex, move_zone, province, action_builder):
+            return
+        
+        # Find attackable hexes (enemy or neutral territory that we can actually conquer)
+        # Also exclude hexes that have already been targeted this turn
+        attackable_hexes = [h for h in self.find_attackable_hexes(move_zone, strength, province.board)
+                           if (h.x, h.y) not in self.targeted_hexes]
+        
+        print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}): {len(attackable_hexes)} attackable hexes")
+        
+        if attackable_hexes:
+            # Attack the most attractive hex
+            best_hex = self.find_most_attractive_hex(attackable_hexes, province, strength, province.board)
+            if best_hex:
+                print(f"[AI] Unit attacking from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y})")
+                action_builder.add_move(unit_hex.x, unit_hex.y, best_hex.x, best_hex.y)
+                self.targeted_hexes.add((best_hex.x, best_hex.y))  # Mark as targeted
+                return
+        
+        # Nothing to attack - try to move towards enemy territory
+        if self.move_towards_enemy(unit_hex, move_zone, province, action_builder):
+            return
+        
+        # Nothing to attack - try to clean trees
+        if self.check_to_clean_some_trees(unit_hex, move_zone, province, action_builder):
+            return
+        
+        # If on perimeter, push to better defense position
+        if self.is_in_perimeter(unit_hex, province.board):
+            self.push_unit_to_better_defense(unit_hex, move_zone, province, action_builder)
+
+    def find_attackable_hexes(self, move_zone, strength, board):
+        """Find all hexes that are not owned by us and that we can conquer"""
+        return [h for h in move_zone if h.owner_id != self.player_id and self.can_conquer(h, strength, board)]
+
+    def check_to_clean_some_palms(self, unit_hex, move_zone, province, action_builder):
+        for h in move_zone:
+            if h.resident == Resident.PalmTree and h.owner_id == self.player_id:
+                print(f"[AI] Unit cleaning palm from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
+                action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
+                return True
+        return False
+
+    def is_in_perimeter(self, hex, board):
+        """Check if hex is on the border of our territory"""
+        for n in hex.get_neighbors(board):
+            if n.owner_id != self.player_id and n.resident != Resident.Water:
+                return True
+        return False
+
+    def push_unit_to_better_defense(self, unit_hex, move_zone, province, action_builder):
+        """Move unit to a safer position away from enemies"""
+        for h in move_zone:
+            if h.owner_id == self.player_id and self.hex_is_free(h):
+                # Check if this hex has no enemy neighbors
+                enemy_neighbors = 0
+                for n in h.get_neighbors(province.board):
+                    if n.owner_id != self.player_id and n.owner_id != 0 and n.resident != Resident.Water:
+                        enemy_neighbors += 1
+                if enemy_neighbors == 0:
+                    print(f"[AI] Unit retreating from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
+                    action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
+                    return
+    
+    def hex_is_free(self, hex):
+        """Check if hex is free for movement"""
+        return (hex.resident == Resident.Empty or 
+                hex.resident == Resident.Gravestone or
+                hex.resident.is_tree())
+
+    def check_to_clean_some_trees(self, unit_hex, move_zone, province, action_builder):
+        for h in move_zone:
+            if h.resident.is_tree() and h.owner_id == self.player_id:
+                action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
+                return True
+        return False
+
+    def move_towards_enemy(self, unit_hex, move_zone, province, action_builder):
+        """Move unit towards the nearest enemy territory"""
+        board = province.board
+        
+        # Find all enemy hexes on the board
+        enemy_hexes = [h for h in board.hexes if h.owner_id != self.player_id and h.owner_id != 0 and h.resident != Resident.Water]
+        if not enemy_hexes:
+            return False
+        
+        # Find the best hex in move_zone that gets us closer to enemies
+        best_hex = None
+        best_distance = float('inf')
+        
+        # Calculate current distance to nearest enemy
+        current_min_dist = float('inf')
+        for eh in enemy_hexes:
+            dist = abs(unit_hex.x - eh.x) + abs(unit_hex.y - eh.y)
+            current_min_dist = min(current_min_dist, dist)
+        
+        # Find hex in move_zone that minimizes distance to enemies
+        for h in move_zone:
+            if h.owner_id != self.player_id:
+                continue  # Only move within our territory
+            if not self.hex_is_free(h):
+                continue
+            
+            # Calculate minimum distance from this hex to any enemy
+            min_dist = float('inf')
+            for eh in enemy_hexes:
+                dist = abs(h.x - eh.x) + abs(h.y - eh.y)
+                min_dist = min(min_dist, dist)
+            
+            # Only consider if it gets us closer
+            if min_dist < current_min_dist and min_dist < best_distance:
+                best_distance = min_dist
+                best_hex = h
+        
+        if best_hex:
+            print(f"[AI] Unit moving towards enemy from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y})")
+            action_builder.add_move(unit_hex.x, unit_hex.y, best_hex.x, best_hex.y)
+            return True
+        
+        return False
+
+    def spend_money_and_merge(self, province, board, action_builder):
+        print(f"[AI] spend_money_and_merge: money={province.money}")
+        self.try_to_build_units_on_palms(province, board, action_builder)
+
+        # Try to attack with units of increasing strength
+        for i in range(1, 5):
+            print(f"[AI] Checking strength {i}, can_afford={province.can_afford_unit(i)}, money={province.money}")
+            if not province.can_afford_unit(i): break
+            while self.can_province_build_unit(province, i):
+                if not self.try_to_attack_with_strength(province, i, board, action_builder): break
+
+        # Kick start province - if we have few units, try to build one to attack
+        if province.can_afford_unit(1) and len(province.get_units()) <= 1:
+             self.try_to_attack_with_strength(province, 1, board, action_builder)
+
+        # Merge units (random chance)
+        if random.random() < 0.25:
+            self.merge_units(province, board, action_builder)
+
+    def try_to_build_units_on_palms(self, province, board, action_builder):
+        if not province.can_afford_unit(1): return
+        if not province.capital: return
+
+        max_iterations = 10  # Safety limit
+        iterations = 0
+        while self.can_province_build_unit(province, 1) and iterations < max_iterations:
+            iterations += 1
+            # Get move zone from capital to find reachable palms
+            move_zone = self.detect_move_zone(province.capital, 1, board)
+            killed_palm = False
+            for h in move_zone:
+                if h.resident == Resident.PalmTree and h.owner_id == self.player_id:
+                    print(f"[AI] Building unit on palm at ({h.x}, {h.y})")
+                    action_builder.add_place(Resident.Warrior1, province.capital.x, province.capital.y, h.x, h.y)
+                    province.money -= 10
+                    h.resident = Resident.Warrior1Moved  # Mark as no longer a palm
+                    killed_palm = True
+                    break
+            if not killed_palm: break
+
+    def merge_units(self, province, board, action_builder):
+        for h in province.hex_list:
+            if h.resident.is_unit() and h.resident.is_ready_to_move():
+                self.try_to_merge_with_someone(province, h, board, action_builder)
+
+    def try_to_merge_with_someone(self, province, unit_hex, board, action_builder):
+        move_zone = self.detect_move_zone(unit_hex, unit_hex.resident.get_strength(), board)
+        if not move_zone: return
+        
+        for target in move_zone:
+            if self.merge_conditions(province, unit_hex, target):
+                action_builder.add_move(unit_hex.x, unit_hex.y, target.x, target.y)
+                break
+
+    def merge_conditions(self, province, unit_hex, target_hex):
+        if target_hex.owner_id != self.player_id: return False
+        if not target_hex.resident.is_unit(): return False
+        if not target_hex.resident.is_ready_to_move(): return False
+        if unit_hex == target_hex: return False
+        
+        # Check if merge is possible (sum of strengths <= 4)
+        new_strength = unit_hex.resident.get_strength() + target_hex.resident.get_strength()
+        if new_strength > 4: return False
+        
+        # AiEasy specific: only merge 1+1
+        if unit_hex.resident.get_strength() != 1 or target_hex.resident.get_strength() != 1:
+            return False
+            
+        if not province.can_afford_unit(new_strength): return False
+        return True
+
+    def can_province_build_unit(self, province, strength):
+        return province.can_afford_unit(strength)
+
+    def try_to_build_unit_inside_province(self, province, strength, board, action_builder):
+        for h in province.hex_list:
+            if self.nothing_blocks_way_for_unit(h) and self.is_allowed_to_build_new_unit(province):
+                if province.capital:
+                    resident = self.get_unit_resident(strength)
+                    action_builder.add_place(resident, province.capital.x, province.capital.y, h.x, h.y)
+                    return True
+        return False
+
+    def try_to_attack_with_strength(self, province, strength, board, action_builder):
+        if not province.capital: return False
+        
+        # Find all border hexes (enemy/neutral hexes adjacent to our province)
+        # In Antiyoy, you can place units on ANY hex adjacent to your province!
+        all_attackable = []
+        for h in province.hex_list:
+            for n in h.get_neighbors(board):
+                if (n.owner_id != self.player_id 
+                    and n.resident != Resident.Water
+                    and self.can_conquer(n, strength, board)
+                    and (n.x, n.y) not in self.targeted_hexes
+                    and n not in all_attackable):
+                    all_attackable.append(n)
+        
+        print(f"[AI] try_to_attack_with_strength({strength}): province_hexes={len(province.hex_list)}, attackable={len(all_attackable)}")
+        
+        if not all_attackable: return False
+        
+        best_hex = self.find_most_attractive_hex(all_attackable, province, strength, board)
+        if best_hex and province.capital:
+            resident = self.get_unit_resident(strength)
+            print(f"[AI] Placing unit {resident} from capital ({province.capital.x}, {province.capital.y}) to ({best_hex.x}, {best_hex.y})")
+            action_builder.add_place(resident, province.capital.x, province.capital.y, best_hex.x, best_hex.y)
+            province.money -= 10 * strength
+            self.targeted_hexes.add((best_hex.x, best_hex.y))  # Mark as targeted
+            return True
+        return False
+
+    def get_possible_placements(self, province, strength, board):
+        valid = []
+        
+        # Check internal placements
+        for h in province.hex_list: 
+             if self.can_place_on(h, strength, board, self.player_id):
+                 valid.append(h)
+        
+        # Check border placements
+        for h in province.hex_list:
+            for n in h.get_neighbors(board):
+                if n.owner_id != self.player_id:
+                    if self.can_place_on(n, strength, board, self.player_id):
+                        valid.append(n)
+        
+        return list(set(valid))
+
+    def can_place_on(self, hex, strength, board, owner_id):
+        if hex.resident == Resident.Water: return False
+        if hex.owner_id == owner_id:
+            return True
+        
+        # Attacking enemy hex - check defense
+        attacker_power = strength
+        if attacker_power == 4: return True
+        
+        # Check if defended by tower in neighboring hex
+        for n in hex.get_neighbors(board):
+            if n.owner_id == hex.owner_id:
+                if n.resident == Resident.Tower and attacker_power < 3:
+                    return False
+                if n.resident == Resident.StrongTower and attacker_power < 4:
+                    return False
+        
+        # Check resident defense on the hex itself
+        defender_strength = self.get_defense_strength(hex)
+        if attacker_power <= defender_strength:
+            return False
+        
+        return True
+
+    def get_defense_strength(self, hex):
+        """Returns the defense strength of a hex based on its resident"""
+        if hex.resident == Resident.Tower: return 2
+        if hex.resident == Resident.StrongTower: return 3
+        if hex.resident == Resident.Castle: return 1
+        if hex.resident.is_unit(): return hex.resident.get_strength()
+        return 0
+
+    def nothing_blocks_way_for_unit(self, hex):
+        """Check if a hex is free for a new unit placement"""
+        if hex.resident == Resident.Water: return False
+        if hex.resident.is_unit(): return False
+        if hex.resident.is_building(): return False
+        if hex.resident == Resident.Gravestone: return False
+        return True
+
+    def is_allowed_to_build_new_unit(self, province):
+        """Check if the province is allowed to build a new unit"""
+        # For simple AI, always allow
+        return True
+
+    def get_unit_resident(self, strength):
+        if strength == 1: return Resident.Warrior1
+        if strength == 2: return Resident.Warrior2
+        if strength == 3: return Resident.Warrior3
+        if strength == 4: return Resident.Warrior4
+        return Resident.Warrior1
+
+    def detect_move_zone(self, start_hex, strength, board):
+        """
+        Detect all hexes reachable from start_hex within movement limit.
+        Units can only move through friendly territory, but can step into
+        enemy/neutral territory as the final destination (if they can conquer it).
+        """
+        limit = 4
+        visited = {start_hex: 0}
+        queue = deque([start_hex])
+        move_zone = []
+        
+        while queue:
+            curr = queue.popleft()
+            dist = visited[curr]
+            
+            if dist > 0: 
+                move_zone.append(curr)
+            
+            if dist >= limit: continue
+            
+            for n in curr.get_neighbors(board):
+                if n in visited:
+                    continue
+                if n.resident == Resident.Water:
+                    continue
+                    
+                # Check if we can enter this hex
+                if n.owner_id == self.player_id:
+                    # Friendly territory - can always pass through
+                    visited[n] = dist + 1
+                    queue.append(n)
+                elif self.can_conquer(n, strength, board):
+                    # Enemy/neutral territory - can enter but not pass through
+                    visited[n] = dist + 1
+                    move_zone.append(n)  # Add to move_zone immediately
+                    # Don't add to queue - can't continue through enemy territory
+        
+        return move_zone
+    
+    def can_conquer(self, hex, strength, board):
+        """Check if a unit with given strength can conquer this hex"""
+        if hex.resident == Resident.Water:
+            return False
+        if hex.owner_id == 0:
+            # Neutral territory - can always take empty land
+            return True
+            
+        # Enemy territory - check defense
+        if strength == 4:
+            return True  # Strength 4 can conquer anything
+            
+        # Check if defended by tower in neighboring hex
+        for n in hex.get_neighbors(board):
+            if n.owner_id == hex.owner_id:
+                if n.resident == Resident.Tower and strength < 3:
+                    return False
+                if n.resident == Resident.StrongTower and strength < 4:
+                    return False
+        
+        # Check resident defense on the hex itself
+        defender_strength = self.get_defense_strength(hex)
+        if strength <= defender_strength:
+            return False
+        
+        return True
+
+    def can_move_to(self, hex, strength, board, owner_id):
+        """Check if unit can move to this hex (used for existing unit movement)"""
+        if hex.resident == Resident.Water:
+            return False
+        if hex.owner_id == owner_id:
+            return True
+        return self.can_conquer(hex, strength, board)
+
+    def exclude_friendly_units(self, move_zone, player_id):
+        for i in range(len(move_zone) - 1, -1, -1):
+            h = move_zone[i]
+            if h.owner_id == player_id and h.resident.is_unit():
+                del move_zone[i]
+
+    def exclude_friendly_buildings(self, move_zone, player_id):
+        for i in range(len(move_zone) - 1, -1, -1):
+            h = move_zone[i]
+            if h.owner_id == player_id and h.resident.is_building():
+                del move_zone[i]
+
+    def find_most_attractive_hex(self, hexes, province, strength, board):
+        if strength == 3 or strength == 4:
+            h = self.find_hex_attractive_to_baron(hexes, strength, board)
+            if h: return h
+
+        result = None
+        curr_max = -1
+        for h in hexes:
+            curr_num = self.get_attack_allure(h, province.fraction, board)
+            if curr_num > curr_max:
+                curr_max = curr_num
+                result = h
+        return result
+
+    def find_hex_attractive_to_baron(self, hexes, strength, board):
+        for h in hexes:
+            if h.resident == Resident.Tower: return h
+            if strength == 4 and h.resident == Resident.StrongTower: return h
+        
+        for h in hexes:
+            if self.is_defended_by_tower(h, board): return h
+        return None
+
+    def is_defended_by_tower(self, hexagon, board):
+        for n in hexagon.get_neighbors(board):
+            if n.owner_id == hexagon.owner_id and (n.resident == Resident.Tower or n.resident == Resident.StrongTower):
+                return True
+        return False
+
+    def get_attack_allure(self, hexagon, fraction, board):
+        c = 0
+        for n in hexagon.get_neighbors(board):
+            if n.owner_id == fraction:
+                c += 1
+        # Prioritize enemy hexes over neutral (owner_id > 0 means it's a player's hex)
+        if hexagon.owner_id > 0 and hexagon.owner_id != fraction:
+            c += 10  # Big bonus for attacking enemy territory
+        return c
 
 
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
@@ -348,7 +919,9 @@ def receive_next():
     tag = sock.recv(1)
     if not tag:
         return result
-    tag = struct.unpack('B', tag)[0]
+    tag_val = struct.unpack('B', tag)[0]
+    print(f"[DEBUG] Received tag: {tag_val}")
+    tag = tag_val
 
     if tag == MAGIC_SOCKET_TAG:
         result = (MAGIC_SOCKET_TAG, receive_magic())
@@ -376,7 +949,7 @@ def receive_next():
     
     else: # Odebrano nieznany tag, socket najpewniej jest zawalony śmieciami z którymi nie wiemy co zrobić, nie możemy wydedukować stanu gry, trzeba zakończyć
         sock.close()
-        raise RuntimeError("Received incorrect data")
+        raise RuntimeError(f"Received incorrect data: {tag}")
 
     return result
 
@@ -388,13 +961,14 @@ class ActionType:
     MOVE = 2
 
 class ActionBuilder:
+
     def __init__(self):
         self.buffer = bytearray()
         self.num = 0
 
     def add_place(self, resident: int, x_from: int, y_from: int, x_to: int, y_to: int):
         """
-        Postawienie jednostki na polu o pozycji
+        Położenie jednostki z pozycji (capital) na pozycję docelową
         """
         self.buffer.append(ActionType.PLACE)
         self.buffer.append(resident)
@@ -519,19 +1093,19 @@ try:
 
     if tag is None: # Jeśli nie otrzymamy danych
         print("Server disconnected")
-        input()
+        # input()
         sys.exit(1)
     
     if tag != MAGIC_SOCKET_TAG: # Jeśli otrzymamy coś innego niż magiczne numerki
         print(f"Unexpected content received. Tag: {tag}")
-        input()
+        # input()
         sys.exit(1)
 
     if payload: # Czy numerki się zgadzają
         print("Correct magic numbers!")
     else:
         print("Wrong magic numbers!")
-        input()
+        # input()
         sys.exit(1)
 
     while True: # Pętla główna
@@ -544,7 +1118,7 @@ try:
     
         if tag != CONFIGURATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż konfiguracja
             print(f"Unexpected content received. Tag: {tag}")
-            input()
+            # input()
             sys.exit(1)
 
         print("Configuration received:") # Można coś zrobić z konfiguracją
@@ -555,7 +1129,7 @@ try:
 
             if tag is None: # Jeśli nie otrzymamy danych
                 print("Server disconnected")
-                input()
+                # input()
                 sys.exit(1)
 
             elif tag == ACTION_SOCKET_TAG: # Ruchy niebotowych graczy, botom raczej nie są one potrzebne
@@ -577,20 +1151,39 @@ try:
 
                 # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
                 ab = ActionBuilder()
-                ab.send_from_line()
-
-                tag, payload = receive_next() # Po wysłaniu ruchu oczekujemy odpowiedzi
-                if tag is None: # Jeśli nie otrzymamy danych
-                    print("Server disconnected")
-                    input()
-                    sys.exit(1)
-
-                if tag != CONFIRMATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż odpowiedź
-                    print(f"Unexpected content received. Tag: {tag}")
-                    input()
-                    sys.exit(1)
-
-                print(f"Approved: {payload[0]}, Still awaiting: {payload[1]}")
+                
+                # Initialize AI
+                ai = AiEasy(1) # We are always player 1 after swap
+                try:
+                    ai.make_move(payload, ab)
+                except Exception as e:
+                    print(f"[AI ERROR] {e}")
+                    import traceback
+                    traceback.print_exc()
+                
+                # Send any buffered moves
+                if ab.buffer:
+                    ab.send()
+                    # Wait for confirmation 
+                    tag, conf = receive_next()
+                    if tag == CONFIRMATION_SOCKET_TAG:
+                        approved, still_awaiting = conf
+                        print(f"Moves - Approved: {approved}, Still awaiting: {still_awaiting}")
+                        # If still awaiting, game sends updated board - read it but ignore
+                        if still_awaiting:
+                            tag2, _ = receive_next()
+                            if tag2 == BOARD_SOCKET_TAG:
+                                print("Received updated board after moves (ignoring)")
+                    else:
+                        print(f"[UNEXPECTED TAG after moves] {tag}: {conf}")
+                
+                # Always end turn
+                ab.add_end_turn()
+                # Wait for confirmation after end turn
+                tag, conf = receive_next()
+                if tag == CONFIRMATION_SOCKET_TAG:
+                    approved, still_awaiting = conf
+                    print(f"End turn - Approved: {approved}, Still awaiting: {still_awaiting}")
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
                 print(f"Player {payload} eliminated!")
@@ -603,7 +1196,8 @@ try:
 
 except Exception as e:
     print("Connection error", e)
-    input()
+    # input()
 
 if sock:
     sock.close()
+print("[DEBUG] Receiver exiting")
