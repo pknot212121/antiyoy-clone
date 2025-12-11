@@ -919,9 +919,7 @@ def receive_next():
     tag = sock.recv(1)
     if not tag:
         return result
-    tag_val = struct.unpack('B', tag)[0]
-    print(f"[DEBUG] Received tag: {tag_val}")
-    tag = tag_val
+    tag = struct.unpack('B', tag)[0]
 
     if tag == MAGIC_SOCKET_TAG:
         result = (MAGIC_SOCKET_TAG, receive_magic())
@@ -949,7 +947,7 @@ def receive_next():
     
     else: # Odebrano nieznany tag, socket najpewniej jest zawalony śmieciami z którymi nie wiemy co zrobić, nie możemy wydedukować stanu gry, trzeba zakończyć
         sock.close()
-        raise RuntimeError(f"Received incorrect data: {tag}")
+        raise RuntimeError("Received incorrect data")
 
     return result
 
@@ -1093,19 +1091,19 @@ try:
 
     if tag is None: # Jeśli nie otrzymamy danych
         print("Server disconnected")
-        # input()
+        input()
         sys.exit(1)
     
     if tag != MAGIC_SOCKET_TAG: # Jeśli otrzymamy coś innego niż magiczne numerki
         print(f"Unexpected content received. Tag: {tag}")
-        # input()
+        input()
         sys.exit(1)
 
     if payload: # Czy numerki się zgadzają
         print("Correct magic numbers!")
     else:
         print("Wrong magic numbers!")
-        # input()
+        input()
         sys.exit(1)
 
     while True: # Pętla główna
@@ -1118,7 +1116,7 @@ try:
     
         if tag != CONFIGURATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż konfiguracja
             print(f"Unexpected content received. Tag: {tag}")
-            # input()
+            input()
             sys.exit(1)
 
         print("Configuration received:") # Można coś zrobić z konfiguracją
@@ -1129,7 +1127,7 @@ try:
 
             if tag is None: # Jeśli nie otrzymamy danych
                 print("Server disconnected")
-                # input()
+                input()
                 sys.exit(1)
 
             elif tag == ACTION_SOCKET_TAG: # Ruchy niebotowych graczy, botom raczej nie są one potrzebne
@@ -1161,29 +1159,33 @@ try:
                     import traceback
                     traceback.print_exc()
                 
-                # Send any buffered moves
-                if ab.buffer:
-                    ab.send()
-                    # Wait for confirmation 
-                    tag, conf = receive_next()
-                    if tag == CONFIRMATION_SOCKET_TAG:
-                        approved, still_awaiting = conf
-                        print(f"Moves - Approved: {approved}, Still awaiting: {still_awaiting}")
-                        # If still awaiting, game sends updated board - read it but ignore
-                        if still_awaiting:
-                            tag2, _ = receive_next()
-                            if tag2 == BOARD_SOCKET_TAG:
-                                print("Received updated board after moves (ignoring)")
+                # Send moves and handle responses
+                still_awaiting = True
+                while still_awaiting:
+                    if ab.buffer:
+                        ab.send()
+                        tag, conf = receive_next()
+                        if tag == CONFIRMATION_SOCKET_TAG:
+                            approved, still_awaiting = conf
+                            print(f"Approved: {approved}, Still awaiting: {still_awaiting}")
+                            if not approved:
+                                print("[AI] Move rejected")
+                                # Clear buffer and just end turn
+                                ab.buffer.clear()
+                                ab.num = 0
+                        else:
+                            print(f"[AI] Unexpected response: {tag}")
+                            break
                     else:
-                        print(f"[UNEXPECTED TAG after moves] {tag}: {conf}")
-                
-                # Always end turn
-                ab.add_end_turn()
-                # Wait for confirmation after end turn
-                tag, conf = receive_next()
-                if tag == CONFIRMATION_SOCKET_TAG:
-                    approved, still_awaiting = conf
-                    print(f"End turn - Approved: {approved}, Still awaiting: {still_awaiting}")
+                        # No more moves to send, end turn
+                        ab.add_end_turn()
+                        tag, conf = receive_next()
+                        if tag == CONFIRMATION_SOCKET_TAG:
+                            approved, still_awaiting = conf
+                            print(f"End turn - Approved: {approved}, Still awaiting: {still_awaiting}")
+                        else:
+                            print(f"[AI] Unexpected response after end turn: {tag}")
+                        break
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
                 print(f"Player {payload} eliminated!")
@@ -1196,8 +1198,7 @@ try:
 
 except Exception as e:
     print("Connection error", e)
-    # input()
+    input()
 
 if sock:
     sock.close()
-print("[DEBUG] Receiver exiting")
