@@ -54,6 +54,9 @@ class Resident(IntEnum):
     def is_building(self):
         return self in [Resident.Farm, Resident.Tower, Resident.StrongTower, Resident.Castle]
     
+    def is_empty(self):
+        return self == Resident.Empty
+    
     def is_tree(self):
         return self in [Resident.PalmTree, Resident.PineTree]
 
@@ -183,6 +186,22 @@ class Province:
 
     def has_money_for_tower(self):
         return self.money >= 15
+    
+    def has_money_for_farm(self):
+        return self.money >= self.get_current_farm_price()
+    
+    def get_current_farm_price(self):
+        """Calculate current farm price - increases with each farm"""
+        farm_count = sum(1 for h in self.hex_list if h.resident == Resident.Farm)
+        return 15 + farm_count * 6
+    
+    def get_extra_farm_cost(self):
+        """Calculate extra upkeep cost from farms - used to limit farm spam"""
+        farm_count = sum(1 for h in self.hex_list if h.resident == Resident.Farm)
+        if farm_count <= 1:
+            return 0
+        # Each farm beyond the first costs 6 extra upkeep
+        return (farm_count - 1) * 6
 
     def get_units(self):
         return [h for h in self.hex_list if h.resident.is_unit()]
@@ -213,22 +232,36 @@ class AiEasy(AiBase):
                 print(f"[AI] Skipping empty province")
                 continue
             self.move_units(province, board, action_builder)
+            # TODO: Farm and tower building require BUILD action in game engine
+            # Currently only PLACE and MOVE actions are supported
+            # self.try_to_build_towers(province, board, action_builder)
+            # self.try_to_build_farms(province, board, action_builder)
             self.spend_money_and_merge(province, board, action_builder)
 
     def move_units(self, province, board, action_builder):
         units = [h for h in province.hex_list if h.resident.is_unit() and h.resident.is_ready_to_move()]
         print(f"[AI] Found {len(units)} units ready to move in province")
         for unit_hex in units:
-            print(f"[AI] Processing unit at ({unit_hex.x}, {unit_hex.y})")
+            print(f"[AI] ========================================")
+            print(f"[AI] Processing unit at ({unit_hex.x}, {unit_hex.y}), strength={unit_hex.resident.get_strength()}")
             if not unit_hex.resident.is_ready_to_move(): continue
             
             move_zone = self.detect_move_zone(unit_hex, unit_hex.resident.get_strength(), board)
-            print(f"[AI] Move zone has {len(move_zone)} hexes before filtering")
+            print(f"[AI] Move zone has {len(move_zone)} hexes")
+            
+            # Log what's in the move zone
+            neutral_count = sum(1 for h in move_zone if h.owner_id == 0)
+            enemy_count = sum(1 for h in move_zone if h.owner_id != 0 and h.owner_id != self.player_id)
+            friendly_count = sum(1 for h in move_zone if h.owner_id == self.player_id)
+            print(f"[AI] Move zone: {neutral_count} neutral, {enemy_count} enemy, {friendly_count} friendly")
+            
             self.exclude_friendly_units(move_zone, self.player_id)
             self.exclude_friendly_buildings(move_zone, self.player_id)
             
-            print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}) strength {unit_hex.resident.get_strength()} has {len(move_zone)} valid targets")
-            if not move_zone: continue
+            print(f"[AI] After filtering: {len(move_zone)} valid targets")
+            if not move_zone:
+                print(f"[AI] No valid targets, skipping unit")
+                continue
             
             self.decide_about_unit(unit_hex, move_zone, province, action_builder)
 
@@ -244,27 +277,29 @@ class AiEasy(AiBase):
                            if (h.x, h.y) not in self.targeted_hexes]
         
         print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}): {len(attackable_hexes)} attackable hexes")
+        if attackable_hexes:
+            for h in attackable_hexes[:5]:  # Log first 5 targets
+                print(f"[AI]   Attackable: ({h.x}, {h.y}) owner={h.owner_id} resident={h.resident}")
         
         if attackable_hexes:
             # Attack the most attractive hex
             best_hex = self.find_most_attractive_hex(attackable_hexes, province, strength, province.board)
             if best_hex:
-                print(f"[AI] Unit attacking from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y})")
+                print(f"[AI] ✓ Unit ATTACKING from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y}) (owner={best_hex.owner_id})")
                 action_builder.add_move(unit_hex.x, unit_hex.y, best_hex.x, best_hex.y)
                 self.targeted_hexes.add((best_hex.x, best_hex.y))  # Mark as targeted
                 return
-        
-        # Nothing to attack - try to move towards enemy territory
-        if self.move_towards_enemy(unit_hex, move_zone, province, action_builder):
-            return
-        
-        # Nothing to attack - try to clean trees
-        if self.check_to_clean_some_trees(unit_hex, move_zone, province, action_builder):
-            return
-        
-        # If on perimeter, push to better defense position
-        if self.is_in_perimeter(unit_hex, province.board):
-            self.push_unit_to_better_defense(unit_hex, move_zone, province, action_builder)
+        else:
+            print(f"[AI] No attackable hexes for this unit")
+            # Nothing to attack - try to clean trees
+            cleaned_trees = self.check_to_clean_some_trees(unit_hex, move_zone, province, action_builder)
+            if cleaned_trees:
+                print(f"[AI] ✓ Unit cleaned trees")
+            elif self.is_in_perimeter(unit_hex, province.board):
+                print(f"[AI] Unit on perimeter, pushing to better defense")
+                self.push_unit_to_better_defense(unit_hex, move_zone, province, action_builder)
+            else:
+                print(f"[AI] Unit has nothing to do")
 
     def find_attackable_hexes(self, move_zone, strength, board):
         """Find all hexes that are not owned by us and that we can conquer"""
@@ -272,9 +307,11 @@ class AiEasy(AiBase):
 
     def check_to_clean_some_palms(self, unit_hex, move_zone, province, action_builder):
         for h in move_zone:
-            if h.resident == Resident.PalmTree and h.owner_id == self.player_id:
+            if (h.resident == Resident.PalmTree and h.owner_id == self.player_id 
+                and (h.x, h.y) not in self.targeted_hexes):  # Check if not already targeted
                 print(f"[AI] Unit cleaning palm from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
                 action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
+                self.targeted_hexes.add((h.x, h.y))  # Mark as targeted
                 return True
         return False
 
@@ -307,8 +344,10 @@ class AiEasy(AiBase):
 
     def check_to_clean_some_trees(self, unit_hex, move_zone, province, action_builder):
         for h in move_zone:
-            if h.resident.is_tree() and h.owner_id == self.player_id:
+            if (h.resident.is_tree() and h.owner_id == self.player_id
+                and (h.x, h.y) not in self.targeted_hexes):  # Check if not already targeted
                 action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
+                self.targeted_hexes.add((h.x, h.y))  # Mark as targeted
                 return True
         return False
 
@@ -360,20 +399,145 @@ class AiEasy(AiBase):
         print(f"[AI] spend_money_and_merge: money={province.money}")
         self.try_to_build_units_on_palms(province, board, action_builder)
 
+        # Track units built this turn for this province
+        units_built_this_turn = 0
+        build_limit = self.get_build_limit_for_province(province)
+        print(f"[AI] Build limit for this province: {build_limit}")
+
         # Try to attack with units of increasing strength
         for i in range(1, 5):
-            print(f"[AI] Checking strength {i}, can_afford={province.can_afford_unit(i)}, money={province.money}")
-            if not province.can_afford_unit(i): break
-            while self.can_province_build_unit(province, i):
-                if not self.try_to_attack_with_strength(province, i, board, action_builder): break
+            print(f"[AI] Checking strength {i}, can_afford={province.can_afford_unit(i)}, money={province.money}, built={units_built_this_turn}/{build_limit}")
+            if not province.can_afford_unit(i): 
+                break  # Can't afford this strength, so can't afford higher ones either
+            
+            # Try to build multiple units of this strength (but respect build limit)
+            while self.can_province_build_unit(province, i) and units_built_this_turn < build_limit:
+                success = self.try_to_attack_with_strength(province, i, board, action_builder)
+                if not success:
+                    break  # Can't attack with this strength, try next strength level
+                units_built_this_turn += 1
+                print(f"[AI] Built unit, total this turn: {units_built_this_turn}/{build_limit}")
 
         # Kick start province - if we have few units, try to build one to attack
-        if province.can_afford_unit(1) and len(province.get_units()) <= 1:
+        if province.can_afford_unit(1) and len(province.get_units()) <= 1 and units_built_this_turn < build_limit:
              self.try_to_attack_with_strength(province, 1, board, action_builder)
 
-        # Merge units (random chance)
-        if random.random() < 0.25:
+        # Merge units (increased probability to help break stalemates)
+        if random.random() < 0.5:  # Increased from 0.25 to 0.5
             self.merge_units(province, board, action_builder)
+    
+    def try_to_build_towers(self, province, board, action_builder):
+        """Build towers for defense - Java: ArtificialIntelligence.tryToBuildTowers"""
+        while province.has_money_for_tower():
+            hex_for_tower = self.find_hex_that_needs_tower(province, board)
+            if not hex_for_tower:
+                return
+            print(f"[AI] Building tower at ({hex_for_tower.x}, {hex_for_tower.y})")
+            action_builder.add_build(Resident.Tower, hex_for_tower.x, hex_for_tower.y)
+            province.money -= 15
+            if province.capital:
+                province.capital.money = province.money
+            hex_for_tower.resident = Resident.Tower
+    
+    def find_hex_that_needs_tower(self, province, board):
+        """Find a hex that would benefit from a tower - Java: ArtificialIntelligence.findHexThatNeedsTower"""
+        for hex in province.hex_list:
+            if self.need_tower_on_hex(hex, board):
+                return hex
+        return None
+    
+    def need_tower_on_hex(self, hex, board):
+        """Check if a hex needs a tower - Java: ArtificialIntelligence.needTowerOnHex"""
+        if not hex.resident.is_empty():
+            return False
+        
+        # Tower should protect at least 5 hexes
+        defense_gain = self.get_predicted_defense_gain_by_new_tower(hex, board)
+        return defense_gain >= 5
+    
+    def get_predicted_defense_gain_by_new_tower(self, hex, board):
+        """Calculate how many hexes would be protected by a tower here - Java: ArtificialIntelligence.getPredictedDefenseGainByNewTower"""
+        count = 0
+        
+        # Count this hex if not already defended
+        if not self.is_defended_by_tower(hex, board):
+            count += 1
+        
+        # Count adjacent friendly hexes that aren't defended
+        for neighbor in hex.get_neighbors(board):
+            if neighbor.owner_id == hex.owner_id:
+                if not self.is_defended_by_tower(neighbor, board):
+                    count += 1
+                # Penalize if neighbor already has a tower (redundant)
+                if neighbor.resident in [Resident.Tower, Resident.StrongTower]:
+                    count -= 1
+        
+        return count
+    
+    def try_to_build_farms(self, province, board, action_builder):
+        """Build farms for income - Java: ArtificialIntelligenceGeneric.tryToBuildFarms"""
+        MAX_EXTRA_FARM_COST = 80
+        
+        # Don't build too many farms if upkeep is too high
+        if province.get_extra_farm_cost() > MAX_EXTRA_FARM_COST:
+            return
+        
+        while province.has_money_for_farm():
+            # Check if it's a good time to build a farm
+            if not self.is_ok_to_build_new_farm(province, board):
+                return
+            
+            hex_for_farm = self.find_good_hex_for_farm(province, board)
+            if not hex_for_farm:
+                return
+            
+            print(f"[AI] Building farm at ({hex_for_farm.x}, {hex_for_farm.y})")
+            action_builder.add_build(Resident.Farm, hex_for_farm.x, hex_for_farm.y)
+            province.money -= 15
+            if province.capital:
+                province.capital.money = province.money
+            hex_for_farm.resident = Resident.Farm
+    
+    def is_ok_to_build_new_farm(self, province, board):
+        """Check if it's a good time to build a new farm - Java: ArtificialIntelligenceGeneric.isOkToBuildNewFarm"""
+        # If we have lots of money, always ok
+        if province.money > 2 * province.get_current_farm_price():
+            return True
+        
+        # If there are towers that need building, prioritize them
+        if self.find_hex_that_needs_tower(province, board) is not None:
+            return False
+        
+        return True
+    
+    def find_good_hex_for_farm(self, province, board):
+        """Find a good hex for a farm - Java: ArtificialIntelligenceGeneric.findGoodHexForFarm"""
+        # Check if province has any good hexes for farms
+        candidates = [h for h in province.hex_list if self.is_hex_good_for_farm(h, board)]
+        if not candidates:
+            return None
+        
+        # Pick a random good hex
+        return random.choice(candidates)
+    
+    def is_hex_good_for_farm(self, hex, board):
+        """Check if a hex is good for a farm - Java: ArtificialIntelligenceGeneric.isHexGoodForFarm"""
+        if hex.resident != Resident.Empty:
+            return False
+        
+        # Farm must be adjacent to castle or another farm
+        for neighbor in hex.get_neighbors(board):
+            if neighbor.owner_id == hex.owner_id:
+                if neighbor.resident in [Resident.Castle, Resident.Farm]:
+                    return True
+        
+        return False
+    
+    def get_build_limit_for_province(self, province):
+        """Get maximum units that can be built per turn for a province"""
+        # Match Java implementation: max(3, province_size / 4), capped at 10
+        bottom = max(3, len(province.hex_list) // 4)
+        return min(bottom, 10)
 
     def try_to_build_units_on_palms(self, province, board, action_builder):
         if not province.can_afford_unit(1): return
@@ -391,6 +555,8 @@ class AiEasy(AiBase):
                     print(f"[AI] Building unit on palm at ({h.x}, {h.y})")
                     action_builder.add_place(Resident.Warrior1, province.capital.x, province.capital.y, h.x, h.y)
                     province.money -= 10
+                    if province.capital:  # Update the actual hex money
+                        province.capital.money = province.money
                     h.resident = Resident.Warrior1Moved  # Mark as no longer a palm
                     killed_palm = True
                     break
@@ -442,28 +608,33 @@ class AiEasy(AiBase):
     def try_to_attack_with_strength(self, province, strength, board, action_builder):
         if not province.capital: return False
         
-        # Find all border hexes (enemy/neutral hexes adjacent to our province)
-        # In Antiyoy, you can place units on ANY hex adjacent to your province!
-        all_attackable = []
-        for h in province.hex_list:
-            for n in h.get_neighbors(board):
-                if (n.owner_id != self.player_id 
-                    and n.resident != Resident.Water
-                    and self.can_conquer(n, strength, board)
-                    and (n.x, n.y) not in self.targeted_hexes
-                    and n not in all_attackable):
-                    all_attackable.append(n)
+        #Find all hexes reachable from capital with this unit strength
+        move_zone = self.detect_move_zone(province.capital, strength, board)
         
-        print(f"[AI] try_to_attack_with_strength({strength}): province_hexes={len(province.hex_list)}, attackable={len(all_attackable)}")
+        # Find attackable hexes (enemy/neutral that we can conquer)
+        attackable_hexes = [h for h in move_zone 
+                           if h.owner_id != self.player_id 
+                           and h.resident != Resident.Water
+                           and self.can_conquer(h, strength, board)
+                           and (h.x, h.y) not in self.targeted_hexes]
         
-        if not all_attackable: return False
+        print(f"[AI] try_to_attack_with_strength({strength}): province_hexes={len(province.hex_list)}, attackable={len(attackable_hexes)}, money={province.money}")
+        if attackable_hexes and len(attackable_hexes) <= 5:
+            for h in attackable_hexes:
+                print(f"[AI]   Can place strength-{strength} at ({h.x}, {h.y}) owner={h.owner_id}")
         
-        best_hex = self.find_most_attractive_hex(all_attackable, province, strength, board)
+        if not attackable_hexes:
+            print(f"[AI] No hexes attackable with strength {strength}")
+            return False
+        
+        best_hex = self.find_most_attractive_hex(attackable_hexes, province, strength, board)
         if best_hex and province.capital:
             resident = self.get_unit_resident(strength)
             print(f"[AI] Placing unit {resident} from capital ({province.capital.x}, {province.capital.y}) to ({best_hex.x}, {best_hex.y})")
             action_builder.add_place(resident, province.capital.x, province.capital.y, best_hex.x, best_hex.y)
             province.money -= 10 * strength
+            if province.capital:  # Update the actual hex money to keep in sync
+                province.capital.money = province.money
             self.targeted_hexes.add((best_hex.x, best_hex.y))  # Mark as targeted
             return True
         return False
@@ -577,29 +748,37 @@ class AiEasy(AiBase):
         return move_zone
     
     def can_conquer(self, hex, strength, board):
-        """Check if a unit with given strength can conquer this hex"""
+        """Check if a unit with given strength can conquer this hex
+        
+        This MUST match C++'s Hexagon::allows() function exactly!
+        """
         if hex.resident == Resident.Water:
             return False
-        if hex.owner_id == 0:
-            # Neutral territory - can always take empty land
-            return True
-            
-        # Enemy territory - check defense
-        if strength == 4:
-            return True  # Strength 4 can conquer anything
-            
-        # Check if defended by tower in neighboring hex
-        for n in hex.get_neighbors(board):
-            if n.owner_id == hex.owner_id:
-                if n.resident == Resident.Tower and strength < 3:
-                    return False
-                if n.resident == Resident.StrongTower and strength < 4:
-                    return False
         
-        # Check resident defense on the hex itself
-        defender_strength = self.get_defense_strength(hex)
-        if strength <= defender_strength:
-            return False
+        # If it's our own hex
+        if hex.owner_id == self.player_id:
+            if hex.resident.is_unit():
+                # Check if we can merge warriors
+                merged = self.merge_warriors(hex.resident, self.get_unit_resident(strength))
+                return merged is not None
+            # Can step on own land (power < 0), trees, graves
+            power = self.get_defense_strength(hex)
+            return power < 0 or hex.resident in [Resident.Empty, Resident.Gravestone, Resident.PalmTree, Resident.PineTree]
+        
+        # Enemy or neutral hex - check combat rules
+        if strength == 4:
+            return True  # Warrior4 crushes everything
+        
+        # CRITICAL: Check target hex AND ALL its neighbors for defenders
+        # This matches C++'s allows() function exactly
+        neighbors = hex.get_neighbors(board)
+        all_hexes_to_check = neighbors + [hex]  # Include the hex itself
+        
+        for n in all_hexes_to_check:
+            if n.owner_id == hex.owner_id:  # Same owner as target (defender)
+                defender_power = self.get_defense_strength(n)
+                if defender_power >= strength:
+                    return False  # Defender blocks attack
         
         return True
 
@@ -974,6 +1153,15 @@ class ActionBuilder:
         self.num += 1
         if self.num == 255:
             self.send()
+    
+    def add_build(self, resident: int, x: int, y: int):
+        """Build a structure (farm or tower) on a hex"""
+        self.buffer.append(ActionType.BUILD)
+        self.buffer.append(resident)
+        self.buffer.extend(struct.pack("!HH", x, y))
+        self.num += 1
+        if self.num == 255:
+            self.send()
 
     def add_move(self, x_from: int, y_from: int, x_to: int, y_to: int):
         """
@@ -1059,6 +1247,7 @@ class ActionBuilder:
         if not self.buffer:
             return
 
+        print(f"[DEBUG] Sending {self.num} action(s), buffer size: {len(self.buffer)} bytes")
         sock.sendall(bytes([ACTION_SOCKET_TAG]))
         sock.sendall(bytes([self.num]))
         sock.sendall(self.buffer)
@@ -1081,6 +1270,7 @@ if len(sys.argv) >= 3:
 
 
 currentBotPlayer = 0
+last_rejected_board_hash = None  # Track board hash where moves were rejected
 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1138,53 +1328,72 @@ try:
                 print("\n-----------------------------------------")
                 print(f"Playing as Player {payload}")
 
-            elif tag == BOARD_SOCKET_TAG: # Kiedy otrzymamy planszę to wykonujemy ruch
+            elif tag == BOARD_SOCKET_TAG: # Kiedy otrzymamy planszę to otrzymujemy ruch
+                #global last_rejected_board_hash  # Declare at the top
+                
                 print(payload)
                 payload.print_owners()
                 payload.print_residents()
                 payload.print_money()
 
-                if currentBotPlayer != 1:
-                    payload.swap_players(1, currentBotPlayer) # Dla ułatwienia trenowania AI zawsze widzi siebie jako 1 
-
+                # DON'T swap players - use actual player ID
+                # The swap was causing the bot to try to move enemy units!
+                
+                # Create a simple board hash to detect if we've seen this exact board before
+                board_hash = hash((tuple(h.owner_id for h in payload.hexes), 
+                                  tuple(h.resident for h in payload.hexes),
+                                  tuple(h.money for h in payload.hexes)))
+                
                 # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
                 ab = ActionBuilder()
                 
-                # Initialize AI
-                ai = AiEasy(1) # We are always player 1 after swap
-                try:
-                    ai.make_move(payload, ab)
-                except Exception as e:
-                    print(f"[AI ERROR] {e}")
-                    import traceback
-                    traceback.print_exc()
+                # Check if we just got rejected on this exact board
+                if last_rejected_board_hash is not None and last_rejected_board_hash == board_hash:
+                    print(f"[AI] Skipping moves - was just rejected on this board")
+                    last_rejected_board_hash = None  # Reset for next time
+                else:
+                    # Initialize AI with the actual current player ID
+                    ai = AiEasy(currentBotPlayer)
+                    try:
+                        ai.make_move(payload, ab)
+                    except Exception as e:
+                        print(f"[AI ERROR] {e}")
+                        import traceback
+                        traceback.print_exc()
                 
                 # Send moves and handle responses
                 still_awaiting = True
+                moves_were_rejected = False
                 while still_awaiting:
-                    if ab.buffer:
+                    if ab.buffer and not moves_were_rejected:
                         ab.send()
                         tag, conf = receive_next()
                         if tag == CONFIRMATION_SOCKET_TAG:
                             approved, still_awaiting = conf
                             print(f"Approved: {approved}, Still awaiting: {still_awaiting}")
                             if not approved:
-                                print("[AI] Move rejected")
-                                # Clear buffer and just end turn
+                                print(f"[AI] Move rejected, will send END_TURN on next board")
+                                # Server already sent a new BOARD message after this rejection
+                                # Store board hash so we skip moves if we see this board again
+                                last_rejected_board_hash = board_hash
                                 ab.buffer.clear()
                                 ab.num = 0
+                                moves_were_rejected = True
+                                # Don't break - continue to send END_TURN
                         else:
                             print(f"[AI] Unexpected response: {tag}")
+                            # Unexpected response - clear buffer and break
+                            ab.buffer.clear()
+                            ab.num = 0
                             break
                     else:
-                        # No more moves to send, end turn
-                        ab.add_end_turn()
-                        tag, conf = receive_next()
-                        if tag == CONFIRMATION_SOCKET_TAG:
-                            approved, still_awaiting = conf
-                            print(f"End turn - Approved: {approved}, Still awaiting: {still_awaiting}")
+                        # No more moves to send (or moves were rejected), end turn
+                        if moves_were_rejected:
+                            print(f"[AI] Sending END_TURN after rejection")
                         else:
-                            print(f"[AI] Unexpected response after end turn: {tag}")
+                            print(f"[AI] Sending END_TURN")
+                        ab.add_end_turn()
+                        # After END_TURN, break and let outer loop handle the response
                         break
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
