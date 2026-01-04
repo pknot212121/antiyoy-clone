@@ -643,8 +643,8 @@ class ImprovedAI:
         target = self.find_most_attractive_hex(attack_targets, strength)
         if not target:
             return False
-            
-            resident = GameUtils.strength_to_warrior(strength)
+        
+        resident = GameUtils.strength_to_warrior(strength)
         self.log(f"    -> {resident.name} attacks ({target.x},{target.y})")
         
         if self.send_place(resident, province.castle_hex, target):

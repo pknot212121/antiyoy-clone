@@ -10,7 +10,18 @@ from enum import IntEnum
 
 # Force unbuffered output
 import functools
-print = functools.partial(print, flush=True)
+_original_print = functools.partial(print, flush=True)
+
+# Global training mode flag (will be set later)
+_training_mode = False
+
+def debug_print(*args, **kwargs):
+    """Print only if not in training mode"""
+    if not _training_mode:
+        _original_print(*args, **kwargs)
+
+# Use debug_print for verbose output, _original_print for important messages
+print = _original_print
 
 # Nazewnictwo i kolejność odpowiadają tym z gry, ich zmiana może uszkodzić rozczytywanie planszy
 class Resident(IntEnum):
@@ -217,19 +228,19 @@ class AiBase:
 
 class AiEasy(AiBase):
     def make_move(self, board, action_builder):
-        print("[AI] make_move started")
+        debug_print("[AI] make_move started")
         # Clear targeted hexes at the start of turn
         self.targeted_hexes = set()
         
         provinces = board.get_provinces(self.player_id)
-        print(f"[AI] Found {len(provinces)} provinces for player {self.player_id}")
+        debug_print(f"[AI] Found {len(provinces)} provinces for player {self.player_id}")
         for i, province in enumerate(provinces):
             if province.capital:
-                print(f"[AI] Province {i}: {len(province.hex_list)} hexes, capital at ({province.capital.x}, {province.capital.y}) with money {province.money}")
+                debug_print(f"[AI] Province {i}: {len(province.hex_list)} hexes, capital at ({province.capital.x}, {province.capital.y}) with money {province.money}")
             else:
-                print(f"[AI] Province {i}: {len(province.hex_list)} hexes, NO CAPITAL, money {province.money}")
+                debug_print(f"[AI] Province {i}: {len(province.hex_list)} hexes, NO CAPITAL, money {province.money}")
             if not province.hex_list:
-                print(f"[AI] Skipping empty province")
+                debug_print(f"[AI] Skipping empty province")
                 continue
             self.move_units(province, board, action_builder)
             # TODO: Farm and tower building require BUILD action in game engine
@@ -240,27 +251,27 @@ class AiEasy(AiBase):
 
     def move_units(self, province, board, action_builder):
         units = [h for h in province.hex_list if h.resident.is_unit() and h.resident.is_ready_to_move()]
-        print(f"[AI] Found {len(units)} units ready to move in province")
+        debug_print(f"[AI] Found {len(units)} units ready to move in province")
         for unit_hex in units:
-            print(f"[AI] ========================================")
-            print(f"[AI] Processing unit at ({unit_hex.x}, {unit_hex.y}), strength={unit_hex.resident.get_strength()}")
+            debug_print(f"[AI] ========================================")
+            debug_print(f"[AI] Processing unit at ({unit_hex.x}, {unit_hex.y}), strength={unit_hex.resident.get_strength()}")
             if not unit_hex.resident.is_ready_to_move(): continue
             
             move_zone = self.detect_move_zone(unit_hex, unit_hex.resident.get_strength(), board)
-            print(f"[AI] Move zone has {len(move_zone)} hexes")
+            debug_print(f"[AI] Move zone has {len(move_zone)} hexes")
             
             # Log what's in the move zone
             neutral_count = sum(1 for h in move_zone if h.owner_id == 0)
             enemy_count = sum(1 for h in move_zone if h.owner_id != 0 and h.owner_id != self.player_id)
             friendly_count = sum(1 for h in move_zone if h.owner_id == self.player_id)
-            print(f"[AI] Move zone: {neutral_count} neutral, {enemy_count} enemy, {friendly_count} friendly")
+            debug_print(f"[AI] Move zone: {neutral_count} neutral, {enemy_count} enemy, {friendly_count} friendly")
             
             self.exclude_friendly_units(move_zone, self.player_id)
             self.exclude_friendly_buildings(move_zone, self.player_id)
             
-            print(f"[AI] After filtering: {len(move_zone)} valid targets")
+            debug_print(f"[AI] After filtering: {len(move_zone)} valid targets")
             if not move_zone:
-                print(f"[AI] No valid targets, skipping unit")
+                debug_print(f"[AI] No valid targets, skipping unit")
                 continue
             
             self.decide_about_unit(unit_hex, move_zone, province, action_builder)
@@ -276,30 +287,30 @@ class AiEasy(AiBase):
         attackable_hexes = [h for h in self.find_attackable_hexes(move_zone, strength, province.board)
                            if (h.x, h.y) not in self.targeted_hexes]
         
-        print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}): {len(attackable_hexes)} attackable hexes")
+        debug_print(f"[AI] Unit at ({unit_hex.x}, {unit_hex.y}): {len(attackable_hexes)} attackable hexes")
         if attackable_hexes:
             for h in attackable_hexes[:5]:  # Log first 5 targets
-                print(f"[AI]   Attackable: ({h.x}, {h.y}) owner={h.owner_id} resident={h.resident}")
+                debug_print(f"[AI]   Attackable: ({h.x}, {h.y}) owner={h.owner_id} resident={h.resident}")
         
         if attackable_hexes:
             # Attack the most attractive hex
             best_hex = self.find_most_attractive_hex(attackable_hexes, province, strength, province.board)
             if best_hex:
-                print(f"[AI] ✓ Unit ATTACKING from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y}) (owner={best_hex.owner_id})")
+                debug_print(f"[AI] ✓ Unit ATTACKING from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y}) (owner={best_hex.owner_id})")
                 action_builder.add_move(unit_hex.x, unit_hex.y, best_hex.x, best_hex.y)
                 self.targeted_hexes.add((best_hex.x, best_hex.y))  # Mark as targeted
                 return
         else:
-            print(f"[AI] No attackable hexes for this unit")
+            debug_print(f"[AI] No attackable hexes for this unit")
             # Nothing to attack - try to clean trees
             cleaned_trees = self.check_to_clean_some_trees(unit_hex, move_zone, province, action_builder)
             if cleaned_trees:
-                print(f"[AI] ✓ Unit cleaned trees")
+                debug_print(f"[AI] ✓ Unit cleaned trees")
             elif self.is_in_perimeter(unit_hex, province.board):
-                print(f"[AI] Unit on perimeter, pushing to better defense")
+                debug_print(f"[AI] Unit on perimeter, pushing to better defense")
                 self.push_unit_to_better_defense(unit_hex, move_zone, province, action_builder)
             else:
-                print(f"[AI] Unit has nothing to do")
+                debug_print(f"[AI] Unit has nothing to do")
 
     def find_attackable_hexes(self, move_zone, strength, board):
         """Find all hexes that are not owned by us and that we can conquer"""
@@ -309,7 +320,7 @@ class AiEasy(AiBase):
         for h in move_zone:
             if (h.resident == Resident.PalmTree and h.owner_id == self.player_id 
                 and (h.x, h.y) not in self.targeted_hexes):  # Check if not already targeted
-                print(f"[AI] Unit cleaning palm from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
+                debug_print(f"[AI] Unit cleaning palm from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
                 action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
                 self.targeted_hexes.add((h.x, h.y))  # Mark as targeted
                 return True
@@ -332,7 +343,7 @@ class AiEasy(AiBase):
                     if n.owner_id != self.player_id and n.owner_id != 0 and n.resident != Resident.Water:
                         enemy_neighbors += 1
                 if enemy_neighbors == 0:
-                    print(f"[AI] Unit retreating from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
+                    debug_print(f"[AI] Unit retreating from ({unit_hex.x}, {unit_hex.y}) to ({h.x}, {h.y})")
                     action_builder.add_move(unit_hex.x, unit_hex.y, h.x, h.y)
                     return
     
@@ -389,24 +400,24 @@ class AiEasy(AiBase):
                 best_hex = h
         
         if best_hex:
-            print(f"[AI] Unit moving towards enemy from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y})")
+            debug_print(f"[AI] Unit moving towards enemy from ({unit_hex.x}, {unit_hex.y}) to ({best_hex.x}, {best_hex.y})")
             action_builder.add_move(unit_hex.x, unit_hex.y, best_hex.x, best_hex.y)
             return True
         
         return False
 
     def spend_money_and_merge(self, province, board, action_builder):
-        print(f"[AI] spend_money_and_merge: money={province.money}")
+        debug_print(f"[AI] spend_money_and_merge: money={province.money}")
         self.try_to_build_units_on_palms(province, board, action_builder)
 
         # Track units built this turn for this province
         units_built_this_turn = 0
         build_limit = self.get_build_limit_for_province(province)
-        print(f"[AI] Build limit for this province: {build_limit}")
+        debug_print(f"[AI] Build limit for this province: {build_limit}")
 
         # Try to attack with units of increasing strength
         for i in range(1, 5):
-            print(f"[AI] Checking strength {i}, can_afford={province.can_afford_unit(i)}, money={province.money}, built={units_built_this_turn}/{build_limit}")
+            debug_print(f"[AI] Checking strength {i}, can_afford={province.can_afford_unit(i)}, money={province.money}, built={units_built_this_turn}/{build_limit}")
             if not province.can_afford_unit(i): 
                 break  # Can't afford this strength, so can't afford higher ones either
             
@@ -416,7 +427,7 @@ class AiEasy(AiBase):
                 if not success:
                     break  # Can't attack with this strength, try next strength level
                 units_built_this_turn += 1
-                print(f"[AI] Built unit, total this turn: {units_built_this_turn}/{build_limit}")
+                debug_print(f"[AI] Built unit, total this turn: {units_built_this_turn}/{build_limit}")
 
         # Kick start province - if we have few units, try to build one to attack
         if province.can_afford_unit(1) and len(province.get_units()) <= 1 and units_built_this_turn < build_limit:
@@ -432,7 +443,7 @@ class AiEasy(AiBase):
             hex_for_tower = self.find_hex_that_needs_tower(province, board)
             if not hex_for_tower:
                 return
-            print(f"[AI] Building tower at ({hex_for_tower.x}, {hex_for_tower.y})")
+            debug_print(f"[AI] Building tower at ({hex_for_tower.x}, {hex_for_tower.y})")
             action_builder.add_build(Resident.Tower, hex_for_tower.x, hex_for_tower.y)
             province.money -= 15
             if province.capital:
@@ -491,7 +502,7 @@ class AiEasy(AiBase):
             if not hex_for_farm:
                 return
             
-            print(f"[AI] Building farm at ({hex_for_farm.x}, {hex_for_farm.y})")
+            debug_print(f"[AI] Building farm at ({hex_for_farm.x}, {hex_for_farm.y})")
             action_builder.add_build(Resident.Farm, hex_for_farm.x, hex_for_farm.y)
             province.money -= 15
             if province.capital:
@@ -510,10 +521,13 @@ class AiEasy(AiBase):
         
         return True
     
-    def find_good_hex_for_farm(self, province, board):
+    def find_good_hex_for_farm(self, province, board, exclude=None):
         """Find a good hex for a farm - Java: ArtificialIntelligenceGeneric.findGoodHexForFarm"""
+        exclude = exclude or set()
         # Check if province has any good hexes for farms
-        candidates = [h for h in province.hex_list if self.is_hex_good_for_farm(h, board)]
+        candidates = [h for h in province.hex_list 
+                     if self.is_hex_good_for_farm(h, board) 
+                     and (h.x, h.y) not in exclude]
         if not candidates:
             return None
         
@@ -552,7 +566,7 @@ class AiEasy(AiBase):
             killed_palm = False
             for h in move_zone:
                 if h.resident == Resident.PalmTree and h.owner_id == self.player_id:
-                    print(f"[AI] Building unit on palm at ({h.x}, {h.y})")
+                    debug_print(f"[AI] Building unit on palm at ({h.x}, {h.y})")
                     action_builder.add_place(Resident.Warrior1, province.capital.x, province.capital.y, h.x, h.y)
                     province.money -= 10
                     if province.capital:  # Update the actual hex money
@@ -618,19 +632,19 @@ class AiEasy(AiBase):
                            and self.can_conquer(h, strength, board)
                            and (h.x, h.y) not in self.targeted_hexes]
         
-        print(f"[AI] try_to_attack_with_strength({strength}): province_hexes={len(province.hex_list)}, attackable={len(attackable_hexes)}, money={province.money}")
+        debug_print(f"[AI] try_to_attack_with_strength({strength}): province_hexes={len(province.hex_list)}, attackable={len(attackable_hexes)}, money={province.money}")
         if attackable_hexes and len(attackable_hexes) <= 5:
             for h in attackable_hexes:
-                print(f"[AI]   Can place strength-{strength} at ({h.x}, {h.y}) owner={h.owner_id}")
+                debug_print(f"[AI]   Can place strength-{strength} at ({h.x}, {h.y}) owner={h.owner_id}")
         
         if not attackable_hexes:
-            print(f"[AI] No hexes attackable with strength {strength}")
+            debug_print(f"[AI] No hexes attackable with strength {strength}")
             return False
         
         best_hex = self.find_most_attractive_hex(attackable_hexes, province, strength, board)
         if best_hex and province.capital:
             resident = self.get_unit_resident(strength)
-            print(f"[AI] Placing unit {resident} from capital ({province.capital.x}, {province.capital.y}) to ({best_hex.x}, {best_hex.y})")
+            debug_print(f"[AI] Placing unit {resident} from capital ({province.capital.x}, {province.capital.y}) to ({best_hex.x}, {best_hex.y})")
             action_builder.add_place(resident, province.capital.x, province.capital.y, best_hex.x, best_hex.y)
             province.money -= 10 * strength
             if province.capital:  # Update the actual hex money to keep in sync
@@ -842,6 +856,451 @@ class AiEasy(AiBase):
         return c
 
 
+# ==================== RL COMPONENTS ====================
+
+class RLAction(IntEnum):
+    """High-level strategic actions for RL to choose from."""
+    ATTACK = 0      # Build attack units, assault enemies
+    DEFEND = 1      # Build towers, defensive positioning
+    FARM = 2        # Build farms for income
+    EXPAND = 3      # Grab neutral territory with cheap units
+    WAIT = 4        # Save money for next turn
+
+
+class QTablePolicy:
+    """Simple Q-learning with discretized state. No dependencies required."""
+    
+    def __init__(self, num_actions=5, learning_rate=0.1, discount=0.95, epsilon=0.5):
+        self.num_actions = num_actions
+        self.lr = learning_rate
+        self.gamma = discount
+        self.epsilon = epsilon
+        self.epsilon_min = 0.05
+        self.epsilon_decay = 0.995
+        self.q_table = {}
+    
+    def discretize_state(self, state):
+        """Convert continuous state to discrete bins (5 bins per feature)."""
+        return tuple(min(int(s * 5), 4) for s in state)
+    
+    def get_q_values(self, state):
+        """Get Q-values for all actions."""
+        key = self.discretize_state(state)
+        if key not in self.q_table:
+            self.q_table[key] = [random.uniform(-0.1, 0.1) for _ in range(self.num_actions)]
+        return self.q_table[key]
+    
+    def choose_action(self, state):
+        """Epsilon-greedy action selection."""
+        if random.random() < self.epsilon:
+            return random.randint(0, self.num_actions - 1)
+        q_values = self.get_q_values(state)
+        return q_values.index(max(q_values))
+    
+    def update(self, state, action, reward, next_state, done):
+        """Q-learning update rule."""
+        q_values = self.get_q_values(state)
+        next_q_values = self.get_q_values(next_state)
+        
+        if done:
+            target = reward
+        else:
+            target = reward + self.gamma * max(next_q_values)
+        
+        q_values[action] += self.lr * (target - q_values[action])
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+    
+    def save(self, filepath):
+        """Save Q-table to JSON."""
+        import json
+        data = {
+            'q_table': {str(k): v for k, v in self.q_table.items()},
+            'epsilon': self.epsilon
+        }
+        with open(filepath, 'w') as f:
+            json.dump(data, f)
+        print(f"[RL] Saved Q-table ({len(self.q_table)} states) to {filepath}")
+    
+    def load(self, filepath):
+        """Load Q-table from JSON."""
+        import json
+        import os
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+            self.q_table = {eval(k): v for k, v in data['q_table'].items()}
+            self.epsilon = data.get('epsilon', self.epsilon)
+            print(f"[RL] Loaded Q-table ({len(self.q_table)} states) from {filepath}")
+            return True
+        return False
+
+
+class RewardCalculator:
+    """Calculate reward signal for RL training."""
+    
+    def __init__(self):
+        self.reset()
+    
+    def reset(self):
+        self.prev_hexes = 0
+        self.prev_income = 0
+        self.prev_enemy_hexes = 0
+        self.prev_units = 0
+    
+    def calculate(self, my_hexes, income, enemy_hexes, my_units, won=False, lost=False):
+        """Calculate reward based on game state changes."""
+        reward = 0.0
+        
+        # Territory gained/lost
+        hex_delta = my_hexes - self.prev_hexes
+        reward += hex_delta * 1.0
+        
+        # Income change
+        income_delta = income - self.prev_income
+        reward += income_delta * 0.5
+        
+        # Enemy territory lost (we're winning)
+        enemy_lost = self.prev_enemy_hexes - enemy_hexes
+        reward += enemy_lost * 0.5
+        
+        # Unit losses (penalize)
+        unit_delta = my_units - self.prev_units
+        if unit_delta < 0:
+            reward += unit_delta * 2.0
+        
+        # Win/Lose
+        if won:
+            reward += 100.0
+        if lost:
+            reward -= 100.0
+        
+        # Update previous values
+        self.prev_hexes = my_hexes
+        self.prev_income = income
+        self.prev_enemy_hexes = enemy_hexes
+        self.prev_units = my_units
+        
+        return reward
+
+
+class AiRL(AiEasy):
+    """
+    RL-controlled AI that inherits movement logic from AiEasy.
+    
+    HARDCODED (always happens):
+    - Move existing units (attack, clean palms/trees, retreat)
+    
+    RL-CONTROLLED:
+    - How to spend money (ATTACK, DEFEND, FARM, EXPAND, WAIT)
+    """
+    
+    def __init__(self, player_id, policy=None):
+        super().__init__(player_id)
+        self.policy = policy
+        self.last_state = None
+        self.last_action = None
+    
+    def make_move(self, board, action_builder):
+        global TRAINING_MODE
+        if not TRAINING_MODE:
+            print("[RL-AI] make_move started")
+        self.targeted_hexes = set()
+        
+        provinces = board.get_provinces(self.player_id)
+        if not TRAINING_MODE:
+            print(f"[RL-AI] Found {len(provinces)} provinces")
+        
+        for i, province in enumerate(provinces):
+            if not province.hex_list or not province.capital:
+                continue
+            
+            if not TRAINING_MODE:
+                print(f"[RL-AI] Province {i}: {len(province.hex_list)} hexes, {province.money}g")
+            
+            # HARDCODED: Always move existing units (they're paid for!)
+            self.move_units(province, board, action_builder)
+            
+            # HARDCODED: Always clear palms (saves money)
+            self.try_to_build_units_on_palms(province, board, action_builder)
+            
+            # RL DECISION: How to spend remaining money
+            state = self.extract_state(province, board)
+            
+            if self.policy:
+                action = self.policy.choose_action(state)
+            else:
+                action = self.rule_based_fallback(province, board)
+            
+            if not TRAINING_MODE:
+                action_name = RLAction(action).name
+                epsilon = self.policy.epsilon if self.policy else 0
+                print(f"[RL-AI] Chose action: {action_name} (ε={epsilon:.2f})")
+            
+            self.execute_rl_action(action, province, board, action_builder)
+            
+            # Store for learning
+            self.last_state = state
+            self.last_action = action
+    
+    def extract_state(self, province, board):
+        """Extract 14 normalized features for RL model."""
+        total_hexes = board.width * board.height
+        my_hexes = len(province.hex_list)
+        
+        # Count enemies and neutral
+        enemy_hexes = sum(1 for h in board.hexes if h.owner_id != 0 and h.owner_id != self.player_id)
+        neutral_hexes = sum(1 for h in board.hexes if h.owner_id == 0 and h.resident != Resident.Water)
+        
+        # Count my units
+        my_units = sum(1 for h in province.hex_list if h.resident.is_unit())
+        
+        # Count threats (enemy units near my border)
+        threats = 0
+        threat_strength = 0
+        for h in province.hex_list:
+            for n in h.get_neighbors(board):
+                if n.owner_id != self.player_id and n.owner_id != 0:
+                    if n.resident.is_unit():
+                        threats += 1
+                        threat_strength += n.resident.get_strength()
+        
+        # Count front line (my hexes bordering enemy/neutral)
+        front_line = 0
+        for h in province.hex_list:
+            for n in h.get_neighbors(board):
+                if n.owner_id != self.player_id and n.resident != Resident.Water:
+                    front_line += 1
+                    break
+        
+        # Count neutral lands I can reach
+        neutral_nearby = 0
+        for h in province.hex_list:
+            for n in h.get_neighbors(board):
+                if n.owner_id == 0 and n.resident != Resident.Water:
+                    neutral_nearby += 1
+        
+        # Calculate income
+        income = self.get_province_income(province)
+        
+        # Count farms
+        farm_count = sum(1 for h in province.hex_list if h.resident == Resident.Farm)
+        
+        # Count undefended front line
+        undefended = 0
+        for h in province.hex_list:
+            if self.is_in_perimeter(h, board) and not self.is_defended_by_tower(h, board):
+                if not any(n.resident.is_unit() for n in h.get_neighbors(board) if n.owner_id == self.player_id):
+                    undefended += 1
+        
+        return [
+            min(province.money / 100.0, 1.0),           # 0: Money (normalized)
+            min(max(income, 0) / 20.0, 1.0),            # 1: Income
+            1.0 if province.can_afford_unit(1) else 0,  # 2: Can afford unit
+            my_hexes / total_hexes,                     # 3: My territory %
+            enemy_hexes / total_hexes,                  # 4: Enemy territory %
+            neutral_hexes / total_hexes,                # 5: Neutral %
+            min(my_units / 10.0, 1.0),                  # 6: My unit count
+            min(threats / 5.0, 1.0),                    # 7: Threats nearby
+            min(threat_strength / 10.0, 1.0),           # 8: Threat strength
+            min(front_line / 15.0, 1.0),                # 9: Front line size
+            min(undefended / 10.0, 1.0) if front_line > 0 else 0,  # 10: Undefended %
+            min(neutral_nearby / 10.0, 1.0),            # 11: Expansion opportunity
+            min(farm_count / 5.0, 1.0),                 # 12: Farm count
+            1.0 if province.money > 50 else 0,          # 13: Has savings
+        ]
+    
+    def get_province_income(self, province):
+        """Calculate province income (hexes - unit upkeep - trees)."""
+        income = 0
+        for h in province.hex_list:
+            if h.resident == Resident.Farm:
+                income += 4
+            elif h.resident.is_tree():
+                income -= 1
+            elif h.resident.is_unit():
+                strength = h.resident.get_strength()
+                upkeep = [0, 2, 6, 18, 36][strength]  # Warrior1=2, Warrior2=6, etc.
+                income -= upkeep
+            else:
+                income += 1  # Empty hex
+        return income
+    
+    def rule_based_fallback(self, province, board):
+        """Fallback if no RL policy is set."""
+        income = self.get_province_income(province)
+        
+        # Under threat? Defend
+        threats = sum(1 for h in province.hex_list 
+                     for n in h.get_neighbors(board) 
+                     if n.owner_id != self.player_id and n.owner_id != 0 and n.resident.is_unit())
+        if threats >= 2:
+            return RLAction.DEFEND
+        
+        # Low income? Farm
+        if income < 3:
+            return RLAction.FARM
+        
+        # Lots of neutral land? Expand
+        neutral = sum(1 for h in province.hex_list 
+                     for n in h.get_neighbors(board) 
+                     if n.owner_id == 0 and n.resident != Resident.Water)
+        if neutral > 5:
+            return RLAction.EXPAND
+        
+        # Default: Attack
+        return RLAction.ATTACK
+    
+    def execute_rl_action(self, action, province, board, action_builder):
+        """Execute the chosen RL action."""
+        if action == RLAction.ATTACK:
+            self.action_attack(province, board, action_builder)
+        elif action == RLAction.DEFEND:
+            self.action_defend(province, board, action_builder)
+        elif action == RLAction.FARM:
+            self.action_farm(province, board, action_builder)
+        elif action == RLAction.EXPAND:
+            self.action_expand(province, board, action_builder)
+        elif action == RLAction.WAIT:
+            if not TRAINING_MODE:
+                print("[RL-AI] WAIT - saving money")
+    
+    def action_attack(self, province, board, action_builder):
+        """Build strong units and attack enemies."""
+        global TRAINING_MODE
+        if not TRAINING_MODE:
+            print("[RL-AI] ACTION: ATTACK")
+        units_built = 0
+        max_units = 3
+        
+        # Try to build attacking units (prioritize stronger if we can afford)
+        for strength in [2, 3, 1, 4]:  # Spearman first (good value), then baron, peasant, knight
+            while province.can_afford_unit(strength) and units_built < max_units:
+                # Check income before building expensive units
+                income = self.get_province_income(province)
+                upkeep = [0, 2, 6, 18, 36][strength]
+                if strength >= 3 and upkeep > income * 0.3:
+                    break  # Don't build if upkeep > 30% of income
+                
+                if self.try_to_attack_with_strength(province, strength, board, action_builder):
+                    units_built += 1
+                else:
+                    break
+    
+    def action_defend(self, province, board, action_builder):
+        """Build towers and defensive units on front line."""
+        global TRAINING_MODE
+        if not TRAINING_MODE:
+            print("[RL-AI] ACTION: DEFEND")
+        
+        # Build towers
+        towers_built = 0
+        while province.has_money_for_tower() and towers_built < 2:
+            best_hex = self.find_best_tower_location(province, board)
+            if not best_hex:
+                break
+            if not TRAINING_MODE:
+                print(f"[RL-AI] Building tower at ({best_hex.x}, {best_hex.y})")
+            action_builder.add_place(Resident.Tower, province.capital.x, province.capital.y, 
+                                    best_hex.x, best_hex.y)
+            province.money -= 15
+            best_hex.resident = Resident.Tower
+            towers_built += 1
+        
+        # Build defensive units on front line
+        units_built = 0
+        while province.can_afford_unit(1) and units_built < 2:
+            front_hexes = [h for h in province.hex_list 
+                          if self.is_in_perimeter(h, board) and self.hex_is_free(h)]
+            if not front_hexes:
+                break
+            target = front_hexes[0]
+            if not TRAINING_MODE:
+                print(f"[RL-AI] Building defender at ({target.x}, {target.y})")
+            action_builder.add_place(Resident.Warrior1, province.capital.x, province.capital.y,
+                                    target.x, target.y)
+            province.money -= 10
+            target.resident = Resident.Warrior1Moved
+            units_built += 1
+    
+    def find_best_tower_location(self, province, board):
+        """Find hex that would benefit most from a tower."""
+        best = None
+        best_gain = 0
+        
+        for h in province.hex_list:
+            if not self.hex_is_free(h):
+                continue
+            if not self.is_in_perimeter(h, board):
+                continue
+            
+            gain = self.get_predicted_defense_gain_by_new_tower(h, board)
+            if gain >= 4 and gain > best_gain:
+                best_gain = gain
+                best = h
+        
+        return best
+    
+    def action_farm(self, province, board, action_builder):
+        """Build farms for income."""
+        global TRAINING_MODE
+        if not TRAINING_MODE:
+            print("[RL-AI] ACTION: FARM")
+        
+        farms_built = 0
+        max_farms = 2
+        checked_hexes = set()  # Track hexes we've already considered
+        
+        while province.has_money_for_farm() and farms_built < max_farms:
+            best_hex = self.find_good_hex_for_farm(province, board, exclude=checked_hexes)
+            if not best_hex:
+                break
+            
+            checked_hexes.add((best_hex.x, best_hex.y))
+            
+            # Don't build on front line
+            if self.is_in_perimeter(best_hex, board):
+                continue  # Now safe - we track checked hexes
+            
+            if not TRAINING_MODE:
+                print(f"[RL-AI] Building farm at ({best_hex.x}, {best_hex.y})")
+            action_builder.add_place(Resident.Farm, province.capital.x, province.capital.y,
+                                    best_hex.x, best_hex.y)
+            province.money -= province.get_current_farm_price()
+            best_hex.resident = Resident.Farm
+            farms_built += 1
+    
+    def action_expand(self, province, board, action_builder):
+        """Grab neutral territory with cheap units."""
+        global TRAINING_MODE
+        if not TRAINING_MODE:
+            print("[RL-AI] ACTION: EXPAND")
+        
+        units_built = 0
+        max_units = 4  # More units for expansion
+        
+        while province.can_afford_unit(1) and units_built < max_units:
+            # Find neutral hexes we can reach
+            move_zone = self.detect_move_zone(province.capital, 1, board)
+            neutral_hexes = [h for h in move_zone 
+                           if h.owner_id == 0 
+                           and h.resident != Resident.Water
+                           and (h.x, h.y) not in self.targeted_hexes]
+            
+            if not neutral_hexes:
+                break
+            
+            # Pick best neutral hex (most friendly neighbors)
+            best = max(neutral_hexes, key=lambda h: self.get_attack_allure(h, self.player_id, board))
+            
+            if not TRAINING_MODE:
+                print(f"[RL-AI] Expanding to ({best.x}, {best.y})")
+            action_builder.add_place(Resident.Warrior1, province.capital.x, province.capital.y,
+                                    best.x, best.y)
+            province.money -= 10
+            self.targeted_hexes.add((best.x, best.y))
+            units_built += 1
+
+
 MAGIC_SOCKET_TAG = 0 # Magiczne numerki wysyłane na początku do socketa by mieć pewność że jesteśmy odpowiednio połączeni
 CONFIGURATION_SOCKET_TAG = 1 # Dane gry wysyłane przy rozpoczęciu nowej gry
 BOARD_SOCKET_TAG = 2 # Plansza (spłaszczona dwuwymiarowa tablica heksagonów)
@@ -857,14 +1316,20 @@ sock = None # Socket
 
 
 
-def recv_size(sock, size):
+def recv_size(sock, size, timeout=30):
     """Odbiera size bajtów lub rzuca wyjątek"""
+    sock.settimeout(timeout)
     data = bytearray()
-    while len(data) < size:
-        chunk = sock.recv(size - len(data))
-        if not chunk:
-            raise RuntimeError("Socket disconnected during recv_all()")
-        data.extend(chunk)
+    try:
+        while len(data) < size:
+            chunk = sock.recv(size - len(data))
+            if not chunk:
+                raise RuntimeError("Socket disconnected during recv_all()")
+            data.extend(chunk)
+    except socket.timeout:
+        raise RuntimeError(f"Socket timeout after {timeout}s waiting for {size} bytes (got {len(data)})")
+    finally:
+        sock.settimeout(None)
     return bytes(data)
 
 
@@ -1095,10 +1560,21 @@ def receive_next():
     Odbiera jedną rzecz z socketa
     """
     result = (None, None)
-    tag = sock.recv(1)
+    debug_print("[RECV] Waiting for next message...")
+    sock.settimeout(60)  # 60 second timeout
+    try:
+        tag = sock.recv(1)
+    except socket.timeout:
+        print("[RECV] TIMEOUT: No data received for 60 seconds!")
+        return result
+    finally:
+        sock.settimeout(None)
+    
     if not tag:
         return result
     tag = struct.unpack('B', tag)[0]
+    tag_names = {0: "MAGIC", 1: "CONFIG", 2: "BOARD", 3: "ACTION", 4: "CONFIRM", 5: "TURN_CHANGE", 6: "ELIMINATED", 7: "GAME_OVER"}
+    debug_print(f"[RECV] Got tag: {tag} ({tag_names.get(tag, 'UNKNOWN')})")
 
     if tag == MAGIC_SOCKET_TAG:
         result = (MAGIC_SOCKET_TAG, receive_magic())
@@ -1269,6 +1745,36 @@ if len(sys.argv) >= 3:
     PORT = int(sys.argv[2])
 
 
+# ==================== RL SETUP ====================
+RL_SAVE_PATH = "rl_policy.json"
+USE_RL = True  # Set to False to use rule-based AiEasy instead
+TRAINING_MODE = True  # Set to True for fast training (no print spam)
+TARGET_GAMES = 100  # Stop after this many games (0 = infinite)
+MAX_TURNS_PER_GAME = 200  # Stalemate detection - end game if exceeded
+
+# Set global training mode flag
+_training_mode = TRAINING_MODE
+
+# Create RL policy
+rl_policy = QTablePolicy(num_actions=5, epsilon=0.5)
+rl_policy.load(RL_SAVE_PATH)  # Try to load existing policy
+
+# Reward calculator
+reward_calc = RewardCalculator()
+
+# Training state
+prev_state = None
+prev_action = None
+turn_count = 0
+game_count = 0
+wins = 0
+losses = 0
+
+print(f"[RL] Policy: {len(rl_policy.q_table)} states, ε={rl_policy.epsilon:.2f}")
+print(f"[RL] Using {'RL AI' if USE_RL else 'Rule-based AI'}")
+if TRAINING_MODE:
+    print(f"[RL] TRAINING MODE: Running {TARGET_GAMES} games" if TARGET_GAMES > 0 else "[RL] TRAINING MODE: Infinite games")
+
 currentBotPlayer = 0
 last_rejected_board_hash = None  # Track board hash where moves were rejected
 
@@ -1329,33 +1835,78 @@ try:
                 print(f"Playing as Player {payload}")
 
             elif tag == BOARD_SOCKET_TAG: # Kiedy otrzymamy planszę to otrzymujemy ruch
-                #global last_rejected_board_hash  # Declare at the top
-                
-                print(payload)
-                payload.print_owners()
-                payload.print_residents()
-                payload.print_money()
-
-                # DON'T swap players - use actual player ID
-                # The swap was causing the bot to try to move enemy units!
+                if not TRAINING_MODE:
+                    print(payload)
+                    payload.print_owners()
+                    payload.print_residents()
+                    payload.print_money()
                 
                 # Create a simple board hash to detect if we've seen this exact board before
                 board_hash = hash((tuple(h.owner_id for h in payload.hexes), 
                                   tuple(h.resident for h in payload.hexes),
                                   tuple(h.money for h in payload.hexes)))
                 
+                # Calculate game stats for reward
+                my_hexes = sum(1 for h in payload.hexes if h.owner_id == currentBotPlayer)
+                enemy_hexes = sum(1 for h in payload.hexes if h.owner_id != 0 and h.owner_id != currentBotPlayer)
+                my_units = sum(1 for h in payload.hexes if h.owner_id == currentBotPlayer and h.resident.is_unit())
+                
                 # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
                 ab = ActionBuilder()
                 
                 # Check if we just got rejected on this exact board
                 if last_rejected_board_hash is not None and last_rejected_board_hash == board_hash:
-                    print(f"[AI] Skipping moves - was just rejected on this board")
+                    debug_print(f"[AI] Skipping moves - was just rejected on this board")
                     last_rejected_board_hash = None  # Reset for next time
                 else:
                     # Initialize AI with the actual current player ID
-                    ai = AiEasy(currentBotPlayer)
+                    if USE_RL:
+                        ai = AiRL(currentBotPlayer, policy=rl_policy)
+                    else:
+                        ai = AiEasy(currentBotPlayer)
+                    
                     try:
                         ai.make_move(payload, ab)
+                        
+                        # RL LEARNING: Update Q-values based on reward
+                        if USE_RL and prev_state is not None and prev_action is not None:
+                            # Get income from AI if available
+                            income = 0
+                            if hasattr(ai, 'get_province_income'):
+                                provinces = payload.get_provinces(currentBotPlayer)
+                                if provinces:
+                                    income = ai.get_province_income(provinces[0])
+                            
+                            reward = reward_calc.calculate(my_hexes, income, enemy_hexes, my_units, won=False, lost=False)
+                            current_state = ai.last_state if ai.last_state else prev_state
+                            rl_policy.update(prev_state, prev_action, reward, current_state, done=False)
+                            print(f"[RL] Turn {turn_count}: Action={RLAction(prev_action).name}, Reward={reward:.1f}, ε={rl_policy.epsilon:.2f}")
+                        
+                        # Store state/action for next update
+                        if USE_RL and hasattr(ai, 'last_state') and ai.last_state:
+                            prev_state = ai.last_state
+                            prev_action = ai.last_action
+                        turn_count += 1
+                        
+                        # STALEMATE DETECTION - after too many turns, force Knight builds
+                        if turn_count >= MAX_TURNS_PER_GAME and turn_count % 50 == 0:
+                            print(f"[RL] STALEMATE WARNING: {turn_count} turns! Forcing Knight builds...")
+                            # Force build a Knight to break through Strong Towers
+                            provinces = payload.get_provinces(currentBotPlayer)
+                            for province in provinces:
+                                if province.can_afford_unit(4):  # Knight
+                                    # Find enemy border hexes
+                                    move_zone = ai.detect_move_zone(province.capital, 4, payload)
+                                    enemy_hexes_nearby = [h for h in move_zone 
+                                                         if h.owner_id != currentBotPlayer 
+                                                         and h.owner_id != 0]
+                                    if enemy_hexes_nearby:
+                                        target = enemy_hexes_nearby[0]
+                                        print(f"[RL] Building Knight to attack ({target.x}, {target.y})")
+                                        ab.add_place(Resident.Warrior4, province.capital.x, province.capital.y,
+                                                    target.x, target.y)
+                                        province.money -= 40
+                        
                     except Exception as e:
                         print(f"[AI ERROR] {e}")
                         import traceback
@@ -1372,7 +1923,7 @@ try:
                             approved, still_awaiting = conf
                             print(f"Approved: {approved}, Still awaiting: {still_awaiting}")
                             if not approved:
-                                print(f"[AI] Move rejected, will send END_TURN on next board")
+                                debug_print(f"[AI] Move rejected, will send END_TURN on next board")
                                 # Server already sent a new BOARD message after this rejection
                                 # Store board hash so we skip moves if we see this board again
                                 last_rejected_board_hash = board_hash
@@ -1381,7 +1932,7 @@ try:
                                 moves_were_rejected = True
                                 # Don't break - continue to send END_TURN
                         else:
-                            print(f"[AI] Unexpected response: {tag}")
+                            debug_print(f"[AI] Unexpected response: {tag}")
                             # Unexpected response - clear buffer and break
                             ab.buffer.clear()
                             ab.num = 0
@@ -1389,20 +1940,66 @@ try:
                     else:
                         # No more moves to send (or moves were rejected), end turn
                         if moves_were_rejected:
-                            print(f"[AI] Sending END_TURN after rejection")
+                            debug_print(f"[AI] Sending END_TURN after rejection")
                         else:
-                            print(f"[AI] Sending END_TURN")
+                            debug_print(f"[AI] Sending END_TURN")
                         ab.add_end_turn()
                         # After END_TURN, break and let outer loop handle the response
                         break
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
-                print(f"Player {payload} eliminated!")
+                if not TRAINING_MODE:
+                    print(f"Player {payload} eliminated!")
+                
+                # RL: Give big negative reward if WE got eliminated
+                if USE_RL and payload == currentBotPlayer and prev_state is not None:
+                    final_reward = reward_calc.calculate(0, 0, 0, 0, won=False, lost=True)
+                    rl_policy.update(prev_state, prev_action, final_reward, prev_state, done=True)
+                    losses += 1
             
             elif tag == GAME_OVER_SOCKET_TAG: # Koniec gry
-                print("Game over!\nLeaderboard:")
-                for p in payload:
-                    print(f"Player {p}")
+                # RL: Big reward if we won, save policy
+                if USE_RL:
+                    game_count += 1
+                    won = payload[0] == currentBotPlayer  # First in list is winner
+                    if won:
+                        wins += 1
+                    else:
+                        losses += 1
+                    
+                    if prev_state is not None and prev_action is not None:
+                        final_reward = reward_calc.calculate(0, 0, 0, 0, won=won, lost=not won)
+                        rl_policy.update(prev_state, prev_action, final_reward, prev_state, done=True)
+                    
+                    # Print progress
+                    win_rate = wins / game_count * 100 if game_count > 0 else 0
+                    print(f"[RL] Game {game_count}/{TARGET_GAMES if TARGET_GAMES > 0 else '∞'}: {'WIN' if won else 'LOSS'} | W/L: {wins}/{losses} ({win_rate:.1f}%) | States: {len(rl_policy.q_table)} | ε={rl_policy.epsilon:.3f}")
+                    
+                    # Save Q-table every 10 games (or every game if not training mode)
+                    if game_count % 10 == 0 or not TRAINING_MODE:
+                        rl_policy.save(RL_SAVE_PATH)
+                    
+                    # Check if we've reached the target
+                    if TARGET_GAMES > 0 and game_count >= TARGET_GAMES:
+                        print(f"\n[RL] ======= TRAINING COMPLETE =======")
+                        print(f"[RL] Games: {game_count}")
+                        print(f"[RL] Win Rate: {win_rate:.1f}% ({wins}/{losses})")
+                        print(f"[RL] States Learned: {len(rl_policy.q_table)}")
+                        print(f"[RL] Final Epsilon: {rl_policy.epsilon:.4f}")
+                        rl_policy.save(RL_SAVE_PATH)
+                        sock.close()
+                        sys.exit(0)
+                    
+                    # Reset for next game
+                    reward_calc.reset()
+                    prev_state = None
+                    prev_action = None
+                    turn_count = 0
+                else:
+                    print("Game over!\nLeaderboard:")
+                    for p in payload:
+                        print(f"Player {p}")
+                
                 break # Koniec gry wyciąga nas z tej pętli (zaczynamy nowy mecz, oczekujemy nowej konfiguracji)
 
 except Exception as e:
