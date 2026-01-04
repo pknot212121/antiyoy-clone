@@ -4,7 +4,7 @@ A province is a connected group of hexes owned by the same player.
 """
 
 from typing import List, Optional, Set, Tuple, Dict
-from .game_utils import GameUtils, Resident, UNIT_PRICES, INCOME_TABLE
+from .game_utils import GameUtils, Resident, UNIT_PRICES, INCOME_TABLE, UNIT_STRENGTH
 
 
 class Province:
@@ -67,6 +67,97 @@ class Province:
                     border.append(h)
                     break
         return border
+    
+    def get_palms(self) -> List:
+        """Get all palm trees in this province (they cost money!)."""
+        return [h for h in self.hexes if GameUtils.is_palm(h.resident)]
+    
+    def get_trees(self) -> List:
+        """Get all trees in this province."""
+        return [h for h in self.hexes if GameUtils.is_tree(h.resident)]
+    
+    def can_afford_with_upkeep(self, strength: int) -> bool:
+        """Check if province can afford a unit AND its ongoing upkeep."""
+        resident = GameUtils.strength_to_warrior(strength)
+        price = UNIT_PRICES.get(resident, 999)
+        if self.money < price:
+            return False
+        
+        # Check if income can support new unit
+        new_upkeep = GameUtils.get_unit_upkeep(strength)
+        future_income = self.get_income() - new_upkeep
+        # Allow slightly negative income (-2) like expert AI
+        return future_income >= -2
+    
+    def get_hexes_needing_tower(self, board) -> List:
+        """Find hexes where a tower would defend 5+ hexes."""
+        candidates = []
+        for h in self.hexes:
+            if not GameUtils.hex_is_free(h.resident):
+                continue
+            
+            defense_gain = self._calculate_tower_defense_gain(h, board)
+            if defense_gain >= 5:
+                candidates.append((h, defense_gain))
+        
+        # Sort by defense gain (best first)
+        candidates.sort(key=lambda x: -x[1])
+        return [h for h, _ in candidates]
+    
+    def _calculate_tower_defense_gain(self, hex_obj, board) -> int:
+        """Calculate how many hexes would gain defense from a tower here."""
+        gain = 0
+        
+        # The hex itself
+        if not self._is_defended_by_tower(hex_obj, board):
+            gain += 1
+        
+        # Check neighbors
+        neighbors = GameUtils.get_hex_neighbors(hex_obj.x, hex_obj.y, board.width, board.height)
+        for nx, ny in neighbors:
+            neighbor = board.get_hex(nx, ny)
+            if neighbor and neighbor.owner_id == self.owner_id:
+                if not self._is_defended_by_tower(neighbor, board):
+                    gain += 1
+                if GameUtils.is_tower(neighbor.resident):
+                    gain -= 1  # Penalty for adjacent tower
+        
+        return gain
+    
+    def _is_defended_by_tower(self, hex_obj, board) -> bool:
+        """Check if a hex is defended by an adjacent tower/castle."""
+        if GameUtils.is_tower(hex_obj.resident) or GameUtils.is_castle(hex_obj.resident):
+            return True
+        
+        neighbors = GameUtils.get_hex_neighbors(hex_obj.x, hex_obj.y, board.width, board.height)
+        for nx, ny in neighbors:
+            neighbor = board.get_hex(nx, ny)
+            if neighbor and neighbor.owner_id == self.owner_id:
+                if GameUtils.is_tower(neighbor.resident) or GameUtils.is_castle(neighbor.resident):
+                    return True
+        return False
+    
+    def get_farm_locations(self, board) -> List:
+        """Get good locations for farms (adjacent to castle or other farms)."""
+        candidates = []
+        for h in self.hexes:
+            if not GameUtils.hex_is_free(h.resident):
+                continue
+            
+            # Check if adjacent to castle or farm
+            neighbors = GameUtils.get_hex_neighbors(h.x, h.y, board.width, board.height)
+            for nx, ny in neighbors:
+                neighbor = board.get_hex(nx, ny)
+                if neighbor and neighbor.owner_id == self.owner_id:
+                    if GameUtils.is_castle(neighbor.resident) or GameUtils.is_farm(neighbor.resident):
+                        candidates.append(h)
+                        break
+        
+        return candidates
+    
+    def count_units(self) -> int:
+        """Count warrior units in this province."""
+        return sum(1 for h in self.hexes if GameUtils.is_warrior(h.resident))
     
     def __repr__(self):
         return f"Province(owner={self.owner_id}, hexes={len(self.hexes)}, money={self.money})"

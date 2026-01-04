@@ -116,6 +116,14 @@ class GameUtils:
         return resident in (Resident.PalmTree, Resident.PineTree)
     
     @staticmethod
+    def is_palm(resident: Resident) -> bool:
+        return resident == Resident.PalmTree
+    
+    @staticmethod
+    def is_pine(resident: Resident) -> bool:
+        return resident == Resident.PineTree
+    
+    @staticmethod
     def is_gravestone(resident: Resident) -> bool:
         return resident == Resident.Gravestone
     
@@ -233,4 +241,33 @@ class GameUtils:
             # Add/subtract resident income
             income += INCOME_TABLE.get(h.resident, 0)
         return income
+    
+    @staticmethod
+    def get_unit_upkeep(strength: int) -> int:
+        """Get the upkeep cost for a unit of given strength."""
+        upkeep_map = {1: 2, 2: 6, 3: 18, 4: 36}
+        return upkeep_map.get(strength, 0)
+    
+    @staticmethod
+    def get_merged_strength(s1: int, s2: int) -> int:
+        """Get the strength of a merged unit. Returns 0 if can't merge."""
+        if s1 == s2 and s1 < 4:
+            return s1 + 1
+        return 0
+    
+    @staticmethod
+    def hex_is_free(resident: Resident) -> bool:
+        """Check if a hex can have something placed on it."""
+        return resident == Resident.Empty or resident == Resident.Gravestone
+    
+    @staticmethod
+    def get_tower_defense(resident: Resident) -> int:
+        """Get the defense level provided by a tower/castle."""
+        if resident == Resident.Tower:
+            return 2
+        elif resident == Resident.StrongTower:
+            return 3
+        elif resident == Resident.Castle:
+            return 1
+        return 0
 
