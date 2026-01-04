@@ -429,6 +429,8 @@ void runAi(std::string& pythonProgram, std::string& ipAddress, int port)
 {
 #ifdef _WIN32
     std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
+#elif __APPLE__
+    std::string cmd = "osascript -e 'tell application \"Terminal\" to do script \"cd \\\"$(pwd)\\\" && python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\"'";
 #else
     std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
 #endif

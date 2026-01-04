@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <set>
+#include <algorithm>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -558,7 +559,7 @@ void LocalPlayer::moveAction(Hexagon* hex,glm::ivec2 p)
     Resident res = game->board->getHexagon(p.x,p.y)->getResident();
     if (game->isHexSelected){
         std::vector<Hexagon*> nearby = game->selectedHex->possibleMovements(game->board);
-        if (auto it = std::ranges::find(nearby,hex);it!=nearby.end()){
+        if (auto it = std::find(nearby.begin(), nearby.end(), hex); it != nearby.end()){
             if (game->selectedHex!=hex)
                 game->selectedHex->move(game->board,hex,true);
         }
@@ -578,7 +579,7 @@ void LocalPlayer::spawnAction(Hexagon* hex,glm::ivec2 p)
     if (game->provinceSelector!=nullptr)
     {
         std::vector<Hexagon*> neigh = game->provinceSelector->possiblePlacements(game->board,keysToResidents[game->pressedKey]);
-        if (auto it = std::ranges::find(neigh,hex); it!=neigh.end()){
+        if (auto it = std::find(neigh.begin(), neigh.end(), hex); it != neigh.end()){
             game->provinceSelector->place(game->board,keysToResidents[game->pressedKey],hex,true);
         }
         game->Renderer -> ClearBrightenedHexes();
