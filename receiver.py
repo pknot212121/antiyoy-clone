@@ -8,6 +8,16 @@ from collections import deque
 
 from enum import IntEnum
 
+# Import enhanced Q-table (fallback to simple if not available)
+try:
+    import sys
+    sys.path.insert(0, 'Antiyoy/bot')
+    from enhanced_qtable import EnhancedQTable, ImprovedRewardShaping
+    HAS_ENHANCED_QTABLE = True
+except ImportError:
+    HAS_ENHANCED_QTABLE = False
+    print("[RL] Enhanced Q-table not available, using simple Q-table")
+
 # Force unbuffered output
 import functools
 _original_print = functools.partial(print, flush=True)
@@ -878,6 +888,10 @@ class QTablePolicy:
         self.epsilon_min = 0.05
         self.epsilon_decay = 0.995
         self.q_table = {}
+        
+        # Move tracking for statistics
+        self.random_moves = 0
+        self.qtable_moves = 0
     
     def discretize_state(self, state):
         """Convert continuous state to discrete bins (5 bins per feature)."""
@@ -893,8 +907,10 @@ class QTablePolicy:
     def choose_action(self, state):
         """Epsilon-greedy action selection."""
         if random.random() < self.epsilon:
+            self.random_moves += 1
             return random.randint(0, self.num_actions - 1)
         q_values = self.get_q_values(state)
+        self.qtable_moves += 1
         return q_values.index(max(q_values))
     
     def update(self, state, action, reward, next_state, done):
@@ -920,6 +936,19 @@ class QTablePolicy:
         with open(filepath, 'w') as f:
             json.dump(data, f)
         print(f"[RL] Saved Q-table ({len(self.q_table)} states) to {filepath}")
+    
+    def reset_move_counters(self):
+        """Reset move tracking counters."""
+        self.random_moves = 0
+        self.qtable_moves = 0
+    
+    def get_move_stats(self):
+        """Get current move statistics."""
+        return {
+            'random_moves': self.random_moves,
+            'qtable_moves': self.qtable_moves,
+            'total_moves': self.random_moves + self.qtable_moves
+        }
     
     def load(self, filepath):
         """Load Q-table from JSON."""
@@ -1723,7 +1752,8 @@ class ActionBuilder:
         if not self.buffer:
             return
 
-        print(f"[DEBUG] Sending {self.num} action(s), buffer size: {len(self.buffer)} bytes")
+        if not _training_mode:
+            print(f"[DEBUG] Sending {self.num} action(s), buffer size: {len(self.buffer)} bytes")
         sock.sendall(bytes([ACTION_SOCKET_TAG]))
         sock.sendall(bytes([self.num]))
         sock.sendall(self.buffer)
@@ -1748,32 +1778,61 @@ if len(sys.argv) >= 3:
 # ==================== RL SETUP ====================
 RL_SAVE_PATH = "rl_policy.json"
 USE_RL = True  # Set to False to use rule-based AiEasy instead
-TRAINING_MODE = True  # Set to True for fast training (no print spam)
-TARGET_GAMES = 100  # Stop after this many games (0 = infinite)
-MAX_TURNS_PER_GAME = 200  # Stalemate detection - end game if exceeded
+TRAINING_MODE = False  # Set to True for fast training (no print spam)
+TARGET_GAMES = 100  # Set by run_training.sh
+REPORT_MOVES_EVERY = 5  # Report random vs Q-table moves every X games
+MAX_TURNS_PER_GAME = 100  # Stalemate detection - start aggressive actions
+FORCE_END_AT_TURNS = 200  # Hard limit - force game end to prevent infinite loops
 
 # Set global training mode flag
 _training_mode = TRAINING_MODE
 
-# Create RL policy
-rl_policy = QTablePolicy(num_actions=5, epsilon=0.5)
+# Create RL policy (use enhanced if available)
+if HAS_ENHANCED_QTABLE:
+    print("[RL] Using Enhanced Q-Table with tile coding and experience replay")
+    rl_policy = EnhancedQTable(
+        num_actions=5, 
+        epsilon=0.0,  # 0.0 for play mode (pure exploitation)
+        learning_rate=0.1,
+        discount=0.99,
+        n_step=3,
+        use_double=True,
+        use_tiles=True
+    )
+    reward_calc = ImprovedRewardShaping()
+else:
+    print("[RL] Using Simple Q-Table")
+    rl_policy = QTablePolicy(num_actions=5, epsilon=0.5)
+    reward_calc = RewardCalculator()
+
 rl_policy.load(RL_SAVE_PATH)  # Try to load existing policy
 
-# Reward calculator
-reward_calc = RewardCalculator()
+# Single state/action tracking is NOT sufficient for multiple bots
+# We will use dictionaries keyed by Player ID (1, 2, 3...)
+ai_instances = {}       # { player_id: AiRL_instance }
+player_states = {}      # { player_id: {'prev_state': None, 'prev_action': None} }
 
-# Training state
-prev_state = None
-prev_action = None
+# Global Training/Game Stats (still useful for general tracking)
 turn_count = 0
 game_count = 0
 wins = 0
 losses = 0
+last_report_game = 0
+last_report_game = 0  # Track when we last reported move stats
 
-print(f"[RL] Policy: {len(rl_policy.q_table)} states, ε={rl_policy.epsilon:.2f}")
+# Print policy info (handle both simple and enhanced Q-tables)
+if HAS_ENHANCED_QTABLE and hasattr(rl_policy, 'q_table_a'):
+    num_states = len(rl_policy.q_table_a)
+elif hasattr(rl_policy, 'q_table'):
+    num_states = len(rl_policy.q_table)
+else:
+    num_states = 0
+
+print(f"[RL] Policy: {num_states} states, ε={rl_policy.epsilon:.2f}")
 print(f"[RL] Using {'RL AI' if USE_RL else 'Rule-based AI'}")
 if TRAINING_MODE:
     print(f"[RL] TRAINING MODE: Running {TARGET_GAMES} games" if TARGET_GAMES > 0 else "[RL] TRAINING MODE: Infinite games")
+
 
 currentBotPlayer = 0
 last_rejected_board_hash = None  # Track board hash where moves were rejected
@@ -1787,19 +1846,22 @@ try:
 
     if tag is None: # Jeśli nie otrzymamy danych
         print("Server disconnected")
-        input()
+        if not TRAINING_MODE:
+            input()
         sys.exit(1)
     
     if tag != MAGIC_SOCKET_TAG: # Jeśli otrzymamy coś innego niż magiczne numerki
         print(f"Unexpected content received. Tag: {tag}")
-        input()
+        if not TRAINING_MODE:
+            input()
         sys.exit(1)
 
     if payload: # Czy numerki się zgadzają
         print("Correct magic numbers!")
     else:
         print("Wrong magic numbers!")
-        input()
+        if not TRAINING_MODE:
+            input()
         sys.exit(1)
 
     while True: # Pętla główna
@@ -1807,23 +1869,55 @@ try:
 
         if tag is None: # Jeśli nie otrzymamy danych
             print("Server disconnected")
-            input()
+            if not TRAINING_MODE:
+                input()
             sys.exit(1)
     
         if tag != CONFIGURATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż konfiguracja
             print(f"Unexpected content received. Tag: {tag}")
-            input()
+            if not TRAINING_MODE:
+                input()
             sys.exit(1)
 
-        print("Configuration received:") # Można coś zrobić z konfiguracją
-        print(payload)
+        if not _training_mode:
+            print("Configuration received:") # Można coś zrobić z konfiguracją
+            print(payload)
+        
+        # --- DYNAMIC BOT INITIALIZATION ---
+        ai_instances.clear()
+        player_states.clear()
+        player_markers = payload.get("playerMarkers", "")
+        print(f"Initializing bots for config: {player_markers}")
+        
+        for i, marker in enumerate(player_markers):
+            pid = i + 1  # Player IDs are 1-based
+            if marker == 'B':
+                print(f" -> Player {pid} is a BOT (AI)")
+                # Initialize AI instance
+                if USE_RL:
+                    # All 'B' players share the same policy (RL brain) but have separate state handlers
+                    # They will learn from playing against each other!
+                    print(f"    [ASSIGNMENT] Player {pid} = AiRL (RL Bot)")
+                    ai_instances[pid] = AiRL(pid, policy=rl_policy)
+                else:
+                    print(f"    [ASSIGNMENT] Player {pid} = AiEasy (Rule-based)")
+                    ai_instances[pid] = AiEasy(pid)
+                
+                # Initialize state tracking for this bot
+                player_states[pid] = {'prev_state': None, 'prev_action': None}
+            else:
+                print(f" -> Player {pid} is HUMAN/OTHER ({marker})")
+        
+        turn_count = 0 # Reset game turn counter
+
 
         while True: # Pętla meczu
             tag, payload = receive_next()
 
             if tag is None: # Jeśli nie otrzymamy danych
                 print("Server disconnected")
-                input()
+                if not TRAINING_MODE:
+                    input()
                 sys.exit(1)
 
             elif tag == ACTION_SOCKET_TAG: # Ruchy niebotowych graczy, botom raczej nie są one potrzebne
@@ -1831,16 +1925,35 @@ try:
 
             elif tag == TURN_CHANGE_SOCKET_TAG: # Kiedy zaczynamy turę najpierw dostaniemy informację o zmianie tury
                 currentBotPlayer = payload
-                print("\n-----------------------------------------")
-                print(f"Playing as Player {payload}")
+                # Increment global turn counter roughly once per round (e.g. when Player 1 starts)
+                if currentBotPlayer == 1:
+                    turn_count += 1
+                    
+                if not _training_mode:
+                    print("\n-----------------------------------------")
+                    print(f"Playing as Player {payload}")
+
 
             elif tag == BOARD_SOCKET_TAG: # Kiedy otrzymamy planszę to otrzymujemy ruch
-                if not TRAINING_MODE:
+                if not _training_mode:
                     print(payload)
                     payload.print_owners()
                     payload.print_residents()
                     payload.print_money()
                 
+                # Identify if the current player is a Bot we are controlling
+                if currentBotPlayer not in ai_instances:
+                    # It's a human or network player not managed by this script
+                    if not _training_mode:
+                        print(f"Waiting for Player {currentBotPlayer} (Human/Other) to move...")
+                    continue
+                
+                # Retrieve the specific AI and state for this player
+                ai = ai_instances[currentBotPlayer]
+                p_state = player_states[currentBotPlayer]
+                prev_state = p_state['prev_state']
+                prev_action = p_state['prev_action']
+
                 # Create a simple board hash to detect if we've seen this exact board before
                 board_hash = hash((tuple(h.owner_id for h in payload.hexes), 
                                   tuple(h.resident for h in payload.hexes),
@@ -1854,16 +1967,28 @@ try:
                 # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
                 ab = ActionBuilder()
                 
+                # CHECK TURN LIMIT BEFORE PROCESSING - if exceeded, just end turn immediately  
+                skip_ai_processing = False
+                if turn_count >= FORCE_END_AT_TURNS:
+                    print(f"[RL] FORCE END: Turn {turn_count} exceeded limit! Ending game...")
+                    # Treat as loss to discourage stalemates - apply to ALL bots? 
+                    # For now just the current one
+                    if USE_RL and prev_state is not None:
+                        if HAS_ENHANCED_QTABLE:
+                            stats = {'my_hexes': 0, 'game_length': turn_count}
+                            final_reward = reward_calc.calculate_reward(stats, won=False, lost=True)
+                        else:
+                            final_reward = reward_calc.calculate(0, 0, 0, 0, won=False, lost=True)
+                        rl_policy.update(prev_state, prev_action, final_reward, prev_state, done=True)
+                    skip_ai_processing = True
+                
                 # Check if we just got rejected on this exact board
                 if last_rejected_board_hash is not None and last_rejected_board_hash == board_hash:
                     debug_print(f"[AI] Skipping moves - was just rejected on this board")
                     last_rejected_board_hash = None  # Reset for next time
-                else:
-                    # Initialize AI with the actual current player ID
-                    if USE_RL:
-                        ai = AiRL(currentBotPlayer, policy=rl_policy)
-                    else:
-                        ai = AiEasy(currentBotPlayer)
+                elif not skip_ai_processing:  # Only process AI if not force-ended
+                    
+                    # NOTE: 'ai' is already the correct instance for currentBotPlayer
                     
                     try:
                         ai.make_move(payload, ab)
@@ -1877,20 +2002,39 @@ try:
                                 if provinces:
                                     income = ai.get_province_income(provinces[0])
                             
-                            reward = reward_calc.calculate(my_hexes, income, enemy_hexes, my_units, won=False, lost=False)
+                            # Calculate reward
+                            if HAS_ENHANCED_QTABLE:
+                                stats = {
+                                    'my_hexes': my_hexes,
+                                    'my_income': income,
+                                    'my_units': my_units,
+                                    'enemy_hexes': enemy_hexes,
+                                    'game_length': turn_count,
+                                }
+                                reward = reward_calc.calculate_reward(stats, won=False, lost=False)
+                            else:
+                                reward = reward_calc.calculate(my_hexes, income, enemy_hexes, my_units, won=False, lost=False)
+                            
                             current_state = ai.last_state if ai.last_state else prev_state
                             rl_policy.update(prev_state, prev_action, reward, current_state, done=False)
-                            print(f"[RL] Turn {turn_count}: Action={RLAction(prev_action).name}, Reward={reward:.1f}, ε={rl_policy.epsilon:.2f}")
+                            
+                            # Print with enhanced stats if available
+                            if not _training_mode:
+                                if HAS_ENHANCED_QTABLE and hasattr(rl_policy, 'get_stats'):
+                                    stats = rl_policy.get_stats()
+                                    print(f"[RL-P{currentBotPlayer}] Turn {turn_count}: Action={RLAction(prev_action).name}, "
+                                          f"Reward={reward:.1f}, States={stats['states']}, ε={stats['epsilon']:.3f}")
                         
                         # Store state/action for next update
                         if USE_RL and hasattr(ai, 'last_state') and ai.last_state:
-                            prev_state = ai.last_state
-                            prev_action = ai.last_action
-                        turn_count += 1
+                            p_state['prev_state'] = ai.last_state
+                            p_state['prev_action'] = ai.last_action
+                        
+                        # turn_count is now incremented globally on TURN_CHANGE
                         
                         # STALEMATE DETECTION - after too many turns, force Knight builds
-                        if turn_count >= MAX_TURNS_PER_GAME and turn_count % 50 == 0:
-                            print(f"[RL] STALEMATE WARNING: {turn_count} turns! Forcing Knight builds...")
+                        if turn_count >= MAX_TURNS_PER_GAME and turn_count % 20 == 0:
+                            print(f"[RL] STALEMATE WARNING: {turn_count} turns! Forcing aggressive actions...")
                             # Force build a Knight to break through Strong Towers
                             provinces = payload.get_provinces(currentBotPlayer)
                             for province in provinces:
@@ -1915,13 +2059,15 @@ try:
                 # Send moves and handle responses
                 still_awaiting = True
                 moves_were_rejected = False
+                
                 while still_awaiting:
                     if ab.buffer and not moves_were_rejected:
                         ab.send()
                         tag, conf = receive_next()
                         if tag == CONFIRMATION_SOCKET_TAG:
                             approved, still_awaiting = conf
-                            print(f"Approved: {approved}, Still awaiting: {still_awaiting}")
+                            if not _training_mode:
+                                print(f"Approved: {approved}, Still awaiting: {still_awaiting}")
                             if not approved:
                                 debug_print(f"[AI] Move rejected, will send END_TURN on next board")
                                 # Server already sent a new BOARD message after this rejection
@@ -1944,67 +2090,95 @@ try:
                         else:
                             debug_print(f"[AI] Sending END_TURN")
                         ab.add_end_turn()
+                        ab.send()  # Actually send the END_TURN command
                         # After END_TURN, break and let outer loop handle the response
                         break
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
+                victim_id = payload
                 if not TRAINING_MODE:
-                    print(f"Player {payload} eliminated!")
+                    print(f"Player {victim_id} eliminated!")
                 
-                # RL: Give big negative reward if WE got eliminated
-                if USE_RL and payload == currentBotPlayer and prev_state is not None:
-                    final_reward = reward_calc.calculate(0, 0, 0, 0, won=False, lost=True)
-                    rl_policy.update(prev_state, prev_action, final_reward, prev_state, done=True)
-                    losses += 1
-            
+                # RL: Update policy if one of OUR bots got eliminated
+                if victim_id in ai_instances:
+                    p_state = player_states[victim_id]
+                    if USE_RL and p_state['prev_state'] is not None:
+                        if HAS_ENHANCED_QTABLE:
+                            # Use empty stats for elimination
+                            stats = {'my_hexes': 0, 'game_length': turn_count}
+                            final_reward = reward_calc.calculate_reward(stats, won=False, lost=True)
+                        else:
+                            final_reward = reward_calc.calculate(0, 0, 0, 0, won=False, lost=True)
+                        
+                        rl_policy.update(p_state['prev_state'], p_state['prev_action'], final_reward, p_state['prev_state'], done=True)
+                        p_state['prev_state'] = None  # Mark as done
+      
             elif tag == GAME_OVER_SOCKET_TAG: # Koniec gry
-                # RL: Big reward if we won, save policy
-                if USE_RL:
-                    game_count += 1
-                    won = payload[0] == currentBotPlayer  # First in list is winner
-                    if won:
-                        wins += 1
-                    else:
-                        losses += 1
-                    
-                    if prev_state is not None and prev_action is not None:
-                        final_reward = reward_calc.calculate(0, 0, 0, 0, won=won, lost=not won)
-                        rl_policy.update(prev_state, prev_action, final_reward, prev_state, done=True)
-                    
-                    # Print progress
-                    win_rate = wins / game_count * 100 if game_count > 0 else 0
-                    print(f"[RL] Game {game_count}/{TARGET_GAMES if TARGET_GAMES > 0 else '∞'}: {'WIN' if won else 'LOSS'} | W/L: {wins}/{losses} ({win_rate:.1f}%) | States: {len(rl_policy.q_table)} | ε={rl_policy.epsilon:.3f}")
-                    
-                    # Save Q-table every 10 games (or every game if not training mode)
-                    if game_count % 10 == 0 or not TRAINING_MODE:
-                        rl_policy.save(RL_SAVE_PATH)
-                    
-                    # Check if we've reached the target
-                    if TARGET_GAMES > 0 and game_count >= TARGET_GAMES:
-                        print(f"\n[RL] ======= TRAINING COMPLETE =======")
-                        print(f"[RL] Games: {game_count}")
-                        print(f"[RL] Win Rate: {win_rate:.1f}% ({wins}/{losses})")
-                        print(f"[RL] States Learned: {len(rl_policy.q_table)}")
-                        print(f"[RL] Final Epsilon: {rl_policy.epsilon:.4f}")
-                        rl_policy.save(RL_SAVE_PATH)
-                        sock.close()
-                        sys.exit(0)
-                    
-                    # Reset for next game
-                    reward_calc.reset()
-                    prev_state = None
-                    prev_action = None
-                    turn_count = 0
-                else:
-                    print("Game over!\nLeaderboard:")
-                    for p in payload:
-                        print(f"Player {p}")
+                game_count += 1
+                leaderboard = payload
+                winner_id = leaderboard[0]
                 
-                break # Koniec gry wyciąga nas z tej pętli (zaczynamy nowy mecz, oczekujemy nowej konfiguracji)
+                if not TRAINING_MODE:
+                    print(f"Game Over! Leaderboard: {leaderboard}")
+
+                # Update RL policy for ALL participating bots that are still active
+                if USE_RL:
+                    for pid, ai in ai_instances.items():
+                        p_state = player_states[pid]
+                        # If a bot wasn't eliminated (prev_state is not None), update it now
+                        if p_state['prev_state'] is not None:
+                            is_winner = (pid == winner_id)
+                            
+                            # Final rewards
+                            if HAS_ENHANCED_QTABLE:
+                                # Start with base stats
+                                stats = {
+                                    'my_hexes': 0, 
+                                    'game_length': turn_count
+                                }
+                                final_reward = reward_calc.calculate_reward(stats, won=is_winner, lost=not is_winner)
+                            else:
+                                final_reward = reward_calc.calculate(0, 0, 0, 0, won=is_winner, lost=not is_winner)
+
+                            # Update Policy
+                            rl_policy.update(p_state['prev_state'], p_state['prev_action'], final_reward, p_state['prev_state'], done=True)
+                            p_state['prev_state'] = None # Reset
+                            
+                            if is_winner:
+                                wins += 1
+                                if not TRAINING_MODE:
+                                    print(f"[RL-P{pid}] WON THE GAME! Reward: {final_reward}")
+                            else:
+                                losses += 1
+                                if not TRAINING_MODE:
+                                    print(f"[RL-P{pid}] LOST. Reward: {final_reward}")
+
+                    # Report Training Stats
+                    if game_count % 10 == 0:
+                        win_rate = (wins / (wins + losses)) * 100 if (wins + losses) > 0 else 0
+                        print(f"[STATS] Games: {game_count}, Total Wins: {wins}, Total Losses: {losses}, Rate: {win_rate:.1f}%")
+                        
+                        # Save policy periodically
+                        rl_policy.save(RL_SAVE_PATH)
+                        print(f"[RL] Saved policy to {RL_SAVE_PATH}")
+                    
+                    # Stop if target reached
+                    if TARGET_GAMES > 0 and game_count >= TARGET_GAMES:
+                         print(f"\n[RL] ======= TRAINING COMPLETE =======")
+                         print(f"[RL] Games: {game_count}")
+                         rl_policy.save(RL_SAVE_PATH)
+                         sock.close()
+                         sys.exit(0)
+
+                # Reset global tracking (though handled by config, good to be safe)
+                turn_count = 0
+                
+                break # Break inner loop to receive new configuration
 
 except Exception as e:
     print("Connection error", e)
-    input()
+    if not TRAINING_MODE:
+        input()
 
 if sock:
     sock.close()
