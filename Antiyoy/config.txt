@@ -1,9 +1,9 @@
 10 10
 0
 0 0
-BBB
+LB
 -1 -1 -1
 2137
-python3 receiver.py 127.0.0.1
+receiver 127.0.0.1
 2138
 E
