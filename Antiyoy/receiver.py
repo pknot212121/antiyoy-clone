@@ -51,6 +51,12 @@ class Board:
     def add_hex(self, hexagon):
         self.hexes.append(hexagon)
 
+    def get_hex(self, x, y):
+        """Get hex at coordinates, or None if out of bounds."""
+        if x < 0 or y < 0 or x >= self.width or y >= self.height:
+            return None
+        return self.hexes[y * self.width + x]
+
     def __repr__(self):
         return f"Board({self.width}x{self.height}, {len(self.hexes)} hexes)"
     
@@ -575,22 +581,16 @@ try:
                 if currentBotPlayer != 1:
                     payload.swap_players(1, currentBotPlayer) # Dla ułatwienia trenowania AI zawsze widzi siebie jako 1 
 
-                # DODAĆ LOGIKĘ AI (najlepiej przez ActionBuilder)
+                # Run the AI
+                from bot import SimpleAI
                 ab = ActionBuilder()
-                ab.send_from_line()
-
-                tag, payload = receive_next() # Po wysłaniu ruchu oczekujemy odpowiedzi
-                if tag is None: # Jeśli nie otrzymamy danych
-                    print("Server disconnected")
-                    input()
-                    sys.exit(1)
-
-                if tag != CONFIRMATION_SOCKET_TAG: # Jeśli otrzymamy coś innego niż odpowiedź
-                    print(f"Unexpected content received. Tag: {tag}")
-                    input()
-                    sys.exit(1)
-
-                print(f"Approved: {payload[0]}, Still awaiting: {payload[1]}")
+                ai = SimpleAI(payload, 1, ab, receive_func=receive_next, debug=True)  # Player 1 (after swap)
+                ai.make_move()
+                
+                # The AI sends end_turn at the end, we need to receive final confirmation
+                tag, payload = receive_next()
+                if tag == CONFIRMATION_SOCKET_TAG:
+                    print(f"Turn ended. Approved: {payload[0]}, Still awaiting: {payload[1]}")
 
             elif tag == PLAYER_ELIMINATED_SOCKET_TAG:
                 print(f"Player {payload} eliminated!")

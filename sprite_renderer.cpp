@@ -299,7 +299,7 @@ void SpriteRenderer::generateSprites(Board *board)
         glm::vec3 color = glm::vec3(1.0f,1.0f,1.0f);
 
         if (hex->getOwnerId()!=0) color = palette[hex->getOwnerId()%10];
-        if (auto it = std::ranges::find(brightenedHexes,hex);it!=brightenedHexes.end()) color -= glm::vec3(0.2,0.2,0.2);
+        if (auto it = std::find(brightenedHexes.begin(), brightenedHexes.end(), hex); it != brightenedHexes.end()) color -= glm::vec3(0.2,0.2,0.2);
 
         glm::vec2 hexPos = calculateHexPosition(hex->getX(), hex->getY(), size);
         glm::vec2 unitPos = hexPos + glm::vec2((size-smallSize)/2,0);
