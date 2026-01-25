@@ -257,11 +257,11 @@ void Game::Init(GameConfigData gcd)
     float maxLandArea = 0.6;
 
     bool isHost = clientSocks.size() > 0;
-    if(isHost)
+    if(isHost || invalidSocks())
     {
         gcd.fill(minLandArea);
     }
-    else
+    else if(!invalidSocks())
     {
         std::cout << "Awaiting configuration data...\n";
         if(!gcd.receiveFromSocket(sock, true))
@@ -274,7 +274,7 @@ void Game::Init(GameConfigData gcd)
         std::cout << "Successfully configured!\n";
     }
 
-    std::cout << (int)gcd.x << " " << (int)gcd.y << " " << gcd.seed << " " << gcd.minProvinceSize << " " << gcd.maxProvinceSize << '\n';
+    std::cout << "X: " << (int)gcd.x << ", Y: " << (int)gcd.y << ", Seed: " << gcd.seed << ", Min province: " << gcd.minProvinceSize << ", Max province: " << gcd.maxProvinceSize << '\n';
 
 
     std::string markers = gcd.playerMarkers;

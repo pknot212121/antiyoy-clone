@@ -346,7 +346,6 @@ void SpriteRenderer::generateBorders(Board *board)
 
 void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 {
-    // This generates sprites and puts them in vectors ready to render
     generateSprites(board);
     generateBorders(board);
 
@@ -381,7 +380,6 @@ void SpriteRenderer::DrawBoard(Board *board, int width, int height)
 
 void SpriteRenderer::initRenderData(int bWidth,int bHeight)
 {
-    // 1. Definicja geometrii pojedynczego quada (tak jak miałeś w oryginale)
     float vertices[] = {
         // pos      // tex
         0.0f, 1.0f, 0.0f, 1.0f,
@@ -397,43 +395,35 @@ void SpriteRenderer::initRenderData(int bWidth,int bHeight)
     glGenVertexArrays(1, &this->quadVAO);
     glGenBuffers(1, &this->quadVBO);
 
-    // --- KONFIGURACJA 1: GEOMETRIA (Quad) ---
     glBindVertexArray(this->quadVAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, this->quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Atrybut 0: vertex (vec4: x,y,u,v) - czytany z VBO
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    // Ważne: NIE ustawiamy tu Divisor, bo to są dane per-wierzchołek!
 
 
     glGenBuffers(1, &this->instanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, this->instanceVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(HexInstanceData) * bWidth * bHeight, nullptr, GL_DYNAMIC_DRAW);
 
-    // Atrybut 1: Position (vec2) - czytany z instanceVBO
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, position));
-    glVertexAttribDivisor(1, 1); // Dane zmieniają się co 1 instancję
+    glVertexAttribDivisor(1, 1);
 
-    // Atrybut 2: Color (vec3)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, color));
     glVertexAttribDivisor(2, 1);
 
-    // Atrybut 3: Rotation (float)
     glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, rotation));
     glVertexAttribDivisor(3, 1);
 
-    // Atrybut 4: Size (vec2)
     glEnableVertexAttribArray(4);
     glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(HexInstanceData), (void*)offsetof(HexInstanceData, size));
     glVertexAttribDivisor(4, 1);
 
-    // Sprzątanie
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 

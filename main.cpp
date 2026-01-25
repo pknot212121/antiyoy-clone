@@ -204,6 +204,7 @@ int main(int argc, char *argv[])
     // SOCKETY
     if(shouldRunAi || networkPlayers)
     {
+        std::cout << "Starting sockets" << std::endl;
         initializeSocket(port);
         if(sock == -1)
         {
