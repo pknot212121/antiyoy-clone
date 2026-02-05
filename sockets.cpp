@@ -428,13 +428,10 @@ bool receiveMagicNumbers(int deliveringSocket, bool tag)
 
 void runAi(std::string& pythonProgram, std::string& ipAddress, int port)
 {
-    // Ensure we have the absolute path to the current directory
-    std::string currentPath = std::filesystem::current_path().string();
-
 #ifdef _WIN32
     std::string cmd = "start python \"" + pythonProgram + ".py\" " + ipAddress + " " + std::to_string(port);
 #elif __APPLE__
-    // We launch a new Terminal window, cd to the game directory, and run the receiver
+    std::string currentPath = std::filesystem::current_path().string();
     std::string cmd = "osascript -e 'tell application \"Terminal\" to do script \"cd \\\"" + currentPath + "\\\" && python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\"'";
 #else
     std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
