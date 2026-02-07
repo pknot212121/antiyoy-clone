@@ -4,7 +4,7 @@
 All fans of the game Antiyoy by Yiotro probably know how hard and punishing bots can be in that game.
 This project is an attempt to check if these bots can be surpassed using Reinforcement Learning. We made a faithful copy of the game in OpenGL and C++ and then we used it as an enviroment to train bots using Q-learning.
 
-## Accesibility
+## Accessibility
 
 In the Antiyoy directory we included executables for both windows and linux (should also work for mac).
 There is also a config.txt file there to change parameters of the game.
