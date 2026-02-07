@@ -14,12 +14,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-// The Width of the screen
 unsigned int SCREEN_WIDTH = 800;
-// The height of the screen
 unsigned int SCREEN_HEIGHT = 600;
-bool fullScreen = false;
-bool fPressed = false;
 
 
 
@@ -27,7 +23,6 @@ Game *Anti = new Game(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 int main(int argc, char *argv[])
 {
-    // INICJALIZACJA PLANSZY I GRACZY
     std::ifstream file("config.txt");
     if (!file.is_open())
     {
@@ -334,19 +329,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     // when a user presses the escape key, we set the WindowShouldClose property to true, closing the application
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (key == GLFW_KEY_F && action == GLFW_PRESS && !fullScreen && !fPressed)
-    {
-        glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,glfwGetVideoMode(glfwGetPrimaryMonitor())->width,glfwGetVideoMode(glfwGetPrimaryMonitor())->height,1);
-        fPressed = true;
-    }
-    else if (key == GLFW_KEY_F && action == GLFW_RELEASE && !fullScreen && fPressed){fPressed=false;fullScreen=true;}
-    else if (key == GLFW_KEY_F && action == GLFW_PRESS && fullScreen && !fPressed)
-    {
-        glfwSetWindowMonitor(window,NULL,0,0,SCREEN_WIDTH,SCREEN_HEIGHT,1);
-        fPressed = true;
-    }
-    else if (key == GLFW_KEY_F && action == GLFW_RELEASE && fullScreen && fPressed){fullScreen=false;fPressed=false;}
-    // std::cout << "PRESSED: " << fPressed << " FULLSCREEN: " << fullScreen << std::endl;
     if (key > 0 && key < 1024)
     {
         if (action == GLFW_PRESS)
@@ -365,9 +347,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             {
                 Anti->clickedMovingKeys[key]=false;
             }
-
         }
-
     }
 }
 
