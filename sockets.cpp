@@ -434,7 +434,7 @@ void runAi(std::string& pythonProgram, std::string& ipAddress, int port)
     std::string currentPath = std::filesystem::current_path().string();
     std::string cmd = "osascript -e 'tell application \"Terminal\" to do script \"cd \\\"" + currentPath + "\\\" && python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\"'";
 #else
-    std::string cmd = "xterm -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
+    std::string cmd = "xterm -hold -geometry 100x30 -e \"python3 " + pythonProgram + ".py " + ipAddress + " " + std::to_string(port) + "\" &";
 #endif
 
     std::system(cmd.c_str());
