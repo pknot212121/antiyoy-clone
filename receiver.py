@@ -1590,7 +1590,7 @@ def receive_next():
     """
     result = (None, None)
     debug_print("[RECV] Waiting for next message...")
-    sock.settimeout(60)  # 60 second timeout
+    sock.settimeout(6000)  # 6000 second timeout
     try:
         tag = sock.recv(1)
     except socket.timeout:
