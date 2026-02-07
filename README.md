@@ -2,7 +2,7 @@
 
 ## About
 All fans of the game Antiyoy by Yiotro probably know how hard and punishing bots can be in that game.
-This project is an attempt to check if these bots can be surpassed using Reinforcement Learning. We made a faithful copy of the game in OpenGL and C++ and then we used it as an enviroment to train bots using Q-learning.
+This project is an attempt to check if these bots can be surpassed using Reinforcement Learning. We made a faithful copy of the game in OpenGL and C++ and then we used it as an enviroment to train bots using Q-learning. We also added LAN multiplayer.
 
 ## Accessibility
 
@@ -30,3 +30,53 @@ While inside the game you can use the following controls:
 
 
 ## Config
+
+There are two configuration templates:
+### Normal
+Where the parameters go as:
+```
+map_width map_height
+seed
+min_province_size max_province_size
+player_markers
+max_turn_times
+tcp_port
+program_python program_ip
+port_discovery
+```
+- The values are separated by whitespaces but it is recommended to use structure such as above.
+- All values in lines 1-3 will be random if set to 0.
+- Player markers are letters meaning the player type. Available player types are:
+  - L (local player)
+  - B (AI bot)
+  - N (network player)
+- If only one marker is inputed (excluding N) at the start of the game 2-8 players of this type will be created.
+- Number of max time counts **must be the same** as the number of markers.
+- -1 if inputted as max time means that the time is infinite.
+
+Example:
+```
+5 5
+0
+2 3
+LLB
+-1 -1 10
+2137
+receiver 127.0.0.1
+2138
+```
+
+### Net
+```
+"net"
+port_discovery
+```
+- Allows to connect a network player to a game hosted in local network.
+- Port Discovery **must be the same** as in host's config.
+- Rest of the configuration is taken from host.
+
+Example
+```
+net
+2138
+```
