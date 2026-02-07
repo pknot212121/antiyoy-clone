@@ -22,7 +22,6 @@ While inside the game you can use the following controls:
 | WASD    | Controls to move through the game map |
 | ENTER   | End the turn                          |
 | SCROLL  | To change the size of the map         |
-| F       | Toggle to fullscreen (off by default) |
 | 1,2,3,4 | Place soliders of different tiers     |
 | 5       | Place a farm                          |
 | 6,7     | Place a towers of different tiers     |
