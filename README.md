@@ -6,12 +6,12 @@ This project is an attempt to check if these bots can be surpassed using Reinfor
 
 ## Accessibility
 
-In the Antiyoy directory we included executables for both windows and linux (should also work for mac).
+In the Antiyoy directory we included executables for both [windows](Antiyoy/anti.exe) and [linux](Antiyoy/anti) (should also work for mac).
 There is also a config.txt file there to change parameters of the game.
 
 ## Build
 
-You can also build the game yourself. It should pretty simple with cmake with all dependencies already included in the source code.
+You can also build the game yourself. It should be pretty simple with cmake with all dependencies already included in the source code.
 
 ## Controls
 
