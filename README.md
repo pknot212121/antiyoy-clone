@@ -11,7 +11,7 @@ There is also a [config](Antiyoy/config.txt) file there to change parameters of 
 
 ## Build
 
-You can also build the game yourself. It should be pretty simple with cmake with all dependencies already included in the source code.
+You can also build the game yourself. It should be pretty simple with [cmake](CMakeLists.txt) with all dependencies already included in the source code.
 
 ## Controls
 
