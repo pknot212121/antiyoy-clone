@@ -9,7 +9,7 @@ Download the Antiyoy directory from the releases section for [windows](https://g
 
 ## Build
 
-You can also build the game yourself. It should be pretty simple with [cmake](CMakeLists.txt) with all dependencies already included in the source code.
+You can also build the game yourself. It should be pretty simple with [cmake](CMakeLists.txt) with all dependencies already included in the source code. The game has been only tested on g++ and MinGW and may not work properly on other compilers.
 
 ## Controls
 
