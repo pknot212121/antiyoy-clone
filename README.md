@@ -1,7 +1,7 @@
 # Antiyoy-Clone
 
 ## About
-All fans of the game Antiyoy by Yiotro probably know how hard and punishing bots can be in that game.
+All fans of the game [Antiyoy](https://github.com/yiotro/Antiyoy) by Yiotro probably know how hard and punishing bots can be in that game.
 This project is an attempt to check if these bots can be surpassed using Reinforcement Learning. We made a faithful copy of the game in OpenGL and C++ and then we used it as an enviroment to train bots using Q-learning. We also added LAN multiplayer.
 
 ## Accessibility
