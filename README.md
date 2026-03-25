@@ -13,7 +13,15 @@ Download the Antiyoy directory from the releases section for [windows](https://g
 
 ## Build
 
-You can also build the game yourself. It should be pretty simple with [cmake](CMakeLists.txt) with all dependencies already included in the source code. The game has been only tested on g++ and MinGW and may not work properly on other compilers.
+We have recently moved to conan for package management and the building instructions are now as follows:
+1. Download the zip or clone the repository
+2. Set up a .venv enviroment
+3. Run **pip install conan**
+4. If you are using conan for the first time also run **conan profile detect --force**
+5. Then run this to set up dependencies: **conan install . --output-folder=conan_build --build=missing -c tools.system.package_manager:mode=install -c tools.system.package_manager:sudo=True -s compiler.cppstd=20**
+At least on linux this command should do the trick.
+7. Build the project using cmake and run it.
+The game has been only tested on g++ and MinGW and may not work properly on other compilers.
 
 ## Controls
 
