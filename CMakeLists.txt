@@ -6,6 +6,10 @@ cmake_policy(SET CMP0072 NEW)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(OpenGL REQUIRED)
+find_package(glfw3)
+find_package(glad)
+find_package(glm)
+find_package(freetype)
 
 set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
@@ -13,8 +17,6 @@ set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-add_subdirectory(freetype)
-add_subdirectory(glfw)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 add_executable(anti
         main.cpp
@@ -24,7 +26,6 @@ add_executable(anti
         sprite_renderer.cpp
         texture.cpp
         resource_manager.cpp
-        glad.c
         text_renderer.h
         text_renderer.cpp
         sockets.h
@@ -51,9 +52,9 @@ add_executable(anti
         textures-arr/soldier4_256.h
         textures-arr/strongTower_256.h
         textures-arr/tower_256.h)
-include_directories(anti PRIVATE include)
+#include_directories(anti PRIVATE include)
 set_property(TARGET anti PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-target_link_libraries(anti glfw OpenGL::GL freetype)
+target_link_libraries(anti glfw glad::glad glm::glm OpenGL::GL freetype)
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} ws2_32)

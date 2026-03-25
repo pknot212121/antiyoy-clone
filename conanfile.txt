@@ -1,0 +1,9 @@
+[requires]
+glfw/3.4
+glad/0.1.36
+glm/1.0.1
+freetype/2.13.2
+
+[generators]
+CMakeDeps
+CMakeToolchain

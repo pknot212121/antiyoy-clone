@@ -417,7 +417,7 @@ void Board::propagateTrees()
             {
                 double chance = chanceDist(gen);
 
-                if (h.getResident()==Resident::PalmTree && chance<=0.3)
+                if (h.getResident()==Resident::PalmTree && chance<=0.03)
                 {
                     std::erase_if(neigh, [this](Hexagon* hex){return !hex->isNearWater(this);});
                     if (neigh.size()>0)
@@ -427,7 +427,7 @@ void Board::propagateTrees()
                         palms.insert(neigh[choice]);
                     }
                 }
-                else if (h.getResident()==Resident::PineTree && chance<=0.2)
+                else if (h.getResident()==Resident::PineTree && chance<=0.02)
                 {
                     std::erase_if(neigh, [this](Hexagon* hex){return !hex->bordersPineAndOtherTree(this);});
                     if (neigh.size()>0)
