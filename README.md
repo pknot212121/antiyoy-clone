@@ -1,17 +1,19 @@
 # Antiyoy-Clone
 
 ## About
-All fans of the game Antiyoy by Yiotro probably know how hard and punishing bots can be in that game.
+All fans of the game [Antiyoy](https://github.com/yiotro/Antiyoy) by Yiotro probably know how hard and punishing bots can be in that game.
 This project is an attempt to check if these bots can be surpassed using Reinforcement Learning. We made a faithful copy of the game in OpenGL and C++ and then we used it as an enviroment to train bots using Q-learning. We also added LAN multiplayer.
 
-## Accessibility
+<p align="center">
+  <img src="anti.gif" width=90% alt="Evolutionary Simulation Demo">
+</p>
 
-In the Antiyoy directory we included executables for both windows and linux (should also work for mac).
-There is also a config.txt file there to change parameters of the game.
+## Setup guide
+Download the Antiyoy directory from the releases section for [windows](https://github.com/pknot212121/antiyoy-clone/releases/tag/windows) or [linux](https://github.com/pknot212121/antiyoy-clone/releases/tag/linux) , unpack it and activate the executable inside. There should be also a [config](Antiyoy/config.txt) file there to modify parameters of the game.
 
 ## Build
 
-You can also build the game yourself. It should pretty simple with cmake with all dependencies already included in the source code.
+You can also build the game yourself. It should be pretty simple with [cmake](CMakeLists.txt) with all dependencies already included in the source code. The game has been only tested on g++ and MinGW and may not work properly on other compilers.
 
 ## Controls
 
